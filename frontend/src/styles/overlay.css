@@ -1,0 +1,179 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(5, 6, 8, 0.75);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--esp-4);
+  overflow-y: auto;
+}
+
+@media (min-width: 520px) {
+  .overlay {
+    align-items: center;
+  }
+}
+
+.overlay-painel {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--esp-4);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.overlay-titulo {
+  font-size: 16px;
+  margin: 0 0 var(--esp-3);
+}
+
+.overlay-carregando {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(5, 6, 8, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-3);
+  color: var(--text);
+}
+
+.pulso {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  animation: pulso 1.4s ease-in-out infinite;
+}
+
+@keyframes pulso {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso {
+    animation: none;
+  }
+  .anel-arco,
+  .macro-preenchido,
+  .macro-excesso {
+    transition: none;
+  }
+}
+
+/* gravador */
+.gravador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-3);
+  padding: var(--esp-3) 0;
+}
+
+.gravador-tempo {
+  font-size: 32px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gravador-ponto {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  margin-right: var(--esp-2);
+  animation: pulso 1.2s ease-in-out infinite;
+}
+
+/* confirmação */
+.alimento {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--esp-3);
+  margin-bottom: var(--esp-2);
+  background: var(--surface-2);
+}
+
+.alimento-topo {
+  display: flex;
+  gap: var(--esp-2);
+  margin-bottom: var(--esp-2);
+}
+
+.alimento-topo input:first-child {
+  flex: 2;
+}
+
+.alimento-topo input:nth-child(2) {
+  flex: 1;
+}
+
+.alimento-grade {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--esp-2);
+}
+
+.alimento-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alimento-campo span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.alimento-campo input,
+.alimento-topo input {
+  min-height: 40px;
+  width: 100%;
+  padding: 0 var(--esp-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.alimento-remover {
+  margin-top: var(--esp-2);
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 13px;
+  min-height: 36px;
+  padding: 0;
+}
+
+.totais {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  border-top: 1px solid var(--border);
+  margin-top: var(--esp-3);
+  padding-top: var(--esp-3);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.totais strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}

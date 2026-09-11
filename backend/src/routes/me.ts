@@ -1,0 +1,74 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { perfilDe } from '../middleware/autenticar.js';
+import { calcularMetas } from '../domain/nutricao.js';
+import { horaValida } from '../domain/refeicao.js';
+import { timezoneValida } from '../domain/tempo.js';
+import { OBJETIVOS, REFEICOES, SEXOS } from '../domain/tipos.js';
+import { atualizarUsuario, paraPerfil, type CamposAtualizaveis } from '../repos/usuarios.js';
+
+export const rotasMe: Router = Router();
+
+const hora = z.string().refine(horaValida, 'horário deve estar no formato HH:MM');
+
+const faixaSchema = z.object({
+  refeicao: z.enum(REFEICOES),
+  inicio: hora,
+  fim: hora,
+});
+
+const perfilSchema = z
+  .object({
+    nome: z.string().trim().min(1).max(120),
+    sexo: z.enum(SEXOS).nullable(),
+    idade: z.number().int().min(1).max(120).nullable(),
+    peso_kg: z.number().min(20).max(400).nullable(),
+    altura_cm: z.number().min(80).max(260).nullable(),
+    objetivo: z.enum(OBJETIVOS),
+    meta_calorias: z.number().int().min(500).max(10000),
+    meta_carboidrato_g: z.number().min(0).max(2000),
+    meta_proteina_g: z.number().min(0).max(1000),
+    meta_gordura_g: z.number().min(0).max(1000),
+    meta_agua_ml: z.number().int().min(200).max(20000),
+    metas_automaticas: z.boolean(),
+    modo_preguicoso: z.boolean(),
+    faixas_refeicao: z
+      .array(faixaSchema)
+      .length(5)
+      .refine(
+        (f) => new Set(f.map((x) => x.refeicao)).size === 5,
+        'informe uma faixa para cada uma das 5 refeições, sem repetir',
+      ),
+    timezone: z.string().refine(timezoneValida, 'fuso horário desconhecido'),
+  })
+  .partial();
+
+rotasMe.get('/', (req, res) => {
+  res.json(perfilDe(req));
+});
+
+rotasMe.put('/', async (req, res, next) => {
+  try {
+    const atual = perfilDe(req);
+    const campos: CamposAtualizaveis = perfilSchema.parse(req.body);
+
+    // Metas automáticas ligadas: os dados corporais mandam, o que veio de meta_* é ignorado.
+    const automaticas = campos.metas_automaticas ?? atual.metas_automaticas;
+    if (automaticas) {
+      const metas = calcularMetas({
+        sexo: campos.sexo !== undefined ? campos.sexo : atual.sexo,
+        idade: campos.idade !== undefined ? campos.idade : atual.idade,
+        peso_kg: campos.peso_kg !== undefined ? campos.peso_kg : atual.peso_kg,
+        altura_cm: campos.altura_cm !== undefined ? campos.altura_cm : atual.altura_cm,
+        objetivo: campos.objetivo ?? atual.objetivo,
+      });
+      // Sem dados corporais suficientes, mantém as metas atuais em vez de zerar o perfil.
+      if (metas) Object.assign(campos, metas);
+    }
+
+    const linha = await atualizarUsuario(atual.id, campos);
+    res.json(paraPerfil(linha));
+  } catch (e) {
+    next(e);
+  }
+});

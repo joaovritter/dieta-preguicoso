@@ -1,0 +1,305 @@
+/* faixa semanal */
+.semana {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--esp-1);
+  margin-bottom: var(--esp-3);
+}
+
+.semana-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 56px;
+  padding: var(--esp-2) 0 var(--esp-1);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.semana-dia[aria-pressed='true'] {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.semana-letra {
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.semana-numero {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.semana-ponto {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.semana-ponto.vazio {
+  background: transparent;
+}
+
+/* anel de calorias */
+.anel {
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.anel svg {
+  transform: rotate(-90deg);
+}
+
+.anel-trilha {
+  fill: none;
+  stroke: var(--border);
+}
+
+.anel-arco {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 600ms ease;
+}
+
+.anel-progresso {
+  stroke: var(--accent);
+}
+
+.anel-excesso {
+  stroke: var(--excess);
+}
+
+.anel-centro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.anel-valor {
+  font-size: 40px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.anel-valor.excedido {
+  color: var(--excess);
+}
+
+.anel-rotulo {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.anel-detalhe {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--esp-1);
+}
+
+/* barras de macro */
+.macro {
+  margin-bottom: var(--esp-3);
+}
+
+.macro:last-child {
+  margin-bottom: 0;
+}
+
+.macro-linha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: var(--esp-1);
+}
+
+.macro-valor {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.macro-trilha {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.macro-preenchido {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 400ms ease;
+}
+
+.macro-excesso {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--excess);
+  border-radius: 3px;
+  transition: width 400ms ease;
+}
+
+/* água */
+.agua-botoes {
+  display: flex;
+  gap: var(--esp-2);
+  margin-top: var(--esp-3);
+}
+
+.agua-botoes .botao {
+  flex: 1;
+  padding: 0;
+  font-size: 14px;
+}
+
+/* refeições */
+.refeicao-cabecalho {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  min-height: 44px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+
+.refeicao-nome {
+  font-size: 15px;
+}
+
+.refeicao-kcal {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.refeicao-corpo {
+  margin-top: var(--esp-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--esp-3);
+}
+
+.registro {
+  margin-bottom: var(--esp-3);
+}
+
+.registro:last-child {
+  margin-bottom: 0;
+}
+
+.registro-topo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  flex-wrap: wrap;
+}
+
+.registro-descricao {
+  flex: 1 1 140px;
+  font-size: 14px;
+}
+
+.registro-alimentos {
+  list-style: none;
+  margin: var(--esp-2) 0 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.registro-alimentos li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--esp-2);
+  padding: 2px 0;
+}
+
+.registro-acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-2);
+  margin-top: var(--esp-2);
+}
+
+.seletor {
+  min-height: 36px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--esp-2);
+}
+
+.botao-mini {
+  min-height: 36px;
+  padding: 0 var(--esp-3);
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+}
+
+/* barra inferior de ações */
+.barra-acoes {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.barra-acoes-interna {
+  max-width: 480px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--esp-2);
+  padding: var(--esp-2) var(--esp-4);
+}
+
+.acao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.acao:hover {
+  border-color: var(--accent-dim);
+}
+
+.acao svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.6;
+}

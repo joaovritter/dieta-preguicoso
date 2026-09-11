@@ -1,0 +1,24 @@
+:root {
+  --bg: #0d0f12;
+  --surface: #15181d;
+  --surface-2: #1c2027;
+  --border: #262b34;
+  --text: #e7eaee;
+  --text-muted: #8a919d;
+  --accent: #3fa87c;
+  --accent-dim: #2c6f55;
+  --excess: #c8794f;
+  --danger: #b4574f;
+  --radius: 14px;
+  --radius-sm: 9px;
+
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 24px;
+  --esp-6: 32px;
+
+  --fonte: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --altura-barra-acoes: 68px;
+}

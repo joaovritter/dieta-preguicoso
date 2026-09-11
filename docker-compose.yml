@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dieta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-dieta}
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-dieta} -d ${POSTGRES_DB:-dieta}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Sem `ports`: o banco só é alcançável pela rede interna do compose.
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://${POSTGRES_USER:-dieta}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dieta}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      JWT_EXPIRACAO: ${JWT_EXPIRACAO:-30d}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?defina OPENAI_API_KEY no .env}
+      OPENAI_MODEL_TEXTO: ${OPENAI_MODEL_TEXTO:-gpt-4o}
+      OPENAI_MODEL_VISAO: ${OPENAI_MODEL_VISAO:-gpt-4o}
+      OPENAI_MODEL_AUDIO: ${OPENAI_MODEL_AUDIO:-whisper-1}
+      DIR_UPLOADS: /app/uploads
+      RETENCAO_MIDIA_DIAS: ${RETENCAO_MIDIA_DIAS:-30}
+      TIMEZONE_PADRAO: ${TIMEZONE_PADRAO:-America/Sao_Paulo}
+      PERMITIR_CADASTRO: ${PERMITIR_CADASTRO:-true}
+    volumes:
+      - midias:/app/uploads
+    # Idem: só o nginx fala com a API.
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      # Única porta exposta na VPS. Troque a da esquerda se 8080 já estiver em uso.
+      - '${PORTA_PUBLICA:-8080}:80'
+
+volumes:
+  dados-postgres:
+  midias:

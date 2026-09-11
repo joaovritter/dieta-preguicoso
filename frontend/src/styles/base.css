@@ -1,0 +1,131 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--fonte);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--esp-4) var(--esp-4)
+    calc(var(--altura-barra-acoes) + var(--esp-6) + env(safe-area-inset-bottom));
+}
+
+.cartao {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--esp-4);
+  margin-bottom: var(--esp-3);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.mudo {
+  color: var(--text-muted);
+}
+
+.titulo-secao {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-transform: lowercase;
+  margin: 0 0 var(--esp-2);
+  letter-spacing: 0.02em;
+}
+
+.topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-3);
+}
+
+.topo h1 {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.link-texto {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: var(--esp-2);
+  min-height: 44px;
+  text-decoration: underline;
+}
+
+.link-texto:hover {
+  color: var(--text);
+}
+
+.botao {
+  min-height: 44px;
+  padding: 0 var(--esp-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.botao:hover:not(:disabled) {
+  border-color: var(--accent-dim);
+}
+
+.botao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.botao-primario {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #07130e;
+  font-weight: 600;
+}
+
+.botao-perigo {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: transparent;
+}
+
+.carregando-pagina {
+  padding: var(--esp-6);
+  text-align: center;
+  color: var(--text-muted);
+}
