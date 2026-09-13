@@ -8,6 +8,7 @@ export type CodigoErro =
   | 'IA_INDISPONIVEL'
   | 'IA_RESPOSTA_INVALIDA'
   | 'ARQUIVO_INVALIDO'
+  | 'LIMITE_EXCEDIDO'
   | 'ERRO_INTERNO';
 
 const STATUS_PADRAO: Record<CodigoErro, number> = {
@@ -20,6 +21,7 @@ const STATUS_PADRAO: Record<CodigoErro, number> = {
   IA_INDISPONIVEL: 502,
   IA_RESPOSTA_INVALIDA: 502,
   ARQUIVO_INVALIDO: 400,
+  LIMITE_EXCEDIDO: 429,
   ERRO_INTERNO: 500,
 };
 

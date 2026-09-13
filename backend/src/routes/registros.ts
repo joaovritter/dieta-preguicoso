@@ -16,6 +16,7 @@ import {
 import { AppError } from '../lib/erros.js';
 import { uploadAudio, uploadImagem, urlDaMidia, caminhoDaMidia } from '../lib/uploads.js';
 import { perfilDe } from '../middleware/autenticar.js';
+import { limiteTaxa, porUsuario } from '../middleware/limiteTaxa.js';
 import {
   apagarRegistro,
   atualizarRegistro,
@@ -25,6 +26,15 @@ import {
 } from '../repos/registros.js';
 
 export const rotasRegistros: Router = Router();
+
+// Cada chamada de /texto, /foto e /audio consome créditos da OpenAI: limita
+// por usuário para conter tanto custo quanto uso indevido do endpoint.
+const limiteIA = limiteTaxa({
+  janelaMs: 60 * 60 * 1000,
+  maximo: 60,
+  chave: porUsuario,
+  mensagem: 'muitos registros em pouco tempo, aguarde um pouco',
+});
 
 /** Envolve o middleware do multer para que o erro caia no `next` em vez de estourar. */
 function comUpload(middleware: RequestHandler): RequestHandler {
@@ -78,7 +88,7 @@ const textoSchema = z.object({
   texto: z.string().trim().min(2, 'descreva o que você comeu').max(2000),
 });
 
-rotasRegistros.post('/texto', async (req, res, next) => {
+rotasRegistros.post('/texto', limiteIA, async (req, res, next) => {
   try {
     const perfil = perfilDe(req);
     const { texto } = textoSchema.parse(req.body);
@@ -96,7 +106,7 @@ rotasRegistros.post('/texto', async (req, res, next) => {
   }
 });
 
-rotasRegistros.post('/foto', comUpload(uploadImagem), async (req, res, next) => {
+rotasRegistros.post('/foto', limiteIA, comUpload(uploadImagem), async (req, res, next) => {
   const arquivo = req.file;
   try {
     const perfil = perfilDe(req);
@@ -120,7 +130,7 @@ rotasRegistros.post('/foto', comUpload(uploadImagem), async (req, res, next) => 
   }
 });
 
-rotasRegistros.post('/audio', comUpload(uploadAudio), async (req, res, next) => {
+rotasRegistros.post('/audio', limiteIA, comUpload(uploadAudio), async (req, res, next) => {
   const arquivo = req.file;
   try {
     const perfil = perfilDe(req);

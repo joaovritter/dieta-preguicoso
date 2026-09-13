@@ -4,6 +4,7 @@ import { env } from './env.js';
 import { DIR_UPLOADS } from './lib/uploads.js';
 import { autenticar } from './middleware/autenticar.js';
 import { naoEncontrado, tratarErro } from './middleware/erro.js';
+import { limiteTaxa, porIp } from './middleware/limiteTaxa.js';
 import { rotasAgua } from './routes/agua.js';
 import { rotasAuth } from './routes/auth.js';
 import { rotasMe } from './routes/me.js';
@@ -14,6 +15,9 @@ export function criarApp(): Express {
   const app = express();
 
   app.disable('x-powered-by');
+  // Só o nginx do compose fala com o backend: confia no X-Forwarded-For dele
+  // para o rate limit enxergar o IP real do cliente.
+  app.set('trust proxy', 1);
   app.use(
     cors({
       origin: env.origensPermitidas.includes('*') ? true : env.origensPermitidas,
@@ -25,7 +29,18 @@ export function criarApp(): Express {
     res.json({ ok: true });
   });
 
-  app.use('/api/auth', rotasAuth);
+  // Sem HTTPS/firewall restrito, login e cadastro ficam expostos a brute force
+  // vindo de qualquer IP: limita tentativas por IP antes de chegar na rota.
+  app.use(
+    '/api/auth',
+    limiteTaxa({
+      janelaMs: 15 * 60 * 1000,
+      maximo: 15,
+      chave: porIp,
+      mensagem: 'muitas tentativas de login, aguarde alguns minutos',
+    }),
+    rotasAuth,
+  );
 
   // Tudo daqui pra baixo exige token.
   app.use('/api/me', autenticar, rotasMe);
