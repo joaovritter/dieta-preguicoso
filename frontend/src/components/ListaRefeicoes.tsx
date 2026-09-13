@@ -24,9 +24,7 @@ export default function ListaRefeicoes({ grupos, ocupado, aoTrocarRefeicao, aoEx
     return (
       <section className="cartao">
         <h2 className="titulo-secao">refeições</h2>
-        <p className="mudo" style={{ margin: 0 }}>
-          nada registrado ainda hoje
-        </p>
+        <p className="mudo estado-vazio">nada registrado ainda hoje</p>
       </section>
     );
   }
@@ -47,7 +45,10 @@ export default function ListaRefeicoes({ grupos, ocupado, aoTrocarRefeicao, aoEx
               <span className="refeicao-nome">{NOME_REFEICAO[grupo.refeicao]}</span>
               <span className="refeicao-kcal">
                 {numero(grupo.calorias)} kcal · {grupo.registros.length}{' '}
-                {grupo.registros.length === 1 ? 'registro' : 'registros'} {aberta ? '▾' : '▸'}
+                {grupo.registros.length === 1 ? 'registro' : 'registros'}
+                <span className={aberta ? 'refeicao-seta aberta' : 'refeicao-seta'} aria-hidden="true">
+                  ▸
+                </span>
               </span>
             </button>
 

@@ -2,12 +2,14 @@
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: rgba(5, 6, 8, 0.75);
+  background: rgba(5, 6, 8, 0.7);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   padding: var(--esp-4);
   overflow-y: auto;
+  animation: aparecer 180ms var(--easing);
 }
 
 @media (min-width: 520px) {
@@ -25,24 +27,45 @@
   padding: var(--esp-4);
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: var(--sombra-2);
+  animation: subir 220ms var(--easing);
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .overlay-titulo {
   font-size: 16px;
-  margin: 0 0 var(--esp-3);
+  font-weight: 650;
+  margin: 0 0 var(--esp-4);
 }
 
 .overlay-carregando {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgba(5, 6, 8, 0.8);
+  background: rgba(5, 6, 8, 0.82);
+  backdrop-filter: blur(2px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--esp-3);
   color: var(--text);
+  animation: aparecer 180ms var(--easing);
+}
+
+.overlay-carregando p {
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
 .pulso {
@@ -66,13 +89,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pulso {
+  .pulso,
+  .gravador-ponto {
     animation: none;
   }
   .anel-arco,
   .macro-preenchido,
-  .macro-excesso {
+  .macro-excesso,
+  .overlay,
+  .overlay-painel,
+  .carregando-pagina,
+  .erro-faixa,
+  .overlay-carregando {
     transition: none;
+    animation: none;
   }
 }
 
@@ -107,6 +137,11 @@
   padding: var(--esp-3);
   margin-bottom: var(--esp-2);
   background: var(--surface-2);
+  transition: border-color var(--duracao) var(--easing);
+}
+
+.alimento:focus-within {
+  border-color: var(--accent-dim);
 }
 
 .alimento-topo {
@@ -174,6 +209,7 @@
 
 .totais strong {
   display: block;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
 }
