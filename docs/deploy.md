@@ -151,8 +151,21 @@ DOMINIO=dieta.trainna.com.br bash scripts/subdominio-nginx.sh
 ```
 
 Ele cria **um arquivo novo** em `sites-available`, testa a configuração antes de recarregar
-e chama o certbot. Não encosta em vhost que já existe; se o teste do nginx falhar, apaga o
-que criou e para, deixando os outros sites como estavam.
+e chama o certbot (instalando, se faltar). Não encosta em vhost que já existe; se o teste do
+nginx falhar, apaga o que criou e para, deixando os outros sites como estavam.
+
+Se a VPS já tem um certificado que cobre o subdomínio — um Origin Certificate curinga do
+Cloudflare, por exemplo — reaproveite em vez de pedir outro:
+
+```bash
+DOMINIO=dieta.trainna.com.br \
+CERT=/etc/ssl/cloudflare/trainna.pem CHAVE=/etc/ssl/cloudflare/trainna.key \
+TRUST_PROXY=3 bash scripts/subdominio-nginx.sh
+```
+
+**Quanto vale o `TRUST_PROXY`** (é ele que faz o limite de login contar por pessoa, não por
+proxy): `2` com o Cloudflare em DNS only (nuvem cinza), `3` com o Cloudflare proxiando
+(nuvem laranja), porque aí o edge dele entra como mais um salto no caminho.
 
 O que ele escreve, se você preferir fazer na mão:
 
