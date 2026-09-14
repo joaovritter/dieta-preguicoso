@@ -1,4 +1,4 @@
-# Deploy na VPS (Contabo, sem domínio)
+# Deploy na VPS (Contabo)
 
 ## Pré-requisitos
 
@@ -29,41 +29,58 @@ docker compose logs -f backend
 curl http://localhost:8080/api/health   # {"ok":true}
 ```
 
-## Fechar o cadastro
+## Cadastro
 
-Crie sua conta na tela de login e então:
+Fica **aberto** (`PERMITIR_CADASTRO=true`, que já é o padrão): a rede social só funciona se
+os seus amigos conseguirem criar conta neste mesmo servidor.
+
+Se você já tinha fechado o cadastro numa instalação anterior, reabra assim:
 
 ```bash
-sed -i 's/^PERMITIR_CADASTRO=.*/PERMITIR_CADASTRO=false/' .env
+sed -i 's/^PERMITIR_CADASTRO=.*/PERMITIR_CADASTRO=true/' .env
 docker compose up -d backend
 ```
 
-Depois disso `POST /api/auth/register` responde `403 CADASTRO_DESABILITADO`. Isso importa:
-sem domínio e sem HTTPS, o IP:porta acaba sendo varrido por bots mais cedo ou mais tarde.
+O que segura abuso com o cadastro aberto: `/api/auth/*` aceita no máximo 15 tentativas por
+IP a cada 15 minutos, senha tem mínimo de 8 caracteres e hash bcrypt. Não é muito — é o
+suficiente para um servidor entre amigos, não para um cadastro público de verdade.
 
-**Atenção com os amigos:** a rede social precisa que as outras pessoas tenham conta neste
-mesmo servidor. Deixe `PERMITIR_CADASTRO=true` enquanto o grupo está entrando e feche depois
-(`docker compose up -d backend` aplica na hora, nos dois sentidos).
+Para trancar depois (só quem já tem conta continua entrando), é o mesmo comando com `false`;
+aí `POST /api/auth/register` passa a responder `403 CADASTRO_DESABILITADO`.
 
 ## Firewall
 
-Sem domínio e sem TLS, o tráfego (inclusive a senha no login) trafega em claro. Restrinja
-o acesso ao seu IP em vez de deixar a porta aberta para a internet:
+Com o cadastro aberto e amigos usando de casa, a porta do app precisa ficar aberta —
+travar por IP só valeria se você fosse o único usuário. Feche todo o resto:
 
 ```bash
 ufw default deny incoming
 ufw allow ssh
-ufw allow from SEU_IP_RESIDENCIAL to any port 8080 proto tcp
+ufw allow 8080/tcp
 ufw enable
 ```
 
-Se seu IP for dinâmico, a alternativa mais simples é acessar por túnel SSH e não expor
-porta nenhuma:
+**Enquanto não houver domínio e HTTPS, tudo trafega em claro** — inclusive a senha de quem
+faz login. Avise o pessoal para não reaproveitar uma senha importante aqui, e resolva o TLS
+assim que o domínio chegar.
+
+## Domínio e HTTPS
+
+Assim que o domínio existir, aponte um registro `A` para o IP da VPS e ponha um proxy com
+certificado automático na frente. O caminho mais curto é o Caddy, que cuida do Let's Encrypt
+sozinho — na VPS, com a porta 8080 já servindo o app:
 
 ```bash
-# remova a seção `ports` do serviço frontend, depois, na sua máquina:
-ssh -L 8080:localhost:8080 usuario@SEU_IP
+apt install -y caddy
+echo 'seu-dominio.com.br {
+  reverse_proxy localhost:8080
+}' > /etc/caddy/Caddyfile
+systemctl restart caddy
+ufw allow 80,443/tcp && ufw delete allow 8080/tcp
 ```
+
+Depois disso o app vive em `https://seu-dominio.com.br` e a porta 8080 deixa de ser exposta.
+Não há CORS para configurar: o nginx serve o app e faz proxy de `/api` na mesma origem.
 
 ## Atualizar
 
