@@ -45,6 +45,7 @@ export interface Perfil {
   id: string;
   email: string;
   nome: string;
+  tag: string;
   sexo: Sexo | null;
   idade: number | null;
   peso_kg: number | null;
@@ -99,4 +100,49 @@ export interface Metrica {
   percentual: number;
   restante: number;
   excedido: number;
+}
+
+/** Identidade pública de alguém na rede social: `nome#tag`. */
+export interface PerfilPublico {
+  id: string;
+  nome: string;
+  tag: string;
+  nome_tag: string;
+  objetivo: Objetivo;
+}
+
+export const STATUS_DIA = ['sem_registro', 'abaixo', 'na_meta', 'acima'] as const;
+export type StatusDia = (typeof STATUS_DIA)[number];
+
+export interface ProgressoDia {
+  data: string;
+  calorias: number;
+  meta_calorias: number;
+  percentual: number;
+  status: StatusDia;
+  quantidade_registros: number;
+}
+
+export interface MembroComProgresso {
+  perfil: PerfilPublico;
+  progresso_hoje: ProgressoDia;
+}
+
+/** Uma refeição de alguém, do jeito que aparece no feed. */
+export interface Post extends Registro {
+  autor: PerfilPublico;
+}
+
+export interface Feed {
+  posts: Post[];
+  proximo_antes: string | null;
+}
+
+export interface Grupo {
+  id: string;
+  nome: string;
+  codigo_convite: string;
+  quantidade_membros: number;
+  sou_criador: boolean;
+  criado_em: string;
 }

@@ -1,6 +1,14 @@
 import { consultar, consultarUm } from '../db/index.js';
 import { somarTotais } from '../domain/nutricao.js';
-import type { Alimento, Refeicao, Registro, TipoEntrada } from '../domain/tipos.js';
+import { paraPerfilPublico } from '../domain/social.js';
+import type {
+  Alimento,
+  Objetivo,
+  Post,
+  Refeicao,
+  Registro,
+  TipoEntrada,
+} from '../domain/tipos.js';
 
 interface LinhaRegistro {
   id: string;
@@ -138,5 +146,79 @@ export async function limparMidiasAntigas(antesDe: Date): Promise<void> {
   await consultar(
     'UPDATE registros_alimentares SET midia_url = NULL WHERE midia_url IS NOT NULL AND criado_em < $1',
     [antesDe],
+  );
+}
+
+interface LinhaPost extends LinhaRegistro {
+  autor_id: string;
+  autor_nome: string;
+  autor_tag: string;
+  autor_objetivo: Objetivo;
+}
+
+/**
+ * Refeições de um conjunto de pessoas, mais recentes primeiro — é o feed.
+ * `antes` pagina: passe o `criado_em` do último post da página anterior.
+ */
+export async function feedDeUsuarios(
+  userIds: string[],
+  antes: Date | null,
+  limite: number,
+): Promise<Post[]> {
+  if (userIds.length === 0) return [];
+
+  const linhas = await consultar<LinhaPost>(
+    `SELECT r.id, r.tipo_entrada, r.refeicao, r.descricao_bruta, r.midia_url,
+            r.alimentos_detectados, r.calorias_total, r.carboidrato_total_g,
+            r.proteina_total_g, r.gordura_total_g, r.criado_em,
+            u.id AS autor_id, u.nome AS autor_nome, u.tag AS autor_tag,
+            u.objetivo AS autor_objetivo
+     FROM registros_alimentares r
+     JOIN users u ON u.id = r.user_id
+     WHERE r.user_id = ANY($1::uuid[])
+       AND ($2::timestamptz IS NULL OR r.criado_em < $2)
+     ORDER BY r.criado_em DESC
+     LIMIT $3`,
+    [userIds, antes, limite],
+  );
+
+  return linhas.map((l) => ({
+    ...paraRegistro(l),
+    autor: paraPerfilPublico({
+      id: l.autor_id,
+      nome: l.autor_nome,
+      tag: l.autor_tag,
+      objetivo: l.autor_objetivo,
+    }),
+  }));
+}
+
+export interface TotalDoDia {
+  calorias: number;
+  quantidade: number;
+}
+
+/**
+ * Calorias somadas por dia do calendário da pessoa, num intervalo. Uma consulta só:
+ * o agrupamento por dia local acontece no banco, com o fuso do dono dos registros.
+ */
+export async function caloriasPorDia(
+  userId: string,
+  inicio: Date,
+  fim: Date,
+  timezone: string,
+): Promise<Map<string, TotalDoDia>> {
+  const linhas = await consultar<{ data: string; calorias: number; quantidade: number }>(
+    `SELECT to_char(criado_em AT TIME ZONE $4, 'YYYY-MM-DD') AS data,
+            sum(calorias_total) AS calorias,
+            count(*)::int AS quantidade
+     FROM registros_alimentares
+     WHERE user_id = $1 AND criado_em >= $2 AND criado_em < $3
+     GROUP BY 1`,
+    [userId, inicio, fim, timezone],
+  );
+
+  return new Map(
+    linhas.map((l) => [l.data, { calorias: Number(l.calorias), quantidade: l.quantidade }]),
   );
 }

@@ -137,3 +137,38 @@ export function somarDias(data: string, dias: number): string {
   const d = new Date(Date.UTC(p.ano, p.mes - 1, p.dia + dias));
   return `${String(d.getUTCFullYear()).padStart(4, '0')}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
+
+const RE_MES = /^(\d{4})-(\d{2})$/;
+
+/** Todos os dias de "YYYY-MM", em ordem, como "YYYY-MM-DD". */
+export function diasDoMes(mes: string): string[] {
+  const m = RE_MES.exec(mes);
+  if (!m) throw new Error(`mês inválido: ${mes}`);
+  const ano = Number(m[1]);
+  const numeroMes = Number(m[2]);
+  if (numeroMes < 1 || numeroMes > 12) throw new Error(`mês inválido: ${mes}`);
+
+  // Dia 0 do mês seguinte = último dia deste mês.
+  const total = new Date(Date.UTC(ano, numeroMes, 0)).getUTCDate();
+  return Array.from(
+    { length: total },
+    (_, i) => `${m[1]}-${m[2]}-${String(i + 1).padStart(2, '0')}`,
+  );
+}
+
+/** Intervalo `[inicio, fim)` em UTC que cobre o mês local "YYYY-MM". */
+export function intervaloDoMes(mes: string, timezone: string): { inicio: Date; fim: Date } {
+  const dias = diasDoMes(mes);
+  const primeiro = dias[0];
+  const ultimo = dias[dias.length - 1];
+  if (!primeiro || !ultimo) throw new Error(`mês inválido: ${mes}`);
+  return {
+    inicio: intervaloDoDia(primeiro, timezone).inicio,
+    fim: intervaloDoDia(ultimo, timezone).fim,
+  };
+}
+
+/** "YYYY-MM" do mês em que o instante cai, no fuso do usuário. */
+export function mesLocal(instante: Date, timezone: string): string {
+  return dataLocal(instante, timezone).slice(0, 7);
+}

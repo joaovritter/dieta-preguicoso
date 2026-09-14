@@ -1,4 +1,6 @@
+import { randomInt } from 'node:crypto';
 import { consultar, consultarUm } from '../db/index.js';
+import { AppError } from '../lib/erros.js';
 import { FAIXAS_PADRAO, type FaixaRefeicao, type Perfil } from '../domain/tipos.js';
 
 interface LinhaUsuario {
@@ -6,6 +8,7 @@ interface LinhaUsuario {
   email: string;
   password_hash: string;
   nome: string;
+  tag: string;
   sexo: 'M' | 'F' | null;
   idade: number | null;
   peso_kg: number | null;
@@ -23,7 +26,7 @@ interface LinhaUsuario {
   created_at: Date;
 }
 
-const COLUNAS = `id, email, password_hash, nome, sexo, idade, peso_kg, altura_cm, objetivo,
+const COLUNAS = `id, email, password_hash, nome, tag, sexo, idade, peso_kg, altura_cm, objetivo,
   meta_calorias, meta_carboidrato_g, meta_proteina_g, meta_gordura_g, meta_agua_ml,
   metas_automaticas, modo_preguicoso, faixas_refeicao, timezone, created_at`;
 
@@ -32,6 +35,7 @@ export function paraPerfil(l: LinhaUsuario): Perfil {
     id: l.id,
     email: l.email,
     nome: l.nome,
+    tag: l.tag,
     sexo: l.sexo,
     idade: l.idade,
     peso_kg: l.peso_kg,
@@ -66,17 +70,49 @@ export async function contarUsuarios(): Promise<number> {
   return linhas[0]?.total ?? 0;
 }
 
+/**
+ * Sorteia uma tag de 4 dígitos livre para esse nome (é o par nome+tag que precisa ser
+ * único, como no Discord). Devolve a `preferida` quando ela ainda estiver disponível.
+ */
+export async function tagLivrePara(nome: string, preferida?: string): Promise<string> {
+  const usadas = new Set(
+    (
+      await consultar<{ tag: string }>('SELECT tag FROM users WHERE lower(nome) = lower($1)', [
+        nome,
+      ])
+    ).map((l) => l.tag),
+  );
+
+  if (preferida !== undefined && !usadas.has(preferida)) return preferida;
+  if (usadas.size >= 10000) {
+    throw new AppError('VALIDACAO', 'esse nome já tem 10 mil pessoas, escolha outro');
+  }
+
+  for (;;) {
+    const candidata = String(randomInt(0, 10000)).padStart(4, '0');
+    if (!usadas.has(candidata)) return candidata;
+  }
+}
+
+export async function buscarPorNomeTag(nome: string, tag: string): Promise<LinhaUsuario | null> {
+  return consultarUm<LinhaUsuario>(
+    `SELECT ${COLUNAS} FROM users WHERE lower(nome) = lower($1) AND tag = $2`,
+    [nome, tag],
+  );
+}
+
 export async function criarUsuario(
   email: string,
   passwordHash: string,
   nome: string,
   timezone: string,
 ): Promise<LinhaUsuario> {
+  const limpo = nome.trim();
   const linha = await consultarUm<LinhaUsuario>(
-    `INSERT INTO users (email, password_hash, nome, timezone)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO users (email, password_hash, nome, tag, timezone)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING ${COLUNAS}`,
-    [email.trim().toLowerCase(), passwordHash, nome.trim(), timezone],
+    [email.trim().toLowerCase(), passwordHash, limpo, await tagLivrePara(limpo), timezone],
   );
   if (!linha) throw new Error('INSERT em users não devolveu linha');
   return linha;
@@ -127,6 +163,18 @@ export async function atualizarUsuario(
   id: string,
   campos: CamposAtualizaveis,
 ): Promise<LinhaUsuario> {
+  // Trocar de nome pode esbarrar em alguém que já usa esse nome com a mesma tag:
+  // nesse caso o servidor sorteia outra tag em vez de recusar a troca.
+  if (campos.nome !== undefined) {
+    const atual = await buscarPorId(id);
+    if (atual && atual.nome.toLowerCase() !== campos.nome.toLowerCase()) {
+      const tag = await tagLivrePara(campos.nome, atual.tag);
+      if (tag !== atual.tag) {
+        await consultar('UPDATE users SET tag = $2 WHERE id = $1', [id, tag]);
+      }
+    }
+  }
+
   const nomes = COLUNAS_ATUALIZAVEIS.filter(
     (k) => campos[k as keyof CamposAtualizaveis] !== undefined,
   );

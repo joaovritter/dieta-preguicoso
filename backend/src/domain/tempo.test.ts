@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { dataLocal, intervaloDoDia, somarDias, timezoneValida } from './tempo.js';
+import {
+  dataLocal,
+  diasDoMes,
+  intervaloDoDia,
+  intervaloDoMes,
+  mesLocal,
+  somarDias,
+  timezoneValida,
+} from './tempo.js';
 
 describe('dataLocal', () => {
   it('usa o dia do fuso do usuário, não o UTC', () => {
@@ -52,5 +60,40 @@ describe('timezoneValida', () => {
   it('separa fuso real de string qualquer', () => {
     expect(timezoneValida('America/Sao_Paulo')).toBe(true);
     expect(timezoneValida('Marte/Olympus')).toBe(false);
+  });
+});
+
+describe('diasDoMes', () => {
+  it('devolve todos os dias do mês em ordem', () => {
+    const dias = diasDoMes('2026-02');
+    expect(dias).toHaveLength(28);
+    expect(dias[0]).toBe('2026-02-01');
+    expect(dias[27]).toBe('2026-02-28');
+  });
+
+  it('acerta fevereiro de ano bissexto', () => {
+    expect(diasDoMes('2024-02')).toHaveLength(29);
+  });
+
+  it('recusa mês inválido', () => {
+    expect(() => diasDoMes('2026-13')).toThrow();
+    expect(() => diasDoMes('2026')).toThrow();
+  });
+});
+
+describe('intervaloDoMes', () => {
+  it('vai da meia-noite do dia 1 até a meia-noite do dia 1 do mês seguinte', () => {
+    const { inicio, fim } = intervaloDoMes('2026-05', 'America/Sao_Paulo');
+    expect(inicio.toISOString()).toBe('2026-05-01T03:00:00.000Z');
+    expect(fim.toISOString()).toBe('2026-06-01T03:00:00.000Z');
+  });
+});
+
+describe('mesLocal', () => {
+  it('usa o mês do fuso do usuário', () => {
+    // 01:00Z de 01/06 ainda é 22:00 de 31/05 em São Paulo.
+    const instante = new Date('2026-06-01T01:00:00Z');
+    expect(mesLocal(instante, 'America/Sao_Paulo')).toBe('2026-05');
+    expect(mesLocal(instante, 'UTC')).toBe('2026-06');
   });
 });

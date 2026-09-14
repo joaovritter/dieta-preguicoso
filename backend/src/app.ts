@@ -6,10 +6,13 @@ import { autenticar } from './middleware/autenticar.js';
 import { naoEncontrado, tratarErro } from './middleware/erro.js';
 import { limiteTaxa, porIp } from './middleware/limiteTaxa.js';
 import { rotasAgua } from './routes/agua.js';
+import { rotasAmigos } from './routes/amigos.js';
+import { rotasGrupos } from './routes/grupos.js';
 import { rotasAuth } from './routes/auth.js';
 import { rotasMe } from './routes/me.js';
 import { rotasRegistros } from './routes/registros.js';
 import { rotasResumo } from './routes/resumo.js';
+import { rotasSocial } from './routes/social.js';
 
 export function criarApp(): Express {
   const app = express();
@@ -47,6 +50,9 @@ export function criarApp(): Express {
   app.use('/api/registros', autenticar, rotasRegistros);
   app.use('/api/agua', autenticar, rotasAgua);
   app.use('/api/resumo', autenticar, rotasResumo);
+  app.use('/api/amigos', autenticar, rotasAmigos);
+  app.use('/api/grupos', autenticar, rotasGrupos);
+  app.use('/api/social', autenticar, rotasSocial);
 
   // Fotos e áudios. Servidos sem auth por simplicidade: os nomes são UUIDs
   // aleatórios e o servidor é de uso pessoal atrás de firewall.

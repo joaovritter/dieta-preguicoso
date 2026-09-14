@@ -41,6 +41,10 @@ docker compose up -d backend
 Depois disso `POST /api/auth/register` responde `403 CADASTRO_DESABILITADO`. Isso importa:
 sem domínio e sem HTTPS, o IP:porta acaba sendo varrido por bots mais cedo ou mais tarde.
 
+**Atenção com os amigos:** a rede social precisa que as outras pessoas tenham conta neste
+mesmo servidor. Deixe `PERMITIR_CADASTRO=true` enquanto o grupo está entrando e feche depois
+(`docker compose up -d backend` aplica na hora, nos dois sentidos).
+
 ## Firewall
 
 Sem domínio e sem TLS, o tráfego (inclusive a senha no login) trafega em claro. Restrinja

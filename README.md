@@ -16,6 +16,10 @@ Uso pessoal, feito para rodar numa VPS própria.
   separado em vez de zerar e fingir que está tudo certo.
 - **Modo preguiçoso total.** Ligado no perfil, pula a tela de confirmação e grava direto.
 - **Água, faixa semanal, metas automáticas** por Mifflin-St Jeor a partir de peso/altura/idade.
+- **Rede social enxuta.** Cada pessoa tem um `nome#0000` estilo Discord; você adiciona amigos
+  por essa tag e cria grupos com código de convite. Toda refeição registrada já vira um post
+  no feed de quem te acompanha, e o perfil de cada um mostra o dia, o calendário do mês
+  (verde = dentro de ±10% da meta) e as refeições.
 
 ## Stack
 
