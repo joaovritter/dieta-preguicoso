@@ -1,9 +1,17 @@
 import type {
   Autenticacao,
+  CalendarioMes,
+  DetalheGrupo,
   EntradaConfirmacao,
   EntradaPerfil,
+  Feed,
+  Grupo,
   Interpretacao,
+  MembroComProgresso,
+  PedidoAmizade,
+  PedidosAmizade,
   Perfil,
+  PerfilPublico,
   Refeicao,
   Registro,
   RegistroAgua,
@@ -159,6 +167,46 @@ export const api = {
   resumoDia: (data: string) => requisitar<ResumoDia>(`/resumo/dia?data=${encodeURIComponent(data)}`),
 
   resumoSemana: (fim: string) => requisitar<ResumoSemana>(`/resumo/semana?fim=${encodeURIComponent(fim)}`),
+
+  amigos: () => requisitar<{ amigos: MembroComProgresso[] }>('/amigos'),
+
+  pedidos: () => requisitar<PedidosAmizade>('/amigos/pedidos'),
+
+  pedirAmizade: (nome_tag: string) =>
+    requisitar<PedidoAmizade>('/amigos/pedidos', { method: 'POST', corpo: { nome_tag } }),
+
+  aceitarPedido: (id: string) =>
+    requisitar<{ perfil: PerfilPublico }>(`/amigos/pedidos/${id}/aceitar`, { method: 'POST' }),
+
+  recusarPedido: (id: string) => requisitar<void>(`/amigos/pedidos/${id}`, { method: 'DELETE' }),
+
+  removerAmigo: (id: string) => requisitar<void>(`/amigos/${id}`, { method: 'DELETE' }),
+
+  grupos: () => requisitar<{ grupos: Grupo[] }>('/grupos'),
+
+  criarGrupo: (nome: string) => requisitar<Grupo>('/grupos', { method: 'POST', corpo: { nome } }),
+
+  entrarNoGrupo: (codigo: string) =>
+    requisitar<Grupo>('/grupos/entrar', { method: 'POST', corpo: { codigo } }),
+
+  sairDoGrupo: (id: string) => requisitar<void>(`/grupos/${id}/sair`, { method: 'DELETE' }),
+
+  grupo: (id: string) => requisitar<DetalheGrupo>(`/grupos/${id}`),
+
+  feedDoGrupo: (id: string, antes?: string) =>
+    requisitar<Feed>(`/grupos/${id}/feed${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`),
+
+  perfilPublico: (id: string) => requisitar<MembroComProgresso>(`/social/usuarios/${id}`),
+
+  calendarioDe: (id: string, mes?: string) =>
+    requisitar<CalendarioMes>(
+      `/social/usuarios/${id}/calendario${mes === undefined ? '' : `?mes=${encodeURIComponent(mes)}`}`,
+    ),
+
+  refeicoesDe: (id: string, antes?: string) =>
+    requisitar<Feed>(
+      `/social/usuarios/${id}/refeicoes${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`,
+    ),
 };
 
 export function mensagemDoErro(erro: unknown): string {

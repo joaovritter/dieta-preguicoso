@@ -63,7 +63,13 @@ export default function Home() {
       <main className="app">
         <header className="topo">
           <h1>{dataLonga(data)}</h1>
-          <div>
+          <div className="topo-links">
+            <Link className="link-texto" to="/amigos">
+              amigos
+            </Link>
+            <Link className="link-texto" to="/grupos">
+              grupos
+            </Link>
             <Link className="link-texto" to="/perfil">
               perfil
             </Link>

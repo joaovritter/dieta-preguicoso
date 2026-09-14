@@ -18,11 +18,22 @@ export default function PerfilPage() {
 }
 
 function FormularioPerfil({ inicial }: { inicial: Perfil }) {
-  const { definirPerfil, sair } = useAuth();
+  const { perfil, definirPerfil, sair } = useAuth();
   const [form, setForm] = useState<Formulario>(() => paraFormulario(inicial));
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+
+  const nomeTag = perfil === null ? '' : `${perfil.nome}#${perfil.tag}`;
+
+  async function copiarIdentidade() {
+    try {
+      await navigator.clipboard.writeText(nomeTag);
+      setAviso('copiado');
+    } catch {
+      setAviso(`não consegui copiar — você é ${nomeTag}`);
+    }
+  }
 
   function mudar<C extends keyof Formulario>(campo: C, valor: Formulario[C]) {
     setForm((atual) => ({ ...atual, [campo]: valor }));
@@ -65,6 +76,19 @@ function FormularioPerfil({ inicial }: { inicial: Perfil }) {
           {aviso}
         </p>
       )}
+
+      <section className="cartao">
+        <h2 className="titulo-secao">identidade pública</h2>
+        <div className="linha-form">
+          <span className="identidade">{nomeTag}</span>
+          <button type="button" className="botao" onClick={() => void copiarIdentidade()}>
+            copiar
+          </button>
+        </div>
+        <p className="mudo" style={{ fontSize: 12, margin: 'var(--esp-2) 0 0' }}>
+          é assim que teus amigos te encontram
+        </p>
+      </section>
 
       <form onSubmit={(evento) => void salvar(evento)}>
         <SecaoDadosPessoais form={form} aoMudar={mudar} />

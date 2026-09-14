@@ -24,6 +24,7 @@ export interface Perfil {
   id: string;
   email: string;
   nome: string;
+  tag: string;
   sexo: Sexo | null;
   idade: number | null;
   peso_kg: number | null;
@@ -151,4 +152,83 @@ export interface EntradaConfirmacao {
   refeicao?: Refeicao;
   alimentos: Alimento[];
   criado_em?: string;
+}
+
+/* ---- rede social ---- */
+
+export interface PerfilPublico {
+  id: string;
+  nome: string;
+  tag: string;
+  /** "joao#0427" */
+  nome_tag: string;
+  objetivo: Objetivo;
+}
+
+/** Como o dia fechou em relação à meta de calorias. `na_meta` = entre 90% e 110%. */
+export type StatusDia = 'sem_registro' | 'abaixo' | 'na_meta' | 'acima';
+
+export interface ProgressoDia {
+  data: string;
+  calorias: number;
+  meta_calorias: number;
+  percentual: number;
+  status: StatusDia;
+  quantidade_registros: number;
+}
+
+/** Uma refeição de alguém, do jeito que aparece no feed. */
+export interface Post {
+  id: string;
+  autor: PerfilPublico;
+  refeicao: Refeicao;
+  descricao_bruta: string;
+  midia_url: string | null;
+  alimentos_detectados: Alimento[];
+  calorias_total: number;
+  carboidrato_total_g: number;
+  proteina_total_g: number;
+  gordura_total_g: number;
+  criado_em: string;
+}
+
+export interface Feed {
+  posts: Post[];
+  /** `criado_em` do último post; passe em `?antes=` para a próxima página. `null` = acabou. */
+  proximo_antes: string | null;
+}
+
+export interface MembroComProgresso {
+  perfil: PerfilPublico;
+  progresso_hoje: ProgressoDia;
+}
+
+export interface Grupo {
+  id: string;
+  nome: string;
+  codigo_convite: string;
+  quantidade_membros: number;
+  sou_criador: boolean;
+  criado_em: string;
+}
+
+export interface PedidoAmizade {
+  id: string;
+  perfil: PerfilPublico;
+  criado_em: string;
+}
+
+export interface PedidosAmizade {
+  recebidos: PedidoAmizade[];
+  enviados: PedidoAmizade[];
+}
+
+export interface DetalheGrupo {
+  grupo: Grupo;
+  membros: MembroComProgresso[];
+}
+
+export interface CalendarioMes {
+  mes: string;
+  dias: ProgressoDia[];
 }

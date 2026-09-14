@@ -1,4 +1,4 @@
-import type { Alimento, Objetivo, Refeicao, Totais } from './types';
+import type { Alimento, Objetivo, Refeicao, StatusDia, Totais } from './types';
 
 export const REFEICOES: Refeicao[] = ['cafe_da_manha', 'almoco', 'lanche', 'janta', 'ceia'];
 
@@ -8,6 +8,13 @@ export const NOME_REFEICAO: Record<Refeicao, string> = {
   lanche: 'lanche',
   janta: 'janta',
   ceia: 'ceia',
+};
+
+export const TEXTO_STATUS: Record<StatusDia, string> = {
+  sem_registro: 'sem registro',
+  abaixo: 'abaixo da meta',
+  na_meta: 'na meta',
+  acima: 'acima da meta',
 };
 
 export const NOME_OBJETIVO: Record<Objetivo, string> = {
@@ -38,7 +45,7 @@ export function deISO(iso: string): Date {
   return new Date(ano ?? 1970, (mes ?? 1) - 1, dia ?? 1);
 }
 
-const LETRAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+export const LETRAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
 export function letraDaSemana(iso: string): string {
   return LETRAS_SEMANA[deISO(iso).getDay()] ?? '?';
