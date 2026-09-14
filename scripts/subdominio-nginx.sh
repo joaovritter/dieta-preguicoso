@@ -93,7 +93,9 @@ if [ -n "$CERT" ]; then
   {
     printf '%s\n' "$MARCA"
     printf 'server {\n  listen 80;\n  listen [::]:80;\n  server_name %s;\n  return 301 https://$host$request_uri;\n}\n\n' "$DOMINIO"
-    printf 'server {\n  listen 443 ssl;\n  listen [::]:443 ssl;\n  http2 on;\n  server_name %s;\n\n' "$DOMINIO"
+    # Sem `http2`: a diretiva mudou de forma no nginx 1.25 e quebra no 1.24. Atrás de
+    # CDN o navegador já negocia HTTP/2 com o edge, então aqui ela não faria diferença.
+    printf 'server {\n  listen 443 ssl;\n  listen [::]:443 ssl;\n  server_name %s;\n\n' "$DOMINIO"
     printf '  ssl_certificate %s;\n  ssl_certificate_key %s;\n\n' "$CERT" "$CHAVE"
     corpo
     printf '}\n'
