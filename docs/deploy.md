@@ -123,6 +123,38 @@ docker compose logs -f caddy      # espere "certificate obtained successfully"
 `BIND_PUBLICO=127.0.0.1` é o que realmente fecha a 8080: o Docker publica porta por regra
 de NAT e **passa por cima do ufw**, então `ufw deny 8080` não bastaria.
 
+### Se o trainna.com.br já roda nesta mesma VPS
+
+Aí as portas 80 e 443 já têm dono e o Caddy do compose não sobe. Confira com
+`ss -ltnp | grep -E ':(80|443)'`. Nesse caso não use o perfil `https`: aproveite o servidor
+que já está lá e mande o subdomínio para o app. Com nginx, um arquivo novo em
+`/etc/nginx/sites-available/dieta` e o certbot cuidando do certificado:
+
+```nginx
+server {
+  listen 80;
+  server_name dieta.trainna.com.br;
+  client_max_body_size 30m;          # as fotos passam por aqui
+  location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 120s;         # a IA demora para responder sobre uma foto
+  }
+}
+```
+
+```bash
+ln -s /etc/nginx/sites-available/dieta /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+certbot --nginx -d dieta.trainna.com.br
+```
+
+Continua valendo `TRUST_PROXY=2` (são dois proxies: o nginx da VPS e o do compose). E aqui
+`BIND_PUBLICO` fica em `127.0.0.1`, que é justamente onde o nginx da VPS vai buscar.
+
 ### 3. Conferir
 
 ```bash
