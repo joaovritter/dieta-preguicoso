@@ -40,7 +40,13 @@ PORTA=$(sed -n 's|^PORTA_PUBLICA=||p' .env 2>/dev/null | head -1)
 PORTA=${PORTA:-8080}
 ARQUIVO=/etc/nginx/sites-available/$DOMINIO
 
-[ -e "$ARQUIVO" ] && erro "$ARQUIVO já existe. Confira o conteúdo e apague se quiser refazer."
+MARCA='# gerado por scripts/subdominio-nginx.sh'
+
+# Refazer é comum (trocar certificado, consertar DNS e tentar de novo), então um
+# arquivo nosso pode ser reescrito. Um arquivo que não é nosso, nunca.
+if [ -e "$ARQUIVO" ] && ! head -1 "$ARQUIVO" | grep -qF "$MARCA"; then
+  erro "$ARQUIVO já existe e não foi este script que criou. Confira antes de mexer."
+fi
 
 # ---- o app passa a escutar só no localhost; quem fala com a internet é o nginx
 definir() {
@@ -85,6 +91,7 @@ NGINX
 if [ -n "$CERT" ]; then
   # Certificado que já existe na máquina: o vhost já nasce em HTTPS.
   {
+    printf '%s\n' "$MARCA"
     printf 'server {\n  listen 80;\n  listen [::]:80;\n  server_name %s;\n  return 301 https://$host$request_uri;\n}\n\n' "$DOMINIO"
     printf 'server {\n  listen 443 ssl;\n  listen [::]:443 ssl;\n  http2 on;\n  server_name %s;\n\n' "$DOMINIO"
     printf '  ssl_certificate %s;\n  ssl_certificate_key %s;\n\n' "$CERT" "$CHAVE"
@@ -94,6 +101,7 @@ if [ -n "$CERT" ]; then
 else
   # Sem certificado ainda: sobe em HTTP e o certbot converte para HTTPS depois.
   {
+    printf '%s\n' "$MARCA"
     printf 'server {\n  listen 80;\n  listen [::]:80;\n  server_name %s;\n\n' "$DOMINIO"
     corpo
     printf '}\n'
@@ -132,9 +140,14 @@ fi
 
 if command -v certbot >/dev/null; then
   msg 'pedindo o certificado'
-  certbot --nginx -d "$DOMINIO" --non-interactive --agree-tos --register-unsafely-without-email --redirect \
-    || erro "o certbot falhou. Quase sempre é DNS ou nuvem laranja no Cloudflare:
-  'dig +short $DOMINIO' precisa devolver o IP desta VPS."
+  if ! certbot --nginx -d "$DOMINIO" --non-interactive --agree-tos --register-unsafely-without-email --redirect; then
+    printf '\n!! O app está no ar em http://%s, mas sem certificado.\n' "$DOMINIO"
+    printf '   Confira se o DNS aponta para esta VPS:\n'
+    printf '     dig +short %s     # tem que bater com: %s\n' "$DOMINIO" "$(curl -4 -fsS ifconfig.me 2>/dev/null || echo '<o IP desta VPS>')"
+    printf '   Se esta VPS já tem um certificado que cobre o subdomínio (Origin\n'
+    printf '   Certificate do Cloudflare, por exemplo), rode de novo passando CERT e CHAVE.\n'
+    exit 1
+  fi
   msg "pronto: https://$DOMINIO"
 else
   msg "o app já responde em http://$DOMINIO, mas ainda sem certificado."
