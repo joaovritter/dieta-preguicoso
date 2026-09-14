@@ -144,8 +144,17 @@ de NAT e **passa por cima do ufw**, então `ufw deny 8080` não bastaria.
 
 Aí as portas 80 e 443 já têm dono e o Caddy do compose não sobe. Confira com
 `ss -ltnp | grep -E ':(80|443)'`. Nesse caso não use o perfil `https`: aproveite o servidor
-que já está lá e mande o subdomínio para o app. Com nginx, um arquivo novo em
-`/etc/nginx/sites-available/dieta` e o certbot cuidando do certificado:
+que já está lá e mande o subdomínio para o app. Com nginx, um comando resolve:
+
+```bash
+DOMINIO=dieta.trainna.com.br bash scripts/subdominio-nginx.sh
+```
+
+Ele cria **um arquivo novo** em `sites-available`, testa a configuração antes de recarregar
+e chama o certbot. Não encosta em vhost que já existe; se o teste do nginx falhar, apaga o
+que criou e para, deixando os outros sites como estavam.
+
+O que ele escreve, se você preferir fazer na mão:
 
 ```nginx
 server {
