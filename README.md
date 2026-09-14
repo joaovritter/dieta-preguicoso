@@ -40,6 +40,12 @@ cd frontend && npm install && npm run dev                     # :5173, com proxy
 ## Rodar com Docker
 
 ```bash
+OPENAI_API_KEY=sk-... DOMINIO=seu.dominio.com.br bash scripts/instalar.sh
+```
+
+O script cuida de `.env`, segredos, firewall e HTTPS. Na mão:
+
+```bash
 cp .env.example .env    # preencha POSTGRES_PASSWORD, JWT_SECRET, OPENAI_API_KEY
 docker compose up -d --build
 ```

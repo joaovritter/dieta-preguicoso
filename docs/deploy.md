@@ -10,6 +10,23 @@ curl -fsSL https://get.docker.com | sh
 
 ## Subir
 
+Caminho curto — um comando só, bom para quando a janela de acesso à VPS é curta:
+
+```bash
+git clone <seu-repo> dieta-preguicoso && cd dieta-preguicoso
+OPENAI_API_KEY=sk-... DOMINIO=dieta.trainna.com.br bash scripts/instalar.sh
+```
+
+O script instala o Docker se faltar, sorteia os segredos, escreve o `.env`, prepara as
+regras de firewall (sem ligar o ufw — isso no meio de uma sessão SSH é jeito conhecido de
+ficar trancado do lado de fora) e sobe tudo com HTTPS. Roda quantas vezes quiser: não troca
+segredo que já existe. Sem `DOMINIO`, sobe em `http://IP:8080` mesmo.
+
+Na primeira vez o build demora alguns minutos; no fim ele espera a API responder e o
+certificado sair, e diz o que fazer se algo não subir.
+
+Na mão, se preferir:
+
 ```bash
 git clone <seu-repo> dieta-preguicoso && cd dieta-preguicoso
 cp .env.example .env
