@@ -18,9 +18,9 @@ export function criarApp(): Express {
   const app = express();
 
   app.disable('x-powered-by');
-  // Só o nginx do compose fala com o backend: confia no X-Forwarded-For dele
-  // para o rate limit enxergar o IP real do cliente.
-  app.set('trust proxy', 1);
+  // Confia no X-Forwarded-For dos proxies da frente para o rate limit enxergar o IP
+  // real do cliente. Com um proxy de TLS antes do nginx, são 2 saltos (TRUST_PROXY).
+  app.set('trust proxy', env.proxiesConfiaveis);
   app.use(
     cors({
       origin: env.origensPermitidas.includes('*') ? true : env.origensPermitidas,

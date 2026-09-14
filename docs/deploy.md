@@ -64,23 +64,43 @@ ufw enable
 faz login. Avise o pessoal para não reaproveitar uma senha importante aqui, e resolva o TLS
 assim que o domínio chegar.
 
-## Domínio e HTTPS
+## Domínio e HTTPS (dieta.trainna.com.br)
 
-Assim que o domínio existir, aponte um registro `A` para o IP da VPS e ponha um proxy com
-certificado automático na frente. O caminho mais curto é o Caddy, que cuida do Let's Encrypt
-sozinho — na VPS, com a porta 8080 já servindo o app:
+**1. DNS.** No painel de `trainna.com.br`, crie um registro `A` com nome `dieta` apontando
+para o IP da VPS. Confira antes de seguir:
+
+```bash
+dig +short dieta.trainna.com.br    # tem que devolver o IP da VPS
+```
+
+Se `trainna.com.br` estiver atrás do Cloudflare, deixe esse registro como **DNS only**
+(nuvem cinza). Com a nuvem laranja quem responde pelo domínio é o Cloudflare, e o Caddy
+fica tentando validar um endereço que nunca chega nele.
+
+**2. Certificado.** O Caddy cuida do Let's Encrypt sozinho:
 
 ```bash
 apt install -y caddy
-echo 'seu-dominio.com.br {
+echo 'dieta.trainna.com.br {
   reverse_proxy localhost:8080
 }' > /etc/caddy/Caddyfile
 systemctl restart caddy
 ufw allow 80,443/tcp && ufw delete allow 8080/tcp
 ```
 
-Depois disso o app vive em `https://seu-dominio.com.br` e a porta 8080 deixa de ser exposta.
-Não há CORS para configurar: o nginx serve o app e faz proxy de `/api` na mesma origem.
+**3. Avise o backend que agora são dois proxies.** A cadeia virou Caddy → nginx → API, e o
+limite de tentativas de login conta por IP. Sem esse ajuste o backend enxerga o IP do proxy
+em vez do IP de quem está acessando, e 15 tentativas erradas de uma pessoa trancam o grupo
+inteiro:
+
+```bash
+sed -i 's/^TRUST_PROXY=.*/TRUST_PROXY=2/' .env   # se a linha não existir, acrescente
+docker compose up -d backend
+```
+
+Pronto: o app vive em `https://dieta.trainna.com.br`, a porta 8080 sai do ar e as senhas
+param de trafegar em claro. Não há CORS para configurar — o nginx serve o app e faz proxy
+de `/api` na mesma origem.
 
 ## Atualizar
 

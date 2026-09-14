@@ -38,6 +38,12 @@ export const env = {
     .map((s) => s.trim())
     .filter(Boolean),
   timezonePadrao: opcional('TIMEZONE_PADRAO', 'America/Sao_Paulo'),
+  /**
+   * Quantos proxies estão na frente da API. 1 = só o nginx do compose.
+   * 2 = tem um proxy de TLS (Caddy, Traefik) na frente do nginx. Errar esse número
+   * faz o rate limit enxergar o IP do proxy e contar todo mundo no mesmo balde.
+   */
+  proxiesConfiaveis: numero('TRUST_PROXY', 1),
   /** Bloqueia `POST /auth/register` depois que a conta pessoal já existe. */
   permitirCadastro: opcional('PERMITIR_CADASTRO', 'true') === 'true',
 } as const;

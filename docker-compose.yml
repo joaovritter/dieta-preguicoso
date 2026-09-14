@@ -35,6 +35,7 @@ services:
       RETENCAO_MIDIA_DIAS: ${RETENCAO_MIDIA_DIAS:-30}
       TIMEZONE_PADRAO: ${TIMEZONE_PADRAO:-America/Sao_Paulo}
       PERMITIR_CADASTRO: ${PERMITIR_CADASTRO:-true}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
     volumes:
       - midias:/app/uploads
     # Idem: só o nginx fala com a API.
