@@ -46,6 +46,15 @@ docker compose up -d --build
 
 Abre em `http://localhost:8080`. Só essa porta é exposta — banco e API ficam na rede interna.
 
+Com domínio, o compose sobe também um Caddy que cuida do certificado sozinho:
+
+```bash
+# no .env: DOMINIO=seu.dominio.com.br, BIND_PUBLICO=127.0.0.1, TRUST_PROXY=2
+docker compose --profile https up -d
+```
+
+O passo a passo completo (DNS, certificado, firewall) está em [`docs/deploy.md`](docs/deploy.md).
+
 ## Verificação
 
 ```bash

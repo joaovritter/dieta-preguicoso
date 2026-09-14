@@ -46,9 +46,34 @@ services:
     depends_on:
       - backend
     ports:
-      # Única porta exposta na VPS. Troque a da esquerda se 8080 já estiver em uso.
-      - '${PORTA_PUBLICA:-8080}:80'
+      # Sem HTTPS, esta é a única porta exposta na VPS (troque a da esquerda se 8080
+      # já estiver em uso). Com o perfil `https`, ponha BIND_PUBLICO=127.0.0.1 no .env:
+      # aí só o Caddy alcança o app, e a 8080 deixa de existir para a internet.
+      - '${BIND_PUBLICO:-0.0.0.0}:${PORTA_PUBLICA:-8080}:80'
+
+  # Só sobe com `docker compose --profile https up -d`. Enquanto não houver domínio,
+  # este serviço fica fora do caminho.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ['https']
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    environment:
+      # Vem do .env. Vazio aqui só importa se você subir este perfil sem definir.
+      DOMINIO: '${DOMINIO:-}'
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Os certificados moram aqui. Perder este volume = pedir certificado de novo,
+      # e o Let's Encrypt limita quantas vezes por semana isso pode acontecer.
+      - certificados:/data
+      - config-caddy:/config
 
 volumes:
   dados-postgres:
   midias:
+  certificados:
+  config-caddy:

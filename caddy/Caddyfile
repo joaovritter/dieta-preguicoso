@@ -1,0 +1,10 @@
+# Proxy de HTTPS na frente do app. O Caddy pede e renova o certificado do
+# Let's Encrypt sozinho — só precisa que o domínio aponte para esta VPS e que
+# as portas 80 e 443 estejam abertas.
+#
+# `frontend:80` é o nginx do compose, alcançado pela rede interna: a porta
+# publicada do app não participa disso.
+
+{$DOMINIO} {
+	reverse_proxy frontend:80
+}

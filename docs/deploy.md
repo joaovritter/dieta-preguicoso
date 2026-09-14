@@ -62,52 +62,89 @@ ufw enable
 
 **Enquanto não houver domínio e HTTPS, tudo trafega em claro** — inclusive a senha de quem
 faz login. Avise o pessoal para não reaproveitar uma senha importante aqui, e resolva o TLS
-assim que o domínio chegar.
+assim que o domínio chegar. Depois do HTTPS ligado, a 8080 deixa de ser necessária:
+
+```bash
+ufw allow 80,443/tcp
+ufw delete allow 8080/tcp
+```
 
 ## Domínio e HTTPS (dieta.trainna.com.br)
 
-**1. DNS.** No painel de `trainna.com.br`, crie um registro `A` com nome `dieta` apontando
-para o IP da VPS. Confira antes de seguir:
+O compose já traz um Caddy no perfil `https`, que pede e renova o certificado do
+Let's Encrypt sozinho. São três partes: apontar o DNS, ligar o perfil, fechar a porta velha.
+
+### 1. DNS no Cloudflare
+
+Precisa do IP público da VPS em mãos (`curl -4 ifconfig.me` na VPS).
+
+1. Entre em <https://dash.cloudflare.com> e clique no domínio **trainna.com.br** na lista.
+2. Menu da esquerda → **DNS** → **Records**.
+3. Botão **Add record** e preencha:
+   - **Type**: `A`
+   - **Name**: `dieta` (só isso; o Cloudflare completa para `dieta.trainna.com.br`)
+   - **IPv4 address**: o IP da VPS
+   - **Proxy status**: clique na nuvem laranja para deixá-la **cinza — DNS only**
+   - **TTL**: `Auto`
+4. **Save**.
+
+A nuvem **precisa** ficar cinza. Laranja, quem responde pelo domínio é o Cloudflare, o
+desafio do Let's Encrypt não chega no Caddy e o certificado não sai. Em troca você abre mão
+do cache e do escudo de DDoS do Cloudflare — para um app entre amigos, é troca boa: a
+renovação a cada 60 dias acontece sozinha e sem surpresa.
+
+Confira antes de seguir (de qualquer máquina):
 
 ```bash
-dig +short dieta.trainna.com.br    # tem que devolver o IP da VPS
+dig +short dieta.trainna.com.br     # tem que devolver o IP da VPS
 ```
 
-Se `trainna.com.br` estiver atrás do Cloudflare, deixe esse registro como **DNS only**
-(nuvem cinza). Com a nuvem laranja quem responde pelo domínio é o Cloudflare, e o Caddy
-fica tentando validar um endereço que nunca chega nele.
+Se voltar vazio, espere alguns minutos. Se voltar um IP que não é o da VPS, é cache do seu
+resolvedor — teste com `dig +short dieta.trainna.com.br @1.1.1.1`.
 
-**2. Certificado.** O Caddy cuida do Let's Encrypt sozinho:
+### 2. Ligar o HTTPS na VPS
+
+No `.env`:
 
 ```bash
-apt install -y caddy
-echo 'dieta.trainna.com.br {
-  reverse_proxy localhost:8080
-}' > /etc/caddy/Caddyfile
-systemctl restart caddy
-ufw allow 80,443/tcp && ufw delete allow 8080/tcp
+DOMINIO=dieta.trainna.com.br
+BIND_PUBLICO=127.0.0.1   # a porta 8080 deixa de ser alcançável de fora
+TRUST_PROXY=2            # agora são dois proxies: Caddy -> nginx -> API
 ```
 
-**3. Avise o backend que agora são dois proxies.** A cadeia virou Caddy → nginx → API, e o
-limite de tentativas de login conta por IP. Sem esse ajuste o backend enxerga o IP do proxy
-em vez do IP de quem está acessando, e 15 tentativas erradas de uma pessoa trancam o grupo
-inteiro:
+Abra as portas do HTTPS e suba:
 
 ```bash
-sed -i 's/^TRUST_PROXY=.*/TRUST_PROXY=2/' .env   # se a linha não existir, acrescente
-docker compose up -d backend
+ufw allow 80,443/tcp
+docker compose --profile https up -d
+docker compose logs -f caddy      # espere "certificate obtained successfully"
 ```
 
-Pronto: o app vive em `https://dieta.trainna.com.br`, a porta 8080 sai do ar e as senhas
-param de trafegar em claro. Não há CORS para configurar — o nginx serve o app e faz proxy
-de `/api` na mesma origem.
+`BIND_PUBLICO=127.0.0.1` é o que realmente fecha a 8080: o Docker publica porta por regra
+de NAT e **passa por cima do ufw**, então `ufw deny 8080` não bastaria.
+
+### 3. Conferir
+
+```bash
+curl -I https://dieta.trainna.com.br            # 200, certificado válido
+curl -I http://SEU_IP:8080                      # tem que falhar: a porta não responde mais
+```
+
+Pronto — o app vive em `https://dieta.trainna.com.br` e as senhas param de trafegar em
+claro. Não há CORS para configurar: o nginx serve o app e faz proxy de `/api` na mesma
+origem. Os certificados ficam no volume `certificados`; não apague esse volume à toa,
+o Let's Encrypt limita quantos pedidos você faz por semana.
 
 ## Atualizar
 
 ```bash
 git pull
-docker compose up -d --build
+docker compose up -d --build                    # sem HTTPS
+docker compose --profile https up -d --build    # com HTTPS
 ```
+
+Esquecer o `--profile https` não derruba o Caddy que já está rodando, mas também não o
+atualiza. Na dúvida, use sempre a segunda forma depois que o domínio estiver no ar.
 
 ## Backup
 
