@@ -7,6 +7,7 @@ import type { Formulario } from './formularioPerfil';
 import { Interruptor } from '../components/Campo';
 import SecaoDadosPessoais from '../components/SecaoDadosPessoais';
 import SecaoMetas from '../components/SecaoMetas';
+import SecaoRefeicoes from '../components/SecaoRefeicoes';
 import Erro from '../components/Erro';
 import type { Perfil } from '../lib/types';
 
@@ -112,6 +113,8 @@ function FormularioPerfil({ inicial }: { inicial: Perfil }) {
           {salvando ? 'salvando...' : 'salvar'}
         </button>
       </form>
+
+      <SecaoRefeicoes aoFalhar={(falha: unknown) => setErro(mensagemDoErro(falha))} />
     </main>
   );
 }
