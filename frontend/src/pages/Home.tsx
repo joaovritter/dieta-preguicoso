@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useConfirmacao } from '../components/useConfirmacao';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { dataLonga, ehHoje, hojeISO } from '../lib/format';
@@ -26,6 +27,7 @@ export default function Home() {
   const [data, setData] = useState(hoje);
   const [modal, setModal] = useState<Modal>(null);
   const [ocupado, setOcupado] = useState(false);
+  const { confirmar, elemento: confirmacao } = useConfirmacao();
 
   const dados = useDadosDoDia(data, hoje);
   const { recarregar, reportarErro } = dados;
@@ -52,7 +54,15 @@ export default function Home() {
   }
 
   const adicionarAgua = (ml: number) => void comOcupado(() => api.adicionarAgua(ml));
-  const excluirRegistro = (id: string) => void comOcupado(() => api.excluirRegistro(id));
+  const excluirRegistro = (id: string) =>
+    void (async () => {
+      const ok = await confirmar({
+        titulo: 'excluir registro',
+        texto: 'o registro sai do resumo do dia e some do feed dos seus amigos.',
+        rotulo: 'excluir',
+      });
+      if (ok) await comOcupado(() => api.excluirRegistro(id));
+    })();
   const trocarRefeicao = (id: string, refeicao: Refeicao) =>
     void comOcupado(() => api.atualizarRegistro(id, { refeicao }));
 
@@ -123,6 +133,8 @@ export default function Home() {
           </p>
         )}
       </main>
+
+      {confirmacao}
 
       <BarraAcoes
         desabilitado={entrada.textoCarregando !== null}

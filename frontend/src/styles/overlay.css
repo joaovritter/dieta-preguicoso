@@ -213,3 +213,20 @@
   font-weight: 700;
   color: var(--text);
 }
+
+/* confirmação de ação destrutiva */
+.confirmacao-texto {
+  margin: 0 0 var(--esp-4);
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.confirmacao-acoes {
+  display: flex;
+  gap: var(--esp-2);
+}
+
+.confirmacao-acoes .botao {
+  flex: 1;
+}

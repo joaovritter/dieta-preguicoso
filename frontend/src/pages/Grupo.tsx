@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, mensagemDoErro } from '../lib/api';
 import Erro from '../components/Erro';
+import { useConfirmacao } from '../components/useConfirmacao';
 import CardPost from '../components/CardPost';
 import ProgressoAmigo from '../components/ProgressoAmigo';
 import type { DetalheGrupo, Feed } from '../lib/types';
@@ -14,6 +15,7 @@ export default function GrupoPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const { confirmar, elemento: confirmacao } = useConfirmacao();
 
   const carregar = useCallback(async () => {
     try {
@@ -53,6 +55,14 @@ export default function GrupoPage() {
   }
 
   async function sair() {
+    const nome = detalhe === null ? 'o grupo' : detalhe.grupo.nome;
+    const ok = await confirmar({
+      titulo: 'sair do grupo',
+      texto: `você perde o feed de ${nome}. para voltar, vai precisar do código de convite.`,
+      rotulo: 'sair',
+    });
+    if (!ok) return;
+
     setOcupado(true);
     try {
       await api.sairDoGrupo(id);
@@ -151,6 +161,7 @@ export default function GrupoPage() {
           </button>
         </>
       )}
+      {confirmacao}
     </main>
   );
 }

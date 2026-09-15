@@ -1,10 +1,15 @@
+import { useState } from 'react';
+
 interface Props {
   rotulo: string;
   valor: string;
   aoMudar: (valor: string) => void;
-  tipo?: 'text' | 'number';
+  tipo?: 'text' | 'number' | 'email' | 'password';
   sufixo?: string;
   somenteLeitura?: boolean;
+  autoComplete?: string;
+  /** Mensagem sob o campo. Erro de digitação não merece o vermelho do topo. */
+  aviso?: string;
 }
 
 export default function Campo({
@@ -14,20 +19,40 @@ export default function Campo({
   tipo = 'text',
   sufixo,
   somenteLeitura = false,
+  autoComplete,
+  aviso,
 }: Props) {
+  const [revelada, setRevelada] = useState(false);
+  const senha = tipo === 'password';
+
   return (
     <label className="campo">
       <span className="campo-rotulo">{sufixo === undefined ? rotulo : `${rotulo} (${sufixo})`}</span>
-      <input
-        className="campo-entrada"
-        type={tipo}
-        inputMode={tipo === 'number' ? 'decimal' : undefined}
-        min={tipo === 'number' ? 0 : undefined}
-        step={tipo === 'number' ? '0.1' : undefined}
-        value={valor}
-        readOnly={somenteLeitura}
-        onChange={(evento) => aoMudar(evento.target.value)}
-      />
+      <span className={senha ? 'campo-com-botao' : undefined}>
+        <input
+          className="campo-entrada"
+          type={senha && revelada ? 'text' : tipo}
+          inputMode={tipo === 'number' ? 'decimal' : undefined}
+          min={tipo === 'number' ? 0 : undefined}
+          step={tipo === 'number' ? '0.1' : undefined}
+          value={valor}
+          readOnly={somenteLeitura}
+          autoComplete={autoComplete}
+          onChange={(evento) => aoMudar(evento.target.value)}
+        />
+        {senha && (
+          <button
+            type="button"
+            className="campo-olho"
+            aria-label={revelada ? 'ocultar senha' : 'mostrar senha'}
+            aria-pressed={revelada}
+            onClick={() => setRevelada((antes) => !antes)}
+          >
+            {revelada ? 'ocultar' : 'ver'}
+          </button>
+        )}
+      </span>
+      {aviso !== undefined && <span className="campo-aviso">{aviso}</span>}
     </label>
   );
 }

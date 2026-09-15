@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { mensagemDoErro } from '../lib/api';
+import Campo from '../components/Campo';
 import Erro from '../components/Erro';
 
 type Aba = 'entrar' | 'cadastrar';
@@ -10,16 +11,19 @@ export default function Login() {
   const [aba, setAba] = useState<Aba>('entrar');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [repetida, setRepetida] = useState('');
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  const senhaCurta = aba === 'cadastrar' && senha.length > 0 && senha.length < 8;
+  const cadastrando = aba === 'cadastrar';
+  const senhaCurta = cadastrando && senha.length > 0 && senha.length < 8;
+  const senhasDiferentes = cadastrando && repetida.length > 0 && repetida !== senha;
   const podeEnviar =
     email.trim().length > 0 &&
     senha.length > 0 &&
     !senhaCurta &&
-    (aba === 'entrar' || nome.trim().length > 0) &&
+    (!cadastrando || (nome.trim().length > 0 && repetida === senha)) &&
     !enviando;
 
   async function enviar(evento: React.FormEvent) {
@@ -52,6 +56,7 @@ export default function Login() {
             onClick={() => {
               setAba(item);
               setErro(null);
+              setRepetida('');
             }}
           >
             {item}
@@ -62,7 +67,7 @@ export default function Login() {
       {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
 
       <form onSubmit={(evento) => void enviar(evento)}>
-        {aba === 'cadastrar' && (
+        {cadastrando && (
           <label className="campo">
             <span className="campo-rotulo">nome</span>
             <input
@@ -85,20 +90,28 @@ export default function Login() {
           />
         </label>
 
-        <label className="campo">
-          <span className="campo-rotulo">senha</span>
-          <input
-            className="campo-entrada"
-            type="password"
-            value={senha}
-            autoComplete={aba === 'entrar' ? 'current-password' : 'new-password'}
-            onChange={(evento) => setSenha(evento.target.value)}
+        <Campo
+          rotulo="senha"
+          tipo="password"
+          valor={senha}
+          aoMudar={setSenha}
+          autoComplete={cadastrando ? 'new-password' : 'current-password'}
+          aviso={senhaCurta ? 'mínimo de 8 caracteres' : undefined}
+        />
+
+        {cadastrando && (
+          <Campo
+            rotulo="repita a senha"
+            tipo="password"
+            valor={repetida}
+            aoMudar={setRepetida}
+            autoComplete="new-password"
+            aviso={senhasDiferentes ? 'as senhas não são iguais' : undefined}
           />
-          {senhaCurta && <span className="campo-rotulo">mínimo de 8 caracteres</span>}
-        </label>
+        )}
 
         <button type="submit" className="botao botao-primario" style={{ width: '100%' }} disabled={!podeEnviar}>
-          {enviando ? 'aguarde...' : aba === 'entrar' ? 'entrar' : 'criar conta'}
+          {enviando ? 'aguarde...' : cadastrando ? 'criar conta' : 'entrar'}
         </button>
       </form>
     </main>

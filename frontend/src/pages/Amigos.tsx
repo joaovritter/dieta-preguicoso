@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, mensagemDoErro } from '../lib/api';
 import Erro from '../components/Erro';
+import { useConfirmacao } from '../components/useConfirmacao';
 import ProgressoAmigo from '../components/ProgressoAmigo';
 import type { MembroComProgresso, PedidoAmizade, PedidosAmizade } from '../lib/types';
 
@@ -11,6 +12,7 @@ export default function Amigos() {
   const [nomeTag, setNomeTag] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const { confirmar, elemento: confirmacao } = useConfirmacao();
 
   const carregar = useCallback(async () => {
     try {
@@ -26,6 +28,14 @@ export default function Amigos() {
   useEffect(() => {
     void carregar();
   }, [carregar]);
+
+  /** Toda ação que desfaz um vínculo passa por aqui antes de tocar a API. */
+  async function comConfirmacao(
+    pedido: { titulo: string; texto: string; rotulo: string },
+    acao: () => Promise<unknown>,
+  ) {
+    if (await confirmar(pedido)) await comOcupado(acao);
+  }
 
   async function comOcupado(acao: () => Promise<unknown>) {
     setOcupado(true);
@@ -104,7 +114,16 @@ export default function Amigos() {
                     type="button"
                     className="botao-mini"
                     disabled={ocupado}
-                    onClick={() => void comOcupado(() => api.recusarPedido(pedido.id))}
+                    onClick={() =>
+                      void comConfirmacao(
+                        {
+                          titulo: 'recusar pedido',
+                          texto: `o pedido de ${pedido.perfil.nome_tag} some. para virar amizade depois, precisa de um pedido novo.`,
+                          rotulo: 'recusar',
+                        },
+                        () => api.recusarPedido(pedido.id),
+                      )
+                    }
                   >
                     recusar
                   </button>
@@ -124,7 +143,16 @@ export default function Amigos() {
                     type="button"
                     className="botao-mini"
                     disabled={ocupado}
-                    onClick={() => void comOcupado(() => api.recusarPedido(pedido.id))}
+                    onClick={() =>
+                      void comConfirmacao(
+                        {
+                          titulo: 'cancelar pedido',
+                          texto: `o pedido para ${pedido.perfil.nome_tag} some. você pode mandar outro depois.`,
+                          rotulo: 'cancelar pedido',
+                        },
+                        () => api.recusarPedido(pedido.id),
+                      )
+                    }
                   >
                     cancelar
                   </button>
@@ -149,7 +177,16 @@ export default function Amigos() {
                     className="botao-mini botao-perigo"
                     disabled={ocupado}
                     aria-label={`remover ${amigo.perfil.nome_tag}`}
-                    onClick={() => void comOcupado(() => api.removerAmigo(amigo.perfil.id))}
+                    onClick={() =>
+                      void comConfirmacao(
+                        {
+                          titulo: 'remover amigo',
+                          texto: `vocês deixam de ver o progresso um do outro no feed.`,
+                          rotulo: 'remover',
+                        },
+                        () => api.removerAmigo(amigo.perfil.id),
+                      )
+                    }
                   >
                     remover
                   </button>
@@ -159,6 +196,7 @@ export default function Amigos() {
           </section>
         </>
       )}
+      {confirmacao}
     </main>
   );
 }
