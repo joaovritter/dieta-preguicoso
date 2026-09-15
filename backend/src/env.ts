@@ -33,7 +33,7 @@ export const env = {
   // Só a chave do provedor escolhido é exigida — o outro pode ficar em branco.
   openaiApiKey: provedorIA === 'openai' ? obrigatoria('OPENAI_API_KEY') : opcional('OPENAI_API_KEY', ''),
   geminiApiKey: provedorIA === 'gemini' ? obrigatoria('GEMINI_API_KEY') : opcional('GEMINI_API_KEY', ''),
-  modeloGemini: opcional('GEMINI_MODEL', 'gemini-2.5-flash'),
+  modeloGemini: opcional('GEMINI_MODEL', 'gemini-3.6-flash'),
   modeloTexto: opcional('OPENAI_MODEL_TEXTO', 'gpt-4o'),
   modeloVisao: opcional('OPENAI_MODEL_VISAO', 'gpt-4o'),
   modeloAudio: opcional('OPENAI_MODEL_AUDIO', 'whisper-1'),
