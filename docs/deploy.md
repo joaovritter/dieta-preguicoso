@@ -253,12 +253,14 @@ em código: só na variável e num `docker compose up -d backend`.
 e por dia. Para um grupo de amigos registrando ~4 refeições por dia cada, sobra folga. Pegue
 a chave em <https://aistudio.google.com/apikey> e confira em `GEMINI_MODEL` se o nome do
 modelo existe na sua conta — se não existir, o log do backend diz na hora
-(`docker compose logs --tail 20 backend`, linha com `[gemini]`).
+(`docker compose logs --tail 20 backend`, linha com `[ia]` e motivo `modelo_indisponivel`).
 
 `GEMINI_MODEL` aceita vários modelos separados por vírgula
-(`gemini-3.6-flash,gemini-3.7-flash,gemini-3.5-flash`). O primeiro atende sempre; o backend
-só cai para o seguinte depois de repetir três vezes no primeiro. Isso cobre os picos de
-sobrecarga (503) e a cota estourada (429).
+(`gemini-3.6-flash,gemini-3.7-flash,gemini-3.5-flash`). O primeiro atende sempre. No
+primeiro 503 (sobrecarga) ou 429 (cota) o backend pula direto para o próximo da lista, sem
+insistir: modelo em pico não melhora com repetição, e insistir só faz a pessoa esperar mais
+para ver o mesmo erro. Só timeout e queda de rede rendem até três tentativas no mesmo
+modelo, com 1s e 3s de espera. Com os três modelos fora, o erro chega em poucos segundos.
 
 Para saber quais nomes a sua chave enxerga:
 
@@ -282,14 +284,14 @@ docker compose logs -f backend | grep '\[ia\]'
 ```
 [ia] foto ok gemini-3.6-flash 2.4s 3 alimento(s)
 [ia] audio ok gemini-3.7-flash 3.1s 2 alimento(s) após 4 tentativas
-[ia] texto erro sobrecarga gemini-3.5-flash 8.2s 8 tentativa(s) — 503 { "error": ...
+[ia] texto erro sobrecarga gemini-3.5-flash 1.9s 3 tentativa(s) — 503 { "error": ...
 ```
 
 `ok` é registro que entrou; `erro` vem com o motivo, que diz o que fazer:
 
 | Motivo | O que é | O que fazer |
 |---|---|---|
-| `sobrecarga` | 5xx, pico de demanda no Google | esperar; já tentou em todos os modelos |
+| `sobrecarga` | 5xx, pico de demanda no Google | esperar; já tentou todos os modelos da lista |
 | `cota` | 429, limite por minuto ou por dia | esperar virar o minuto/dia, ou trocar de provedor |
 | `modelo_indisponivel` | 404, o nome não existe para a sua chave | corrigir `GEMINI_MODEL` |
 | `chave_invalida` | 401/403 | conferir `GEMINI_API_KEY` |

@@ -49,12 +49,12 @@ export function extrairJson(bruto: string): unknown {
     const inicio = texto.indexOf('{');
     const fim = texto.lastIndexOf('}');
     if (inicio === -1 || fim <= inicio) {
-      throw new AppError('IA_RESPOSTA_INVALIDA', 'a IA não devolveu JSON');
+      throw new AppError('IA_RESPOSTA_INVALIDA', 'não entendi o que a IA respondeu. mande de novo');
     }
     try {
       return JSON.parse(texto.slice(inicio, fim + 1));
     } catch {
-      throw new AppError('IA_RESPOSTA_INVALIDA', 'a IA devolveu JSON malformado');
+      throw new AppError('IA_RESPOSTA_INVALIDA', 'não entendi o que a IA respondeu. mande de novo');
     }
   }
 }
@@ -64,7 +64,7 @@ export function parsearAlimentos(bruto: string): Alimento[] {
   if (!resultado.success) {
     throw new AppError(
       'IA_RESPOSTA_INVALIDA',
-      'a IA devolveu um formato inesperado de alimentos',
+      'a IA não reconheceu nenhum alimento aí. tente outra foto ou escreva o que você comeu',
     );
   }
   return resultado.data.alimentos.map((a) => ({

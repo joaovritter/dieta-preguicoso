@@ -110,8 +110,9 @@ async function interpretar<T>(
           return valor;
         } catch (e) {
           // A IA respondeu, mas fora do formato combinado: não adianta repetir.
+          // O que ela mandou vai para o log, já que a pessoa só vê a mensagem curta.
           const f = falha('resposta_invalida');
-          logFalha(ctx, f.motivo, detalhe(e));
+          logFalha(ctx, f.motivo, `${detalhe(e)} | resposta: ${r.texto}`);
           throw new AppError(f.codigo, f.mensagem);
         }
       }
@@ -138,7 +139,7 @@ async function interpretar<T>(
 async function arquivoEmBase64(caminho: string, rotulo: string): Promise<string> {
   const dados = await readFile(caminho);
   if (dados.byteLength > MAX_ARQUIVO_BYTES) {
-    throw new AppError('ARQUIVO_INVALIDO', `${rotulo} grande demais para a IA (limite de 14 MB)`);
+    throw new AppError('ARQUIVO_INVALIDO', `esse ${rotulo} é grande demais (o limite é 14 MB)`);
   }
   return dados.toString('base64');
 }

@@ -110,7 +110,7 @@ rotasRegistros.post('/foto', limiteIA, comUpload(uploadImagem), async (req, res,
   const arquivo = req.file;
   try {
     const perfil = perfilDe(req);
-    if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'envie a imagem no campo "arquivo"');
+    if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'a foto não chegou no envio. tente de novo');
 
     const base64 = (await readFile(arquivo.path)).toString('base64');
     const { alimentos, descricao } = await ia.interpretarImagem(base64, arquivo.mimetype);
@@ -134,11 +134,11 @@ rotasRegistros.post('/audio', limiteIA, comUpload(uploadAudio), async (req, res,
   const arquivo = req.file;
   try {
     const perfil = perfilDe(req);
-    if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'envie o áudio no campo "arquivo"');
+    if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'o áudio não chegou no envio. tente de novo');
 
     const { transcricao, alimentos } = await ia.interpretarAudio(arquivo.path, arquivo.mimetype);
     if (transcricao.trim() === '') {
-      throw new AppError('IA_RESPOSTA_INVALIDA', 'não consegui entender o áudio');
+      throw new AppError('IA_RESPOSTA_INVALIDA', 'não consegui entender o áudio. grave de novo, mais perto da boca');
     }
 
     res.json(

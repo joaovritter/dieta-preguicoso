@@ -24,11 +24,11 @@ export function verificarToken(token: string): string {
     const payload = jwt.verify(token, env.jwtSecret);
     const sub = typeof payload === 'string' ? null : payload.sub;
     if (typeof sub !== 'string' || sub === '') {
-      throw new AppError('NAO_AUTORIZADO', 'token sem sujeito');
+      throw new AppError('NAO_AUTORIZADO', 'sua sessão expirou. entre de novo');
     }
     return sub;
   } catch (e) {
     if (e instanceof AppError) throw e;
-    throw new AppError('NAO_AUTORIZADO', 'token inválido ou expirado');
+    throw new AppError('NAO_AUTORIZADO', 'sua sessão expirou. entre de novo');
   }
 }

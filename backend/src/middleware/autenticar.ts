@@ -15,7 +15,7 @@ declare global {
 
 /** Depois deste middleware, `req.perfil` está garantidamente preenchido. */
 export function perfilDe(req: Request): Perfil {
-  if (!req.perfil) throw new AppError('NAO_AUTORIZADO', 'requisição sem perfil autenticado');
+  if (!req.perfil) throw new AppError('NAO_AUTORIZADO', 'sua sessão expirou. entre de novo');
   return req.perfil;
 }
 
@@ -28,12 +28,12 @@ export async function autenticar(
     const header = req.get('authorization') ?? '';
     const [esquema, token] = header.split(' ');
     if (esquema?.toLowerCase() !== 'bearer' || !token) {
-      throw new AppError('NAO_AUTORIZADO', 'informe o header Authorization: Bearer <token>');
+      throw new AppError('NAO_AUTORIZADO', 'entre na sua conta para continuar');
     }
 
     const userId = verificarToken(token);
     const linha = await buscarPorId(userId);
-    if (!linha) throw new AppError('NAO_AUTORIZADO', 'usuário do token não existe mais');
+    if (!linha) throw new AppError('NAO_AUTORIZADO', 'essa conta não existe mais');
 
     req.perfil = paraPerfil(linha);
     next();

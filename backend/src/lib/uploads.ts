@@ -54,7 +54,7 @@ function filtro(permitidos: Set<string>, rotulo: string): multer.Options['fileFi
       cb(null, true);
       return;
     }
-    cb(new AppError('ARQUIVO_INVALIDO', `tipo de ${rotulo} não suportado: ${file.mimetype}`));
+    cb(new AppError('ARQUIVO_INVALIDO', `esse formato de ${rotulo} não dá para usar aqui`));
   };
 }
 

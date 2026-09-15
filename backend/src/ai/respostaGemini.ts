@@ -27,7 +27,7 @@ export function textoDaResposta(corpo: unknown): string {
   const partes = (corpo as RespostaGemini)?.candidates?.[0]?.content?.parts;
   const texto = partes?.map((p) => p.text ?? '').join('') ?? '';
   if (texto.trim() === '') {
-    throw new AppError('IA_RESPOSTA_INVALIDA', 'a IA devolveu resposta vazia');
+    throw new AppError('IA_RESPOSTA_INVALIDA', 'a IA não respondeu nada. mande de novo');
   }
   return texto;
 }

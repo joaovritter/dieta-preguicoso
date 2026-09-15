@@ -5,7 +5,11 @@ import type { CodigoErro } from '../lib/erros.js';
  * Fica separado dos provedores para poder ser testado sem rede.
  */
 
-/** Esperas entre as tentativas no mesmo modelo, em ms. */
+/**
+ * Esperas entre as tentativas no mesmo modelo, em ms. Só valem para timeout e
+ * queda de rede: sobrecarga e cota trocam de modelo na hora, porque insistir
+ * num modelo em pico só faz a pessoa esperar mais para ver o mesmo erro.
+ */
 export const ESPERAS_MS = [1_000, 3_000];
 
 export type Motivo =
@@ -30,39 +34,39 @@ export interface Falha {
 const FALHAS: Record<Motivo, Omit<Falha, 'motivo'>> = {
   sobrecarga: {
     codigo: 'IA_INDISPONIVEL',
-    mensagem: 'a IA está sobrecarregada agora, tente de novo em instantes',
+    mensagem: 'muita gente usando a IA agora. espere um minutinho e mande de novo',
   },
   cota: {
     codigo: 'IA_INDISPONIVEL',
-    mensagem: 'a IA atingiu o limite de uso, tente de novo em alguns minutos',
+    mensagem: 'a cota de IA de hoje acabou. tente mais tarde ou anote por texto',
   },
   modelo_indisponivel: {
     codigo: 'IA_INDISPONIVEL',
-    mensagem: 'a IA está mal configurada no servidor, avise o administrador',
+    mensagem: 'a IA está fora do ar por um problema de configuração. avise quem cuida do app',
   },
   chave_invalida: {
     codigo: 'IA_INDISPONIVEL',
-    mensagem: 'a IA está mal configurada no servidor, avise o administrador',
+    mensagem: 'a IA está fora do ar por um problema de configuração. avise quem cuida do app',
   },
   pedido_invalido: {
     codigo: 'IA_RESPOSTA_INVALIDA',
-    mensagem: 'a IA recusou este envio, tente com outra foto ou descreva por texto',
+    mensagem: 'a IA não conseguiu usar esse envio. tente outra foto ou escreva o que você comeu',
   },
   timeout: {
     codigo: 'IA_INDISPONIVEL',
-    mensagem: 'a IA demorou demais para responder, tente de novo',
+    mensagem: 'a IA demorou demais para responder. mande de novo',
   },
   rede: {
     codigo: 'IA_INDISPONIVEL',
-    mensagem: 'não consegui falar com a IA agora, tente de novo',
+    mensagem: 'não consegui falar com a IA agora. veja sua conexão e tente de novo',
   },
   resposta_invalida: {
     codigo: 'IA_RESPOSTA_INVALIDA',
-    mensagem: 'a IA respondeu de um jeito que eu não entendi, tente de novo',
+    mensagem: 'não entendi o que a IA respondeu. mande de novo',
   },
   desconhecido: {
     codigo: 'IA_INDISPONIVEL',
-    mensagem: 'não consegui falar com a IA agora, tente de novo',
+    mensagem: 'a IA falhou de um jeito inesperado. mande de novo',
   },
 };
 
@@ -101,14 +105,18 @@ export function classificarExcecao(e: unknown): Falha {
 export type Acao = 'repetir' | 'proximo-modelo' | 'desistir';
 
 /**
- * Problema passageiro rende até três tentativas no mesmo modelo; depois disso,
- * e sempre que o modelo não existe na conta, a vez passa para o próximo da
- * lista. Erro de configuração ou de pedido desiste na hora.
+ * Sobrecarga e cota são do modelo, não da chamada: repetir no mesmo modelo só
+ * empilha espera, então a vez passa direto para o próximo da lista — como já
+ * acontece com o modelo que não existe na conta. Timeout e queda de rede são da
+ * chamada e ainda rendem até três tentativas no mesmo modelo. Erro de
+ * configuração ou de pedido desiste na hora.
  */
 export function decidir(motivo: Motivo, tentativa: number): Acao {
-  if (motivo === 'sobrecarga' || motivo === 'cota' || motivo === 'timeout' || motivo === 'rede') {
+  if (motivo === 'timeout' || motivo === 'rede') {
     return tentativa < ESPERAS_MS.length ? 'repetir' : 'proximo-modelo';
   }
-  if (motivo === 'modelo_indisponivel') return 'proximo-modelo';
+  if (motivo === 'sobrecarga' || motivo === 'cota' || motivo === 'modelo_indisponivel') {
+    return 'proximo-modelo';
+  }
   return 'desistir';
 }

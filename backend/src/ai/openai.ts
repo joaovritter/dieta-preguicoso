@@ -21,9 +21,14 @@ function contexto(entrada: Entrada, modelo: string, inicioMs: number): Contexto 
   return { entrada, modelo, inicioMs, tentativas: 1 };
 }
 
-/** Registra a falha e a traduz para o erro de domínio que a rota devolve. */
-function erroIA(ctx: Contexto, e: unknown): never {
-  const detalhe = e instanceof Error ? e.message : String(e);
+/**
+ * Registra a falha e a traduz para o erro de domínio que a rota devolve. O
+ * `bruto` é o que a IA respondeu: vai para o log, porque a pessoa só vê a
+ * mensagem curta.
+ */
+function erroIA(ctx: Contexto, e: unknown, bruto = ''): never {
+  const base = e instanceof Error ? e.message : String(e);
+  const detalhe = bruto === '' ? base : `${base} | resposta: ${bruto}`;
   // AppError aqui é resposta vazia ou fora do formato — já classificada antes de subir.
   const f = e instanceof AppError ? falha('resposta_invalida') : classificarExcecao(e);
   logFalha(ctx, f.motivo, detalhe);
@@ -32,7 +37,7 @@ function erroIA(ctx: Contexto, e: unknown): never {
 
 function conteudoOuFalha(texto: string | null | undefined): string {
   if (!texto || texto.trim() === '') {
-    throw new AppError('IA_RESPOSTA_INVALIDA', 'a IA devolveu resposta vazia');
+    throw new AppError('IA_RESPOSTA_INVALIDA', 'a IA não respondeu nada. mande de novo');
   }
   return texto;
 }
@@ -40,6 +45,7 @@ function conteudoOuFalha(texto: string | null | undefined): string {
 /** Interpreta uma descrição em texto livre do que foi comido. */
 async function interpretarTexto(texto: string): Promise<Alimento[]> {
   const ctx = contexto('texto', env.modeloTexto, Date.now());
+  let bruto = '';
   try {
     const r = await cliente().chat.completions.create({
       model: env.modeloTexto,
@@ -50,17 +56,19 @@ async function interpretarTexto(texto: string): Promise<Alimento[]> {
         { role: 'user', content: `<entrada_usuario>${texto}</entrada_usuario>` },
       ],
     });
-    const alimentos = parsearAlimentos(conteudoOuFalha(r.choices[0]?.message.content));
+    bruto = conteudoOuFalha(r.choices[0]?.message.content);
+    const alimentos = parsearAlimentos(bruto);
     logSucesso(ctx, alimentos.length);
     return alimentos;
   } catch (e) {
-    return erroIA(ctx, e);
+    return erroIA(ctx, e, bruto);
   }
 }
 
 /** Interpreta a foto de um prato ou de um alimento avulso. */
 async function interpretarImagem(base64: string, mimetype: string): Promise<ResultadoVisao> {
   const ctx = contexto('foto', env.modeloVisao, Date.now());
+  let bruto = '';
   try {
     const r = await cliente().chat.completions.create({
       model: env.modeloVisao,
@@ -81,7 +89,7 @@ async function interpretarImagem(base64: string, mimetype: string): Promise<Resu
       ],
     });
 
-    const bruto = conteudoOuFalha(r.choices[0]?.message.content);
+    bruto = conteudoOuFalha(r.choices[0]?.message.content);
     const alimentos = parsearAlimentos(bruto);
 
     let descricao = '';
@@ -98,7 +106,7 @@ async function interpretarImagem(base64: string, mimetype: string): Promise<Resu
     logSucesso(ctx, alimentos.length);
     return { alimentos, descricao };
   } catch (e) {
-    return erroIA(ctx, e);
+    return erroIA(ctx, e, bruto);
   }
 }
 
@@ -140,11 +148,12 @@ async function interpretarAudio(caminho: string, _mimetype: string): Promise<Res
     })
     .catch((e: unknown) => erroIA(ctx, e));
 
+  const bruto = r.choices[0]?.message.content ?? '';
   let alimentos: Alimento[];
   try {
-    alimentos = parsearAlimentos(conteudoOuFalha(r.choices[0]?.message.content));
+    alimentos = parsearAlimentos(conteudoOuFalha(bruto));
   } catch (e) {
-    return erroIA(ctx, e);
+    return erroIA(ctx, e, bruto);
   }
 
   logSucesso(ctx, alimentos.length);
