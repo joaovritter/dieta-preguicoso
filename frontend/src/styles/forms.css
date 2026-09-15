@@ -69,27 +69,6 @@ textarea.campo-entrada {
   accent-color: var(--accent);
 }
 
-.faixa-horario {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: var(--esp-2);
-  margin-bottom: var(--esp-2);
-}
-
-.faixa-horario input {
-  width: 100px;
-  min-height: 40px;
-  padding: 0 var(--esp-2);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.faixa-nome {
-  font-size: 14px;
-}
-
 .erro-faixa {
   background: var(--danger);
   color: #fff;

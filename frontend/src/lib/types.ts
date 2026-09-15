@@ -1,6 +1,11 @@
 // Tipos copiados de docs/api-contract.md — fonte da verdade.
 
-export type Refeicao = 'cafe_da_manha' | 'almoco' | 'lanche' | 'janta' | 'ceia';
+export interface Refeicao {
+  id: string;
+  nome: string;
+  inicio: string;
+  fim: string;
+}
 export type TipoEntrada = 'foto' | 'audio' | 'texto';
 export type Objetivo = 'perder_peso' | 'manter' | 'ganhar_massa';
 export type Sexo = 'M' | 'F';
@@ -12,12 +17,6 @@ export interface Alimento {
   carboidrato_g: number;
   proteina_g: number;
   gordura_g: number;
-}
-
-export interface FaixaRefeicao {
-  refeicao: Refeicao;
-  inicio: string;
-  fim: string;
 }
 
 export interface Perfil {
@@ -37,7 +36,6 @@ export interface Perfil {
   meta_agua_ml: number;
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
-  faixas_refeicao: FaixaRefeicao[];
   timezone: string;
   criado_em: string;
 }
@@ -45,7 +43,8 @@ export interface Perfil {
 export interface Registro {
   id: string;
   tipo_entrada: TipoEntrada;
-  refeicao: Refeicao;
+  refeicao_id: string;
+  refeicao_nome: string;
   descricao_bruta: string;
   midia_url: string | null;
   alimentos_detectados: Alimento[];
@@ -95,7 +94,7 @@ export interface ResumoDia {
   proteina_g: Metrica;
   gordura_g: Metrica;
   agua_ml: Metrica;
-  refeicoes: Array<{ refeicao: Refeicao; calorias: number; quantidade_registros: number }>;
+  refeicoes: Array<{ refeicao_id: string; refeicao_nome: string; calorias: number; quantidade_registros: number }>;
 }
 
 export interface DiaSemana {
@@ -111,7 +110,8 @@ export interface ResumoSemana {
 }
 
 export interface GrupoRefeicao {
-  refeicao: Refeicao;
+  refeicao_id: string;
+  refeicao_nome: string;
   calorias: number;
   registros: Registro[];
 }
@@ -141,7 +141,6 @@ export interface EntradaPerfil {
   meta_agua_ml?: number;
   metas_automaticas?: boolean;
   modo_preguicoso?: boolean;
-  faixas_refeicao?: FaixaRefeicao[];
   timezone?: string;
 }
 
@@ -149,7 +148,7 @@ export interface EntradaConfirmacao {
   tipo_entrada: TipoEntrada;
   descricao_bruta: string;
   midia_url?: string | null;
-  refeicao?: Refeicao;
+  refeicao_id?: string;
   alimentos: Alimento[];
   criado_em?: string;
 }
@@ -181,7 +180,8 @@ export interface ProgressoDia {
 export interface Post {
   id: string;
   autor: PerfilPublico;
-  refeicao: Refeicao;
+  refeicao_id: string;
+  refeicao_nome: string;
   descricao_bruta: string;
   midia_url: string | null;
   alimentos_detectados: Alimento[];

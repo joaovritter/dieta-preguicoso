@@ -17,7 +17,6 @@ import EntradaTexto from '../components/EntradaTexto';
 import GravadorAudio from '../components/GravadorAudio';
 import { OverlayCarregando } from '../components/Overlay';
 import Erro from '../components/Erro';
-import type { Refeicao } from '../lib/types';
 
 type Modal = 'texto' | 'audio' | null;
 
@@ -63,8 +62,8 @@ export default function Home() {
       });
       if (ok) await comOcupado(() => api.excluirRegistro(id));
     })();
-  const trocarRefeicao = (id: string, refeicao: Refeicao) =>
-    void comOcupado(() => api.atualizarRegistro(id, { refeicao }));
+  const trocarRefeicao = (id: string, refeicaoId: string) =>
+    void comOcupado(() => api.atualizarRegistro(id, { refeicao_id: refeicaoId }));
 
   const { resumo, registros, semana, carregando, erro } = dados;
 

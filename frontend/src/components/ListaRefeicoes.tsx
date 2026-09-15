@@ -1,21 +1,21 @@
 import { useState } from 'react';
 import ItemRegistro from './ItemRegistro';
-import { NOME_REFEICAO, numero } from '../lib/format';
-import type { GrupoRefeicao, Refeicao, Registro } from '../lib/types';
+import { numero } from '../lib/format';
+import type { GrupoRefeicao, Registro } from '../lib/types';
 
 interface Props {
   grupos: GrupoRefeicao[];
   ocupado: boolean;
-  aoTrocarRefeicao: (id: string, refeicao: Refeicao) => void;
+  aoTrocarRefeicao: (id: string, refeicaoId: string) => void;
   aoExcluir: (id: string) => void;
 }
 
 export default function ListaRefeicoes({ grupos, ocupado, aoTrocarRefeicao, aoExcluir }: Props) {
-  const [abertas, setAbertas] = useState<Refeicao[]>([]);
+  const [abertas, setAbertas] = useState<string[]>([]);
 
-  function alternar(refeicao: Refeicao) {
+  function alternar(refeicaoId: string) {
     setAbertas((atual) =>
-      atual.includes(refeicao) ? atual.filter((r) => r !== refeicao) : [...atual, refeicao],
+      atual.includes(refeicaoId) ? atual.filter((r) => r !== refeicaoId) : [...atual, refeicaoId],
     );
   }
 
@@ -33,16 +33,16 @@ export default function ListaRefeicoes({ grupos, ocupado, aoTrocarRefeicao, aoEx
     <section>
       <h2 className="titulo-secao">refeições</h2>
       {grupos.map((grupo) => {
-        const aberta = abertas.includes(grupo.refeicao);
+        const aberta = abertas.includes(grupo.refeicao_id);
         return (
-          <div className="cartao" key={grupo.refeicao}>
+          <div className="cartao" key={grupo.refeicao_id}>
             <button
               type="button"
               className="refeicao-cabecalho"
               aria-expanded={aberta}
-              onClick={() => alternar(grupo.refeicao)}
+              onClick={() => alternar(grupo.refeicao_id)}
             >
-              <span className="refeicao-nome">{NOME_REFEICAO[grupo.refeicao]}</span>
+              <span className="refeicao-nome">{grupo.refeicao_nome}</span>
               <span className="refeicao-kcal">
                 {numero(grupo.calorias)} kcal · {grupo.registros.length}{' '}
                 {grupo.registros.length === 1 ? 'registro' : 'registros'}

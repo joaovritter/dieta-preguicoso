@@ -1,4 +1,4 @@
-import type { EntradaPerfil, FaixaRefeicao, Objetivo, Perfil, Sexo } from '../lib/types';
+import type { EntradaPerfil, Objetivo, Perfil, Sexo } from '../lib/types';
 
 export interface Formulario {
   nome: string;
@@ -14,8 +14,6 @@ export interface Formulario {
   meta_agua_ml: string;
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
-  faixas_refeicao: FaixaRefeicao[];
-  timezone: string;
 }
 
 export function paraFormulario(perfil: Perfil): Formulario {
@@ -33,8 +31,6 @@ export function paraFormulario(perfil: Perfil): Formulario {
     meta_agua_ml: String(perfil.meta_agua_ml),
     metas_automaticas: perfil.metas_automaticas,
     modo_preguicoso: perfil.modo_preguicoso,
-    faixas_refeicao: perfil.faixas_refeicao,
-    timezone: perfil.timezone,
   };
 }
 
@@ -55,8 +51,6 @@ export function paraEntrada(form: Formulario): EntradaPerfil {
     objetivo: form.objetivo,
     metas_automaticas: form.metas_automaticas,
     modo_preguicoso: form.modo_preguicoso,
-    faixas_refeicao: form.faixas_refeicao,
-    timezone: form.timezone.trim(),
   };
   // Com metas automáticas o backend recalcula; não faz sentido mandar valores manuais.
   if (!form.metas_automaticas) {

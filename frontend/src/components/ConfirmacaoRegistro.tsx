@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react';
 import Overlay from './Overlay';
 import Erro from './Erro';
 import LinhaAlimento from './LinhaAlimento';
-import { NOME_REFEICAO, REFEICOES, numero, somarAlimentos } from '../lib/format';
+import { numero, somarAlimentos } from '../lib/format';
 import { mensagemDoErro } from '../lib/api';
-import type { Alimento, EntradaConfirmacao, Interpretacao, Refeicao } from '../lib/types';
+import { useRefeicoes } from '../lib/RefeicoesContext';
+import type { Alimento, EntradaConfirmacao, Interpretacao } from '../lib/types';
 
 interface Props {
   interpretacao: Interpretacao;
@@ -22,8 +23,9 @@ const ALIMENTO_VAZIO: Alimento = {
 };
 
 export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDescartar }: Props) {
+  const { refeicoes } = useRefeicoes();
   const [alimentos, setAlimentos] = useState<Alimento[]>(interpretacao.alimentos);
-  const [refeicao, setRefeicao] = useState<Refeicao>(interpretacao.refeicao_sugerida);
+  const [refeicaoId, setRefeicaoId] = useState<string>(interpretacao.refeicao_sugerida.id);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -46,7 +48,7 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
         tipo_entrada: interpretacao.tipo_entrada,
         descricao_bruta: interpretacao.descricao_bruta,
         midia_url: interpretacao.midia_url,
-        refeicao,
+        refeicao_id: refeicaoId,
         alimentos,
       });
     } catch (falha: unknown) {
@@ -67,12 +69,12 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
         <span className="campo-rotulo">refeição</span>
         <select
           className="campo-entrada"
-          value={refeicao}
-          onChange={(evento) => setRefeicao(evento.target.value as Refeicao)}
+          value={refeicaoId}
+          onChange={(evento) => setRefeicaoId(evento.target.value)}
         >
-          {REFEICOES.map((item) => (
-            <option key={item} value={item}>
-              {NOME_REFEICAO[item]}
+          {refeicoes.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.nome}
             </option>
           ))}
         </select>
