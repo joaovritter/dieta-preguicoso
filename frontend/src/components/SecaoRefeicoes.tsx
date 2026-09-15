@@ -92,6 +92,7 @@ export default function SecaoRefeicoes({ aoFalhar }: { aoFalhar: (e: unknown) =>
             <button
               type="button"
               className="linha-social-nome refeicao-nome-botao"
+              aria-label={`renomear ${r.nome}`}
               onClick={() => iniciarEdicao(r)}
             >
               {r.nome}
