@@ -73,8 +73,7 @@ export function acomodar(
     if (!cobreInicio && !cobreFim) continue;
 
     // A janela nova começa e termina dentro da mesma vizinha: partiria ela em duas.
-    // Mas só recusamos se a vizinha cruza a meia-noite (não faz sentido inserir uma janela normal no meio de uma que cruza).
-    if (cobreInicio && cobreFim && atravessa) {
+    if (cobreInicio && cobreFim && (atravessa || (inicio > aInicio && fim < aFim))) {
       throw new AppError('VALIDACAO', `essa faixa fica no meio de ${atual.nome}, escolha outra`);
     }
 

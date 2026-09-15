@@ -73,7 +73,7 @@ describe('acomodar', () => {
   });
 
   it('não mexe em quem não encosta na janela nova', () => {
-    const mudadas = acomodar(PADRAO, { inicio: '15:30', fim: '16:00' });
+    const mudadas = acomodar(PADRAO, { inicio: '15:30', fim: '18:00' });
     expect(mudadas.map((r) => r.id)).toEqual(['3']);
   });
 
@@ -99,8 +99,8 @@ describe('acomodar', () => {
     const passo1 = [...PADRAO];
     const mudadas1 = acomodar(passo1, { inicio: '15:01', fim: '17:00' });
     const lista1 = aplicar(passo1, mudadas1).concat(refeicao('6', 'Pré-treino', '15:01', '17:00'));
-    const mudadas2 = acomodar(lista1, { inicio: '09:00', fim: '09:30' });
-    const lista2 = aplicar(lista1, mudadas2).concat(refeicao('7', 'Colação', '09:00', '09:30'));
+    const mudadas2 = acomodar(lista1, { inicio: '09:00', fim: '10:00' });
+    const lista2 = aplicar(lista1, mudadas2).concat(refeicao('7', 'Colação', '09:00', '10:00'));
 
     const ordenadas = [...lista2].sort((a, b) => a.inicio.localeCompare(b.inicio));
     for (let i = 1; i < ordenadas.length; i += 1) {
