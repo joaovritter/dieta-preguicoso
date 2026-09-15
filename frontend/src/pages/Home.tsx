@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { dataLonga, ehHoje, hojeISO } from '../lib/format';
 import { useAuth } from '../auth/useAuth';
+import { useRefeicoes } from '../lib/RefeicoesContext';
 import { useDadosDoDia } from './useDadosDoDia';
 import { useEntradaIA } from './useEntradaIA';
 import FaixaSemanal from '../components/FaixaSemanal';
@@ -30,6 +31,7 @@ export default function Home() {
 
   const dados = useDadosDoDia(data, hoje);
   const { recarregar, reportarErro } = dados;
+  const refeicoesCtx = useRefeicoes();
 
   // Registros novos caem sempre em hoje: volto a Home para hoje ao gravar.
   const aposGravar = useCallback(async () => {
@@ -89,6 +91,9 @@ export default function Home() {
         </header>
 
         {erro !== null && <Erro mensagem={erro} aoFechar={dados.limparErro} />}
+        {refeicoesCtx.erro !== null && (
+          <Erro mensagem={refeicoesCtx.erro} aoFechar={refeicoesCtx.limparErro} />
+        )}
 
         {semana !== null && (
           <FaixaSemanal dias={semana.dias} selecionada={data} aoSelecionar={setData} />

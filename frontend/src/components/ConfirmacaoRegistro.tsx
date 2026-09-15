@@ -30,6 +30,8 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
   const [erro, setErro] = useState<string | null>(null);
 
   const totais = useMemo(() => somarAlimentos(alimentos), [alimentos]);
+  const semOpcoes = refeicoes.length === 0;
+  const opcaoValida = refeicoes.some((item) => item.id === refeicaoId);
   const podeConfirmar = alimentos.length > 0 && !salvando;
 
   function trocar(indice: number, alimento: Alimento) {
@@ -69,9 +71,20 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
         <span className="campo-rotulo">refeição</span>
         <select
           className="campo-entrada"
-          value={refeicaoId}
+          value={opcaoValida ? refeicaoId : ''}
+          disabled={semOpcoes}
           onChange={(evento) => setRefeicaoId(evento.target.value)}
         >
+          {semOpcoes && (
+            <option value="" disabled>
+              carregando refeições...
+            </option>
+          )}
+          {!semOpcoes && !opcaoValida && (
+            <option value="" disabled>
+              refeição não encontrada
+            </option>
+          )}
           {refeicoes.map((item) => (
             <option key={item.id} value={item.id}>
               {item.nome}

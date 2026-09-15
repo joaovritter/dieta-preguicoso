@@ -141,7 +141,6 @@ export interface EntradaPerfil {
   meta_agua_ml?: number;
   metas_automaticas?: boolean;
   modo_preguicoso?: boolean;
-  timezone?: string;
 }
 
 export interface EntradaConfirmacao {

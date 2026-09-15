@@ -1,12 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api } from './api';
+import { api, mensagemDoErro } from './api';
 import type { Refeicao } from './types';
 import { useAuth } from '../auth/useAuth';
 
 export interface ContextoRefeicoes {
   refeicoes: Refeicao[];
+  erro: string | null;
   recarregar: () => Promise<void>;
+  limparErro: () => void;
 }
 
 export const RefeicoesContext = createContext<ContextoRefeicoes | null>(null);
@@ -14,32 +16,31 @@ export const RefeicoesContext = createContext<ContextoRefeicoes | null>(null);
 export function RefeicoesProvider({ children }: { children: ReactNode }) {
   const { perfil } = useAuth();
   const [refeicoes, setRefeicoes] = useState<Refeicao[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
 
   const recarregar = useCallback(async () => {
-    const { refeicoes: lista } = await api.refeicoes();
-    setRefeicoes(lista);
+    try {
+      const { refeicoes: lista } = await api.refeicoes();
+      setRefeicoes(lista);
+      setErro(null);
+    } catch (falha: unknown) {
+      setErro(mensagemDoErro(falha));
+    }
   }, []);
 
   useEffect(() => {
     if (perfil === null) {
       setRefeicoes([]);
+      setErro(null);
       return;
     }
-    let ativo = true;
-    api
-      .refeicoes()
-      .then(({ refeicoes: lista }) => {
-        if (ativo) setRefeicoes(lista);
-      })
-      .catch(() => {
-        // Deixa a lista vazia; quem consome renderiza sem opções em vez de travar a tela.
-      });
-    return () => {
-      ativo = false;
-    };
-  }, [perfil]);
+    void recarregar();
+  }, [perfil, recarregar]);
 
-  const valor = useMemo<ContextoRefeicoes>(() => ({ refeicoes, recarregar }), [refeicoes, recarregar]);
+  const valor = useMemo<ContextoRefeicoes>(
+    () => ({ refeicoes, erro, recarregar, limparErro: () => setErro(null) }),
+    [refeicoes, erro, recarregar],
+  );
 
   return <RefeicoesContext.Provider value={valor}>{children}</RefeicoesContext.Provider>;
 }

@@ -11,6 +11,8 @@ interface Props {
 
 export default function ItemRegistro({ registro, ocupado, aoTrocarRefeicao, aoExcluir }: Props) {
   const { refeicoes } = useRefeicoes();
+  const semOpcoes = refeicoes.length === 0;
+  const opcaoValida = refeicoes.some((refeicao) => refeicao.id === registro.refeicao_id);
 
   return (
     <article className="registro">
@@ -42,10 +44,20 @@ export default function ItemRegistro({ registro, ocupado, aoTrocarRefeicao, aoEx
         <select
           id={`refeicao-${registro.id}`}
           className="seletor"
-          value={registro.refeicao_id}
-          disabled={ocupado}
+          value={opcaoValida ? registro.refeicao_id : ''}
+          disabled={ocupado || semOpcoes}
           onChange={(evento) => aoTrocarRefeicao(registro.id, evento.target.value)}
         >
+          {semOpcoes && (
+            <option value="" disabled>
+              carregando refeições...
+            </option>
+          )}
+          {!semOpcoes && !opcaoValida && (
+            <option value="" disabled>
+              refeição não encontrada
+            </option>
+          )}
           {refeicoes.map((refeicao) => (
             <option key={refeicao.id} value={refeicao.id}>
               {refeicao.nome}
