@@ -255,6 +255,12 @@ a chave em <https://aistudio.google.com/apikey> e confira em `GEMINI_MODEL` se o
 modelo existe na sua conta — se não existir, o log do backend diz na hora
 (`docker compose logs --tail 20 backend`, linha com `[gemini]`).
 
+`GEMINI_MODEL` aceita vários modelos separados por vírgula
+(`gemini-3.6-flash,gemini-2.5-flash`). O primeiro atende sempre; o backend só cai para o
+seguinte depois de repetir três vezes no primeiro. Isso cobre os erros passageiros que
+aparecem no log como `[gemini] <modelo> 503` (modelo sobrecarregado) e `429` (cota do dia
+ou do minuto estourada).
+
 Vale saber: camada gratuita costuma significar que os dados podem ser usados para melhorar
 o produto. São fotos de comida, não é dado crítico — mas é escolha, não detalhe.
 

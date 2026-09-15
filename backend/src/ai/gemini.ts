@@ -5,6 +5,7 @@ import type { Alimento } from '../domain/tipos.js';
 import { parsearAlimentos } from './parse.js';
 import { INSTRUCAO, PEDE_DESCRICAO, PEDE_TRANSCRICAO } from './prompt.js';
 import { normalizarMime, parsearAudio, parsearVisao, textoDaResposta } from './respostaGemini.js';
+import { decidir, ESPERAS_MS, mensagemErro } from './retentativa.js';
 import type { ProvedorIA, ResultadoAudio, ResultadoVisao } from './tipos.js';
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -29,38 +30,61 @@ function falhar(e: unknown): never {
   throw new AppError('IA_INDISPONIVEL', 'não consegui falar com a IA agora, tente de novo');
 }
 
+function dormir(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function pedir(modelo: string, instrucao: string, partes: Parte[]): Promise<Response> {
+  return fetch(`${BASE}/models/${modelo}:generateContent`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': env.geminiApiKey },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: instrucao }] },
+      contents: [{ role: 'user', parts: partes }],
+      generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
+    }),
+    signal: AbortSignal.timeout(TEMPO_LIMITE_MS),
+  });
+}
+
+/**
+ * Percorre `GEMINI_MODEL` na ordem em que está escrito. Cada modelo ganha até
+ * três tentativas quando o erro é passageiro; só depois disso a vez passa para
+ * o próximo da lista.
+ */
 async function gerar(instrucao: string, partes: Parte[]): Promise<string> {
-  let resposta: Response;
-  try {
-    resposta = await fetch(`${BASE}/models/${env.modeloGemini}:generateContent`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': env.geminiApiKey },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: instrucao }] },
-        contents: [{ role: 'user', parts: partes }],
-        generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
-      }),
-      signal: AbortSignal.timeout(TEMPO_LIMITE_MS),
-    });
-  } catch (e) {
-    return falhar(e);
-  }
+  let ultimoStatus = 0;
 
-  if (!resposta.ok) {
-    const corpo = await resposta.text().catch(() => '');
-    console.error('[gemini]', resposta.status, corpo.slice(0, 500));
-    // 429 no plano gratuito é limite de requisições por minuto, e passa sozinho.
-    if (resposta.status === 429) {
-      throw new AppError('IA_INDISPONIVEL', 'a IA atingiu o limite de uso, tente de novo em alguns segundos');
+  for (const modelo of env.modelosGemini) {
+    for (let tentativa = 0; ; tentativa++) {
+      let resposta: Response;
+      try {
+        resposta = await pedir(modelo, instrucao, partes);
+      } catch (e) {
+        return falhar(e);
+      }
+
+      if (resposta.ok) {
+        try {
+          return textoDaResposta(await resposta.json());
+        } catch (e) {
+          return falhar(e);
+        }
+      }
+
+      const corpo = await resposta.text().catch(() => '');
+      console.error('[gemini]', modelo, resposta.status, corpo.slice(0, 500));
+      ultimoStatus = resposta.status;
+
+      const acao = decidir(resposta.status, tentativa);
+      if (acao === 'desistir') throw new AppError('IA_INDISPONIVEL', mensagemErro(ultimoStatus));
+      if (acao === 'proximo-modelo') break;
+      // `decidir` só devolve "repetir" com índice dentro da lista; o ?? é só para o tipo.
+      await dormir(ESPERAS_MS[tentativa] ?? 0);
     }
-    throw new AppError('IA_INDISPONIVEL', 'não consegui falar com a IA agora, tente de novo');
   }
 
-  try {
-    return textoDaResposta(await resposta.json());
-  } catch (e) {
-    return falhar(e);
-  }
+  throw new AppError('IA_INDISPONIVEL', mensagemErro(ultimoStatus));
 }
 
 async function arquivoEmBase64(caminho: string, rotulo: string): Promise<string> {
