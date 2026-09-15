@@ -256,10 +256,54 @@ modelo existe na sua conta — se não existir, o log do backend diz na hora
 (`docker compose logs --tail 20 backend`, linha com `[gemini]`).
 
 `GEMINI_MODEL` aceita vários modelos separados por vírgula
-(`gemini-3.6-flash,gemini-2.5-flash`). O primeiro atende sempre; o backend só cai para o
-seguinte depois de repetir três vezes no primeiro. Isso cobre os erros passageiros que
-aparecem no log como `[gemini] <modelo> 503` (modelo sobrecarregado) e `429` (cota do dia
-ou do minuto estourada).
+(`gemini-3.6-flash,gemini-3.7-flash,gemini-3.5-flash`). O primeiro atende sempre; o backend
+só cai para o seguinte depois de repetir três vezes no primeiro. Isso cobre os picos de
+sobrecarga (503) e a cota estourada (429).
+
+Para saber quais nomes a sua chave enxerga:
+
+```bash
+source .env
+curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY" | grep '"name"'
+```
+
+Use `$GEMINI_API_KEY` em vez de colar a chave: o comando vai parar no histórico do shell.
+E estar na lista não garante acesso — modelos de gerações antigas respondem
+`404 ... no longer available to new users` para chaves criadas depois deles.
+
+## Ler os logs da IA
+
+Cada registro feito por foto, áudio ou texto rende **uma** linha:
+
+```bash
+docker compose logs -f backend | grep '\[ia\]'
+```
+
+```
+[ia] foto ok gemini-3.6-flash 2.4s 3 alimento(s)
+[ia] audio ok gemini-3.7-flash 3.1s 2 alimento(s) após 4 tentativas
+[ia] texto erro sobrecarga gemini-3.5-flash 8.2s 8 tentativa(s) — 503 { "error": ...
+```
+
+`ok` é registro que entrou; `erro` vem com o motivo, que diz o que fazer:
+
+| Motivo | O que é | O que fazer |
+|---|---|---|
+| `sobrecarga` | 5xx, pico de demanda no Google | esperar; já tentou em todos os modelos |
+| `cota` | 429, limite por minuto ou por dia | esperar virar o minuto/dia, ou trocar de provedor |
+| `modelo_indisponivel` | 404, o nome não existe para a sua chave | corrigir `GEMINI_MODEL` |
+| `chave_invalida` | 401/403 | conferir `GEMINI_API_KEY` |
+| `pedido_invalido` | 400, arquivo ou prompt recusado | ver a foto/áudio que a pessoa mandou |
+| `timeout` | passou de 90s sem resposta | esperar; costuma ser pico também |
+| `rede` | a VPS não alcançou a API | conferir rede/DNS da VPS |
+| `resposta_invalida` | a IA respondeu fora do formato combinado | ver o detalhe na linha do log |
+
+Contar o dia:
+
+```bash
+docker compose logs --since 24h backend | grep -c '\[ia\].* ok '
+docker compose logs --since 24h backend | grep -c '\[ia\].* erro '
+```
 
 Vale saber: camada gratuita costuma significar que os dados podem ser usados para melhorar
 o produto. São fotos de comida, não é dado crítico — mas é escolha, não detalhe.

@@ -2,10 +2,18 @@ import { readFile } from 'node:fs/promises';
 import { env } from '../env.js';
 import { AppError } from '../lib/erros.js';
 import type { Alimento } from '../domain/tipos.js';
+import { logFalha, logSucesso, type Contexto, type Entrada } from './log.js';
 import { parsearAlimentos } from './parse.js';
 import { INSTRUCAO, PEDE_DESCRICAO, PEDE_TRANSCRICAO } from './prompt.js';
 import { normalizarMime, parsearAudio, parsearVisao, textoDaResposta } from './respostaGemini.js';
-import { decidir, ESPERAS_MS, mensagemErro } from './retentativa.js';
+import {
+  classificarExcecao,
+  classificarStatus,
+  decidir,
+  ESPERAS_MS,
+  falha,
+  type Falha,
+} from './retentativa.js';
 import type { ProvedorIA, ResultadoAudio, ResultadoVisao } from './tipos.js';
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta';
@@ -23,15 +31,14 @@ interface Parte {
   inlineData?: { mimeType: string; data: string };
 }
 
-function falhar(e: unknown): never {
-  if (e instanceof AppError) throw e;
-  const detalhe = e instanceof Error ? e.message : String(e);
-  console.error('[gemini]', detalhe);
-  throw new AppError('IA_INDISPONIVEL', 'não consegui falar com a IA agora, tente de novo');
-}
+type Tentativa = { texto: string } | { falha: Falha; detalhe: string };
 
 function dormir(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+function detalhe(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
 }
 
 function pedir(modelo: string, instrucao: string, partes: Parte[]): Promise<Response> {
@@ -47,44 +54,85 @@ function pedir(modelo: string, instrucao: string, partes: Parte[]): Promise<Resp
   });
 }
 
+/** Uma ida à API: devolve o texto da resposta ou a falha já classificada. */
+async function tentar(modelo: string, instrucao: string, partes: Parte[]): Promise<Tentativa> {
+  let resposta: Response;
+  try {
+    resposta = await pedir(modelo, instrucao, partes);
+  } catch (e) {
+    return { falha: classificarExcecao(e), detalhe: detalhe(e) };
+  }
+
+  if (!resposta.ok) {
+    const corpo = await resposta.text().catch(() => '');
+    return { falha: classificarStatus(resposta.status), detalhe: `${resposta.status} ${corpo}` };
+  }
+
+  try {
+    return { texto: textoDaResposta(await resposta.json()) };
+  } catch (e) {
+    return { falha: falha('resposta_invalida'), detalhe: detalhe(e) };
+  }
+}
+
 /**
- * Percorre `GEMINI_MODEL` na ordem em que está escrito. Cada modelo ganha até
- * três tentativas quando o erro é passageiro; só depois disso a vez passa para
- * o próximo da lista.
+ * Percorre `GEMINI_MODEL` na ordem em que está escrito, com até três tentativas
+ * por modelo quando o erro é passageiro, e registra uma linha de log com o
+ * resultado — seja ele qual for.
  */
-async function gerar(instrucao: string, partes: Parte[]): Promise<string> {
-  let ultimoStatus = 0;
+async function interpretar<T>(
+  entrada: Entrada,
+  instrucao: string,
+  partes: Parte[],
+  converter: (bruto: string) => T,
+  contar: (valor: T) => number,
+): Promise<T> {
+  const inicioMs = Date.now();
+  let tentativas = 0;
+  let modeloAtual = '(nenhum)';
+  let ultima: { falha: Falha; detalhe: string } = {
+    falha: falha('desconhecido'),
+    detalhe: 'nenhum modelo configurado em GEMINI_MODEL',
+  };
 
   for (const modelo of env.modelosGemini) {
-    for (let tentativa = 0; ; tentativa++) {
-      let resposta: Response;
-      try {
-        resposta = await pedir(modelo, instrucao, partes);
-      } catch (e) {
-        return falhar(e);
-      }
+    modeloAtual = modelo;
 
-      if (resposta.ok) {
+    for (let tentativa = 0; ; tentativa++) {
+      tentativas++;
+      const r = await tentar(modelo, instrucao, partes);
+      const ctx: Contexto = { entrada, modelo, inicioMs, tentativas };
+
+      if ('texto' in r) {
         try {
-          return textoDaResposta(await resposta.json());
+          const valor = converter(r.texto);
+          logSucesso(ctx, contar(valor));
+          return valor;
         } catch (e) {
-          return falhar(e);
+          // A IA respondeu, mas fora do formato combinado: não adianta repetir.
+          const f = falha('resposta_invalida');
+          logFalha(ctx, f.motivo, detalhe(e));
+          throw new AppError(f.codigo, f.mensagem);
         }
       }
 
-      const corpo = await resposta.text().catch(() => '');
-      console.error('[gemini]', modelo, resposta.status, corpo.slice(0, 500));
-      ultimoStatus = resposta.status;
-
-      const acao = decidir(resposta.status, tentativa);
-      if (acao === 'desistir') throw new AppError('IA_INDISPONIVEL', mensagemErro(ultimoStatus));
+      ultima = r;
+      const acao = decidir(r.falha.motivo, tentativa);
+      if (acao === 'desistir') {
+        logFalha(ctx, r.falha.motivo, r.detalhe);
+        throw new AppError(r.falha.codigo, r.falha.mensagem);
+      }
       if (acao === 'proximo-modelo') break;
-      // `decidir` só devolve "repetir" com índice dentro da lista; o ?? é só para o tipo.
       await dormir(ESPERAS_MS[tentativa] ?? 0);
     }
   }
 
-  throw new AppError('IA_INDISPONIVEL', mensagemErro(ultimoStatus));
+  logFalha(
+    { entrada, modelo: modeloAtual, inicioMs, tentativas },
+    ultima.falha.motivo,
+    ultima.detalhe,
+  );
+  throw new AppError(ultima.falha.codigo, ultima.falha.mensagem);
 }
 
 async function arquivoEmBase64(caminho: string, rotulo: string): Promise<string> {
@@ -95,28 +143,42 @@ async function arquivoEmBase64(caminho: string, rotulo: string): Promise<string>
   return dados.toString('base64');
 }
 
-async function interpretarTexto(texto: string): Promise<Alimento[]> {
-  return parsearAlimentos(
-    await gerar(INSTRUCAO, [{ text: `<entrada_usuario>${texto}</entrada_usuario>` }]),
+function interpretarTexto(texto: string): Promise<Alimento[]> {
+  return interpretar(
+    'texto',
+    INSTRUCAO,
+    [{ text: `<entrada_usuario>${texto}</entrada_usuario>` }],
+    parsearAlimentos,
+    (alimentos) => alimentos.length,
   );
 }
 
-async function interpretarImagem(base64: string, mimetype: string): Promise<ResultadoVisao> {
-  const bruto = await gerar(INSTRUCAO + PEDE_DESCRICAO, [
-    { text: 'Identifique os alimentos desta refeição e estime as porções.' },
-    { inlineData: { mimeType: normalizarMime(mimetype), data: base64 } },
-  ]);
-  return parsearVisao(bruto);
+function interpretarImagem(base64: string, mimetype: string): Promise<ResultadoVisao> {
+  return interpretar(
+    'foto',
+    INSTRUCAO + PEDE_DESCRICAO,
+    [
+      { text: 'Identifique os alimentos desta refeição e estime as porções.' },
+      { inlineData: { mimeType: normalizarMime(mimetype), data: base64 } },
+    ],
+    parsearVisao,
+    (visao) => visao.alimentos.length,
+  );
 }
 
 /** Uma chamada só: o Gemini ouve o áudio e devolve transcrição e alimentos juntos. */
 async function interpretarAudio(caminho: string, mimetype: string): Promise<ResultadoAudio> {
   const base64 = await arquivoEmBase64(caminho, 'áudio');
-  const bruto = await gerar(INSTRUCAO + PEDE_TRANSCRICAO, [
-    { text: 'Transcreva o áudio e identifique os alimentos que a pessoa disse ter comido.' },
-    { inlineData: { mimeType: normalizarMime(mimetype), data: base64 } },
-  ]);
-  return parsearAudio(bruto);
+  return interpretar(
+    'audio',
+    INSTRUCAO + PEDE_TRANSCRICAO,
+    [
+      { text: 'Transcreva o áudio e identifique os alimentos que a pessoa disse ter comido.' },
+      { inlineData: { mimeType: normalizarMime(mimetype), data: base64 } },
+    ],
+    parsearAudio,
+    (r) => r.alimentos.length,
+  );
 }
 
 export const provedorGemini: ProvedorIA = {

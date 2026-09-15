@@ -38,7 +38,7 @@ export const env = {
    * atende; os seguintes só entram quando o de cima está sobrecarregado, sem
    * cota ou indisponível na conta.
    */
-  modelosGemini: opcional('GEMINI_MODEL', 'gemini-3.6-flash,gemini-2.5-flash')
+  modelosGemini: opcional('GEMINI_MODEL', 'gemini-3.6-flash,gemini-3.7-flash,gemini-3.5-flash')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
