@@ -1,12 +1,3 @@
-export const REFEICOES = [
-  'cafe_da_manha',
-  'almoco',
-  'lanche',
-  'janta',
-  'ceia',
-] as const;
-export type Refeicao = (typeof REFEICOES)[number];
-
 export const TIPOS_ENTRADA = ['foto', 'audio', 'texto'] as const;
 export type TipoEntrada = (typeof TIPOS_ENTRADA)[number];
 
@@ -25,20 +16,27 @@ export interface Alimento {
   gordura_g: number;
 }
 
-export interface FaixaRefeicao {
-  refeicao: Refeicao;
+export interface Refeicao {
+  id: string;
+  nome: string;
   /** "HH:MM" */
   inicio: string;
   /** "HH:MM" — pode ser menor que `inicio`, indicando que a faixa cruza a meia-noite. */
   fim: string;
 }
 
-export const FAIXAS_PADRAO: FaixaRefeicao[] = [
-  { refeicao: 'cafe_da_manha', inicio: '05:00', fim: '10:00' },
-  { refeicao: 'almoco', inicio: '10:01', fim: '15:00' },
-  { refeicao: 'lanche', inicio: '15:01', fim: '18:00' },
-  { refeicao: 'janta', inicio: '18:01', fim: '22:00' },
-  { refeicao: 'ceia', inicio: '22:01', fim: '04:59' },
+export interface Janela {
+  inicio: string;
+  fim: string;
+}
+
+/** Semente de conta nova. A migration 003 tem a mesma lista em SQL. */
+export const REFEICOES_INICIAIS: Array<{ nome: string; inicio: string; fim: string }> = [
+  { nome: 'Café da manhã', inicio: '05:00', fim: '10:00' },
+  { nome: 'Almoço', inicio: '10:01', fim: '15:00' },
+  { nome: 'Lanche', inicio: '15:01', fim: '18:00' },
+  { nome: 'Janta', inicio: '18:01', fim: '22:00' },
+  { nome: 'Ceia', inicio: '22:01', fim: '04:59' },
 ];
 
 export interface Perfil {
@@ -58,7 +56,6 @@ export interface Perfil {
   meta_agua_ml: number;
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
-  faixas_refeicao: FaixaRefeicao[];
   timezone: string;
   criado_em: string;
 }
@@ -66,7 +63,8 @@ export interface Perfil {
 export interface Registro {
   id: string;
   tipo_entrada: TipoEntrada;
-  refeicao: Refeicao;
+  refeicao_id: string;
+  refeicao_nome: string;
   descricao_bruta: string;
   midia_url: string | null;
   alimentos_detectados: Alimento[];
