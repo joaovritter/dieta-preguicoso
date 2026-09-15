@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { acomodar, detectarRefeicao } from './refeicao.js';
+import { acomodar, detectarRefeicao, liberarJanelaAntiga } from './refeicao.js';
 import { AppError } from '../lib/erros.js';
 import type { Refeicao } from './tipos.js';
 
@@ -90,9 +90,32 @@ describe('acomodar', () => {
     expect(() => acomodar(PADRAO, { inicio: '02:00', fim: '03:00' })).toThrow(AppError);
   });
 
-  it('ignora a própria refeição ao mover uma que já existe', () => {
+  // `acomodar` sozinho só abre espaço para a janela NOVA — ele não sabe (nem
+  // precisa saber) que uma retração libera um pedaço da janela ANTIGA. Isso é
+  // trabalho de `liberarJanelaAntiga`, chamado pelo repositório antes deste,
+  // e testado no describe abaixo. Por isso o resultado aqui é mesmo `[]`: sem
+  // esse passo anterior, ninguém encosta na janela menor.
+  it('ignora a própria refeição ao mover uma que já existe, e sozinho não fecha o buraco que a retração abre', () => {
     const mudadas = acomodar(PADRAO, { inicio: '15:01', fim: '17:30' }, '3');
     expect(mudadas).toEqual([]);
+  });
+
+  // Reprodução do Finding 1 da revisão final: comparar minutos crus (`aInicio < inicio`)
+  // é inválido quando a vizinha cruza a meia-noite — o início dela é um número GRANDE
+  // mesmo quando a janela nova cai na cauda dela (depois da meia-noite, número pequeno).
+  // O bug antigo empurrava o início da Ceia para 06:01, fazendo-a cruzar quase o dia
+  // inteiro (06:01→04:59); o correto é recuar o FIM dela para antes da janela nova.
+  it('recua o fim da Ceia (não empurra o início) quando a janela nova cai na cauda dela após a meia-noite', () => {
+    const mudadas = acomodar(PADRAO, { inicio: '04:00', fim: '06:00' });
+    expect(mudadas).toEqual([
+      { ...PADRAO[0], inicio: '06:01' },
+      { ...PADRAO[4], fim: '03:59' },
+    ]);
+  });
+
+  it('empurra a Ceia em vez de recusar quando a janela nova começa exatamente onde ela começa', () => {
+    const mudadas = acomodar(PADRAO, { inicio: '22:01', fim: '23:00' });
+    expect(mudadas).toEqual([{ ...PADRAO[4], inicio: '23:01' }]);
   });
 
   it('mantém a partição contígua depois de duas inserções', () => {
@@ -106,6 +129,39 @@ describe('acomodar', () => {
     for (let i = 1; i < ordenadas.length; i += 1) {
       expect(minutos(ordenadas[i]!.inicio)).toBe(minutos(ordenadas[i - 1]!.fim) + 1);
     }
+
+    // A checagem por índice acima nunca compara a última com a primeira — o elo
+    // Ceia → Café da manhã (o único que cruza a meia-noite) nunca seria testado
+    // sem fechar o círculo manualmente aqui.
+    const ultima = ordenadas[ordenadas.length - 1]!;
+    const primeira = ordenadas[0]!;
+    expect((minutos(ultima.fim) + 1) % 1440).toBe(minutos(primeira.inicio));
+  });
+});
+
+describe('liberarJanelaAntiga', () => {
+  it('devolve para quem vem antes o pedaço que sobra ao encolher pela frente', () => {
+    const atual = refeicao('3', 'Lanche', '15:01', '18:00');
+    const liberadas = liberarJanelaAntiga(PADRAO, atual, '16:00', '18:00');
+    expect(liberadas).toEqual([{ ...PADRAO[1], fim: '15:59' }]);
+  });
+
+  it('devolve para quem vem depois o pedaço que sobra ao encolher por trás', () => {
+    const atual = refeicao('3', 'Lanche', '15:01', '18:00');
+    const liberadas = liberarJanelaAntiga(PADRAO, atual, '15:01', '17:00');
+    expect(liberadas).toEqual([{ ...PADRAO[3], inicio: '17:01' }]);
+  });
+
+  it('não mexe em ninguém quando a janela só cresce dos dois lados', () => {
+    const atual = refeicao('3', 'Lanche', '15:01', '18:00');
+    const liberadas = liberarJanelaAntiga(PADRAO, atual, '14:00', '19:00');
+    expect(liberadas).toEqual([]);
+  });
+
+  it('atravessa a meia-noite: encolher a Ceia por trás empurra o Café da manhã', () => {
+    const ceia = refeicao('5', 'Ceia', '22:01', '04:59');
+    const liberadas = liberarJanelaAntiga(PADRAO, ceia, '22:01', '03:00');
+    expect(liberadas).toEqual([{ ...PADRAO[0], inicio: '03:01' }]);
   });
 });
 

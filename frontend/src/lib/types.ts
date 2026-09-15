@@ -141,6 +141,8 @@ export interface EntradaPerfil {
   meta_agua_ml?: number;
   metas_automaticas?: boolean;
   modo_preguicoso?: boolean;
+  /** Nunca editado na tela — sincronizado automaticamente com o fuso do aparelho. */
+  timezone?: string;
 }
 
 export interface EntradaConfirmacao {

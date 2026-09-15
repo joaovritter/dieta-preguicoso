@@ -1,6 +1,6 @@
 import type pg from 'pg';
 import { consultar, consultarUm, pool } from '../db/index.js';
-import { acomodar, paraMinutos } from '../domain/refeicao.js';
+import { acomodar, liberarJanelaAntiga, paraMinutos } from '../domain/refeicao.js';
 import { AppError } from '../lib/erros.js';
 import { REFEICOES_INICIAIS, type Refeicao } from '../domain/tipos.js';
 
@@ -79,7 +79,10 @@ export async function atualizarRefeicao(
     const inicio = campos.inicio ?? atual.inicio;
     const fim = campos.fim ?? atual.fim;
     if (inicio !== atual.inicio || fim !== atual.fim) {
-      await aplicarMudancas(cliente, userId, acomodar(existentes, { inicio, fim }, id));
+      const liberadas = liberarJanelaAntiga(existentes, atual, inicio, fim);
+      await aplicarMudancas(cliente, userId, liberadas);
+      const lista = existentes.map((r) => liberadas.find((m) => m.id === r.id) ?? r);
+      await aplicarMudancas(cliente, userId, acomodar(lista, { inicio, fim }, id));
     }
 
     const linha = await cliente.query<Refeicao>(

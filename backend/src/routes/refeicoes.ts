@@ -39,8 +39,9 @@ rotasRefeicoes.post('/', async (req, res, next) => {
 
 rotasRefeicoes.patch('/:id', async (req, res, next) => {
   try {
+    const id = z.uuid('id inválido').parse(req.params.id);
     const campos = patchSchema.parse(req.body);
-    const atualizada = await atualizarRefeicao(perfilDe(req).id, req.params.id, campos);
+    const atualizada = await atualizarRefeicao(perfilDe(req).id, id, campos);
     if (!atualizada) throw new AppError('NAO_ENCONTRADO', 'refeição não encontrada');
     res.json(atualizada);
   } catch (e) {
@@ -50,7 +51,8 @@ rotasRefeicoes.patch('/:id', async (req, res, next) => {
 
 rotasRefeicoes.delete('/:id', async (req, res, next) => {
   try {
-    const apagou = await apagarRefeicao(perfilDe(req).id, req.params.id);
+    const id = z.uuid('id inválido').parse(req.params.id);
+    const apagou = await apagarRefeicao(perfilDe(req).id, id);
     if (!apagou) throw new AppError('NAO_ENCONTRADO', 'refeição não encontrada');
     res.status(204).end();
   } catch (e) {

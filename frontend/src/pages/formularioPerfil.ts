@@ -52,6 +52,11 @@ export function paraEntrada(form: Formulario): EntradaPerfil {
     metas_automaticas: form.metas_automaticas,
     modo_preguicoso: form.modo_preguicoso,
   };
+  // Sem campo na tela: sincroniza sozinho com o fuso do aparelho a cada salvamento.
+  // Vazio/indisponível não manda nada — mandar string vazia derrubaria o PUT inteiro
+  // no `timezoneValida` do backend.
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (timezone) entrada.timezone = timezone;
   // Com metas automáticas o backend recalcula; não faz sentido mandar valores manuais.
   if (!form.metas_automaticas) {
     entrada.meta_calorias = numeroOuNulo(form.meta_calorias) ?? 0;

@@ -46,6 +46,47 @@ BEGIN
   END IF;
 END $$;
 
+-- Trava de segurança: o app inteiro assume que as janelas de cada usuário
+-- particionam os 1440 minutos do dia sem buraco nem sobreposição (uma delas
+-- pode cruzar a meia-noite). O `PUT /api/me` antigo só validava cinco faixas
+-- com nomes distintos e formato HH:MM — nunca contiguidade — e a tela de
+-- perfil antiga dava dez campos de horário livres. Uma conta real pode ter
+-- faixas incoerentes; copiá-las verbatim quebraria a classificação de
+-- refeição do dia inteiro. Falha alto e cedo em vez de deixar passar.
+DO $$
+DECLARE
+  ruim RECORD;
+BEGIN
+  SELECT j.user_id, u.email AS email INTO ruim
+  FROM (
+    SELECT
+      user_id,
+      inicio_min,
+      fim_min,
+      CASE WHEN fim_min = 1439 THEN 0 ELSE fim_min + 1 END AS proximo_esperado,
+      COALESCE(
+        LEAD(inicio_min) OVER (PARTITION BY user_id ORDER BY inicio_min),
+        FIRST_VALUE(inicio_min) OVER (PARTITION BY user_id ORDER BY inicio_min)
+      ) AS proximo_real
+    FROM (
+      SELECT
+        ru.user_id,
+        (substring(ru.inicio, 1, 2)::int * 60 + substring(ru.inicio, 4, 2)::int) AS inicio_min,
+        (substring(ru.fim, 1, 2)::int * 60 + substring(ru.fim, 4, 2)::int) AS fim_min
+      FROM refeicoes_usuario ru
+    ) minutos
+  ) j
+  JOIN users u ON u.id = j.user_id
+  WHERE j.proximo_esperado <> j.proximo_real
+  LIMIT 1;
+
+  IF FOUND THEN
+    RAISE EXCEPTION
+      'migration 003: refeições do usuário % (%) não formam uma partição contígua do dia — corrija faixas_refeicao antes de migrar',
+      ruim.email, ruim.user_id;
+  END IF;
+END $$;
+
 ALTER TABLE registros_alimentares ADD COLUMN refeicao_id UUID;
 
 -- Mesmo catch-all removido aqui: um `r.refeicao` fora do esperado vira NULL dentro
@@ -74,10 +115,16 @@ BEGIN
   END IF;
 END $$;
 
+-- NO ACTION (não RESTRICT): apagar um usuário dispara os dois CASCADEs (users →
+-- refeicoes_usuario e users → registros_alimentares) numa única instrução DELETE.
+-- RESTRICT checa na hora e pode disparar antes do CASCADE de refeicoes_usuario
+-- terminar, dependendo da ordem dos gatilhos; NO ACTION adia a checagem para o
+-- fim da instrução, quando os dois já rodaram — mesma proteção, sem o risco de
+-- falhar por ordem de execução.
 ALTER TABLE registros_alimentares
   ALTER COLUMN refeicao_id SET NOT NULL,
   ADD CONSTRAINT registros_refeicao_fk
-    FOREIGN KEY (refeicao_id) REFERENCES refeicoes_usuario(id) ON DELETE RESTRICT,
+    FOREIGN KEY (refeicao_id) REFERENCES refeicoes_usuario(id) ON DELETE NO ACTION,
   DROP COLUMN refeicao;
 
 CREATE INDEX IF NOT EXISTS idx_registros_refeicao ON registros_alimentares (refeicao_id);

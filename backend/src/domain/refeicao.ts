@@ -15,7 +15,7 @@ export function paraMinutos(hora: string): number {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
-function paraHora(minutos: number): string {
+export function paraHora(minutos: number): string {
   const m = ((minutos % DIA_MINUTOS) + DIA_MINUTOS) % DIA_MINUTOS;
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
@@ -72,15 +72,68 @@ export function acomodar(
     }
     if (!cobreInicio && !cobreFim) continue;
 
-    // A janela nova começa e termina dentro da mesma vizinha: partiria ela em duas.
-    if (cobreInicio && cobreFim && (atravessa || (inicio > aInicio && fim < aFim))) {
+    // Tocar exatamente numa ponta da vizinha não é "cair no meio": é consumir
+    // aquele lado inteiro, e vira uma questão de encolher a vizinha por um dos
+    // lados (abaixo), não de parti-la em duas.
+    const tocaInicio = inicio === aInicio;
+    const tocaFim = fim === aFim;
+
+    // A janela nova cobre as duas pontas da vizinha sem tocar nenhuma: sobraria
+    // um pedaço antes e outro depois, e uma refeição só guarda um inicio/fim.
+    if (cobreInicio && cobreFim && !tocaInicio && !tocaFim) {
       throw new AppError('VALIDACAO', `essa faixa fica no meio de ${atual.nome}, escolha outra`);
     }
 
-    if (cobreInicio && aInicio < inicio) {
+    // Decide pelo lado que a janela nova invade, não por comparar minutos crus
+    // — numa vizinha que cruza a meia-noite, `aInicio` pode ser um número maior
+    // que `inicio` mesmo quando é o `fim` dela que precisa recuar.
+    if (cobreInicio && !tocaInicio) {
       mudadas.push({ ...atual, fim: paraHora(inicio - 1) });
     } else {
       mudadas.push({ ...atual, inicio: paraHora(fim + 1) });
+    }
+  }
+
+  return mudadas;
+}
+
+/**
+ * Mover ou encolher uma refeição libera um pedaço da janela ANTIGA que
+ * `acomodar` sozinho não vê — ele só abre espaço para a janela NOVA, e nesse
+ * ponto a antiga já está fora da lista (via `idIgnorado`). Sem isso um `PATCH`
+ * que encolhe deixaria um trecho sem dono (Finding 2 da revisão final).
+ *
+ * Encolher pela frente (`novoInicio` mais tarde que o início antigo) devolve o
+ * pedaço da frente para quem vem antes; encolher por trás (`novoFim` mais cedo
+ * que o fim antigo) devolve o pedaço de trás para quem vem depois. Cada lado é
+ * tratado à parte porque um `PATCH` pode encolher de um lado e crescer do
+ * outro ao mesmo tempo — o lado que cresce fica por conta do `acomodar` de
+ * sempre, chamado depois com a lista já devolvida por esta função.
+ *
+ * Devolve só quem mudou (0, 1 ou 2 refeições) — mesmo formato de `acomodar`,
+ * para o call site aplicar do mesmo jeito.
+ */
+export function liberarJanelaAntiga(
+  existentes: Refeicao[],
+  atual: Refeicao,
+  novoInicio: string,
+  novoFim: string,
+): Refeicao[] {
+  const mudadas: Refeicao[] = [];
+
+  if (paraMinutos(novoInicio) > paraMinutos(atual.inicio)) {
+    const antesEsperado = (paraMinutos(atual.inicio) - 1 + DIA_MINUTOS) % DIA_MINUTOS;
+    const anterior = existentes.find((r) => r.id !== atual.id && paraMinutos(r.fim) === antesEsperado);
+    if (anterior) {
+      mudadas.push({ ...anterior, fim: paraHora(paraMinutos(novoInicio) - 1) });
+    }
+  }
+
+  if (paraMinutos(novoFim) < paraMinutos(atual.fim)) {
+    const depoisEsperado = (paraMinutos(atual.fim) + 1) % DIA_MINUTOS;
+    const posterior = existentes.find((r) => r.id !== atual.id && paraMinutos(r.inicio) === depoisEsperado);
+    if (posterior) {
+      mudadas.push({ ...posterior, inicio: paraHora((paraMinutos(novoFim) + 1) % DIA_MINUTOS) });
     }
   }
 

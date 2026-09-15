@@ -110,7 +110,7 @@ Ordenadas por `inicio`.
 Body: `{ nome, inicio, fim }` (`inicio`/`fim` no formato `HH:MM`) → `201 Refeicao`
 Abre espaço para a janela nova: refeições vizinhas que encostam nela têm `inicio`/`fim`
 ajustados junto, na mesma transação. `400 VALIDACAO` se a janela nova engolir uma vizinha
-inteira, cair no meio de uma, ou se `fim` vier antes de `inicio`.
+inteira, cair no meio de uma, se `fim` vier antes de `inicio`, ou nome duplicado.
 
 ### `PATCH /api/refeicoes/:id`
 Body: qualquer subconjunto de `{ nome, inicio, fim }` → `200 Refeicao`
