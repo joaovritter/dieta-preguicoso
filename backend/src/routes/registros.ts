@@ -7,7 +7,6 @@ import { somarTotais } from '../domain/nutricao.js';
 import { detectarRefeicao } from '../domain/refeicao.js';
 import { intervaloDoDia, dataLocal } from '../domain/tempo.js';
 import {
-  REFEICOES,
   TIPOS_ENTRADA,
   type Alimento,
   type Interpretacao,
@@ -24,6 +23,7 @@ import {
   criarRegistro,
   listarNoIntervalo,
 } from '../repos/registros.js';
+import { buscarRefeicao, listarRefeicoes } from '../repos/refeicoes.js';
 
 export const rotasRegistros: Router = Router();
 
@@ -56,7 +56,7 @@ async function montarInterpretacao(
   },
 ): Promise<Interpretacao> {
   const agora = new Date();
-  const refeicao = detectarRefeicao(agora, perfil.timezone, perfil.faixas_refeicao);
+  const refeicao = detectarRefeicao(agora, perfil.timezone, await listarRefeicoes(perfil.id));
 
   const interpretacao: Interpretacao = {
     tipo_entrada: dados.tipo_entrada,
@@ -73,7 +73,7 @@ async function montarInterpretacao(
     interpretacao.registro = await criarRegistro({
       userId: perfil.id,
       tipo_entrada: dados.tipo_entrada,
-      refeicao,
+      refeicao_id: refeicao.id,
       descricao_bruta: dados.descricao_bruta,
       midia_url: dados.midia_url,
       alimentos: dados.alimentos,
@@ -159,7 +159,7 @@ const confirmarSchema = z.object({
   tipo_entrada: z.enum(TIPOS_ENTRADA),
   descricao_bruta: z.string().max(4000).default(''),
   midia_url: z.string().max(500).nullable().optional(),
-  refeicao: z.enum(REFEICOES).optional(),
+  refeicao_id: z.uuid().optional(),
   alimentos: z.array(alimentoEntradaSchema).min(1, 'informe pelo menos um alimento').max(40),
   criado_em: z.iso.datetime().optional(),
 });
@@ -170,11 +170,20 @@ rotasRegistros.post('/confirmar', async (req, res, next) => {
     const dados = confirmarSchema.parse(req.body);
     const criadoEm = dados.criado_em ? new Date(dados.criado_em) : new Date();
 
+    let refeicaoId = dados.refeicao_id;
+    if (refeicaoId !== undefined) {
+      if (!(await buscarRefeicao(perfil.id, refeicaoId))) {
+        throw new AppError('NAO_ENCONTRADO', 'refeição não encontrada');
+      }
+    } else {
+      refeicaoId = detectarRefeicao(criadoEm, perfil.timezone, await listarRefeicoes(perfil.id))
+        .id;
+    }
+
     const registro = await criarRegistro({
       userId: perfil.id,
       tipo_entrada: dados.tipo_entrada,
-      refeicao:
-        dados.refeicao ?? detectarRefeicao(criadoEm, perfil.timezone, perfil.faixas_refeicao),
+      refeicao_id: refeicaoId,
       descricao_bruta: dados.descricao_bruta,
       midia_url: dados.midia_url ?? null,
       alimentos: dados.alimentos,
@@ -189,17 +198,21 @@ rotasRegistros.post('/confirmar', async (req, res, next) => {
 
 const patchSchema = z
   .object({
-    refeicao: z.enum(REFEICOES),
+    refeicao_id: z.uuid(),
     alimentos: z.array(alimentoEntradaSchema).min(1).max(40),
   })
   .partial()
-  .refine((o) => o.refeicao !== undefined || o.alimentos !== undefined, 'nada para atualizar');
+  .refine((o) => o.refeicao_id !== undefined || o.alimentos !== undefined, 'nada para atualizar');
 
 rotasRegistros.patch('/:id', async (req, res, next) => {
   try {
     const perfil = perfilDe(req);
     const id = z.uuid('id inválido').parse(req.params.id);
     const campos = patchSchema.parse(req.body);
+
+    if (campos.refeicao_id !== undefined && !(await buscarRefeicao(perfil.id, campos.refeicao_id))) {
+      throw new AppError('NAO_ENCONTRADO', 'refeição não encontrada');
+    }
 
     const registro = await atualizarRegistro(perfil.id, id, campos);
     if (!registro) throw new AppError('NAO_ENCONTRADO', 'registro não encontrado');
@@ -242,16 +255,19 @@ rotasRegistros.get('/dia', async (req, res, next) => {
 
     const registros = await listarNoIntervalo(perfil.id, inicio, fim);
 
-    const refeicoes = REFEICOES.map((refeicao) => {
-      const doGrupo = registros.filter((r) => r.refeicao === refeicao);
+    const grupos = (await listarRefeicoes(perfil.id)).map((refeicao) => {
+      const doGrupo = registros.filter((r) => r.refeicao_id === refeicao.id);
       return {
-        refeicao,
+        refeicao_id: refeicao.id,
+        refeicao_nome: refeicao.nome,
         calorias: Math.round(doGrupo.reduce((s, r) => s + r.calorias_total, 0) * 10) / 10,
         registros: doGrupo,
       };
-    })
-      // Ceia normalmente fica vazia; só aparece quando tem registro.
-      .filter((g) => g.refeicao !== 'ceia' || g.registros.length > 0);
+    });
+
+    // Refeição sem registro não aparece, exceto quando o dia inteiro está vazio.
+    const refeicoes =
+      registros.length === 0 ? grupos : grupos.filter((g) => g.registros.length > 0);
 
     res.json({ data: dia, refeicoes });
   } catch (e) {
