@@ -1,7 +1,7 @@
 import { readFile, unlink } from 'node:fs/promises';
 import { Router, type RequestHandler } from 'express';
 import { z } from 'zod';
-import { interpretarImagem, interpretarTexto, transcreverAudio } from '../ai/openai.js';
+import { ia } from '../ai/index.js';
 import { alimentoEntradaSchema } from '../ai/parse.js';
 import { somarTotais } from '../domain/nutricao.js';
 import { detectarRefeicao } from '../domain/refeicao.js';
@@ -92,7 +92,7 @@ rotasRegistros.post('/texto', limiteIA, async (req, res, next) => {
   try {
     const perfil = perfilDe(req);
     const { texto } = textoSchema.parse(req.body);
-    const alimentos = await interpretarTexto(texto);
+    const alimentos = await ia.interpretarTexto(texto);
     res.json(
       await montarInterpretacao(perfil, {
         tipo_entrada: 'texto',
@@ -113,7 +113,7 @@ rotasRegistros.post('/foto', limiteIA, comUpload(uploadImagem), async (req, res,
     if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'envie a imagem no campo "arquivo"');
 
     const base64 = (await readFile(arquivo.path)).toString('base64');
-    const { alimentos, descricao } = await interpretarImagem(base64, arquivo.mimetype);
+    const { alimentos, descricao } = await ia.interpretarImagem(base64, arquivo.mimetype);
 
     res.json(
       await montarInterpretacao(perfil, {
@@ -136,11 +136,10 @@ rotasRegistros.post('/audio', limiteIA, comUpload(uploadAudio), async (req, res,
     const perfil = perfilDe(req);
     if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'envie o áudio no campo "arquivo"');
 
-    const transcricao = await transcreverAudio(arquivo.path);
+    const { transcricao, alimentos } = await ia.interpretarAudio(arquivo.path, arquivo.mimetype);
     if (transcricao.trim() === '') {
       throw new AppError('IA_RESPOSTA_INVALIDA', 'não consegui entender o áudio');
     }
-    const alimentos = await interpretarTexto(transcricao);
 
     res.json(
       await montarInterpretacao(perfil, {

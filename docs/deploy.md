@@ -246,7 +246,22 @@ gunzip -c ~/backups/dieta-2026-09-10.sql.gz | docker compose exec -T postgres ps
 
 ## Custo de IA
 
-Cada foto é uma chamada de visão (`detail: low`, ~85 tokens de imagem) e cada áudio uma de
-Whisper mais uma de chat. Para uso pessoal isso fica na casa de centavos por dia. Se quiser
-apertar, troque `OPENAI_MODEL_TEXTO` e `OPENAI_MODEL_VISAO` para `gpt-4o-mini` no `.env` —
-a estimativa fica mais grosseira, mas a tela de confirmação existe justamente para corrigir.
+O app fala com **um** serviço de IA, escolhido por `IA_PROVEDOR` no `.env`. Trocar não mexe
+em código: só na variável e num `docker compose up -d backend`.
+
+**Gemini** (`IA_PROVEDOR=gemini`) tem camada gratuita, com limite de requisições por minuto
+e por dia. Para um grupo de amigos registrando ~4 refeições por dia cada, sobra folga. Pegue
+a chave em <https://aistudio.google.com/apikey> e confira em `GEMINI_MODEL` se o nome do
+modelo existe na sua conta — se não existir, o log do backend diz na hora
+(`docker compose logs --tail 20 backend`, linha com `[gemini]`).
+
+Vale saber: camada gratuita costuma significar que os dados podem ser usados para melhorar
+o produto. São fotos de comida, não é dado crítico — mas é escolha, não detalhe.
+
+**OpenAI** (`IA_PROVEDOR=openai`) cobra desde o primeiro token: cada foto é uma chamada de
+visão e cada áudio é Whisper mais uma de chat. Para uso pessoal fica na casa de centavos por
+dia, mas com o grupo inteiro usando, a conta é sua — vale pôr limite mensal em Billing. Para
+apertar, troque `OPENAI_MODEL_TEXTO` e `OPENAI_MODEL_VISAO` para `gpt-4o-mini`.
+
+Nos dois casos a estimativa é de um modelo olhando foto ou lendo frase: serve para
+tendência, não para prescrição. A tela de confirmação existe por causa disso.

@@ -21,12 +21,19 @@ function numero(nome: string, padrao: number): number {
   return n;
 }
 
+/** Qual IA o app usa. Decide qual chave é obrigatória. */
+const provedorIA = opcional('IA_PROVEDOR', 'openai') === 'gemini' ? 'gemini' : 'openai';
+
 export const env = {
+  provedorIA,
   porta: numero('PORT', 3001),
   databaseUrl: obrigatoria('DATABASE_URL'),
   jwtSecret: obrigatoria('JWT_SECRET'),
   jwtExpiracao: opcional('JWT_EXPIRACAO', '30d'),
-  openaiApiKey: obrigatoria('OPENAI_API_KEY'),
+  // Só a chave do provedor escolhido é exigida — o outro pode ficar em branco.
+  openaiApiKey: provedorIA === 'openai' ? obrigatoria('OPENAI_API_KEY') : opcional('OPENAI_API_KEY', ''),
+  geminiApiKey: provedorIA === 'gemini' ? obrigatoria('GEMINI_API_KEY') : opcional('GEMINI_API_KEY', ''),
+  modeloGemini: opcional('GEMINI_MODEL', 'gemini-2.5-flash'),
   modeloTexto: opcional('OPENAI_MODEL_TEXTO', 'gpt-4o'),
   modeloVisao: opcional('OPENAI_MODEL_VISAO', 'gpt-4o'),
   modeloAudio: opcional('OPENAI_MODEL_AUDIO', 'whisper-1'),

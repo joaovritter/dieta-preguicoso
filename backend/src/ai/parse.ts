@@ -36,7 +36,11 @@ const respostaSchema = z.object({
 /** Schema público para validar alimentos vindos do cliente (tela de confirmação). */
 export const alimentoEntradaSchema = alimentoSchema;
 
-function extrairJson(bruto: string): unknown {
+/**
+ * JSON da IA, tolerando cerca de markdown e texto solto em volta. Compartilhado:
+ * quem lê uma chave avulsa da resposta precisa da mesma tolerância que os alimentos.
+ */
+export function extrairJson(bruto: string): unknown {
   const texto = bruto.trim();
   try {
     return JSON.parse(texto);

@@ -8,8 +8,9 @@ Uso pessoal, feito para rodar numa VPS própria.
 
 ## O que ele faz
 
-- **Três entradas, um pipeline.** Foto → visão da OpenAI. Áudio → Whisper → chat. Texto → chat.
-  Todas terminam na mesma lista de alimentos com calorias e macros estimados.
+- **Três entradas, um pipeline.** Foto, áudio e texto terminam na mesma lista de alimentos com
+  calorias e macros estimados. A IA é escolhida por `IA_PROVEDOR`: **Gemini** (tem camada
+  gratuita, entende áudio direto, numa chamada só) ou **OpenAI** (visão + Whisper + chat).
 - **Nunca pergunta qual refeição é.** Classifica por faixa de horário (configurável) no fuso
   do usuário. Dá para corrigir depois, mas nunca é obrigatório antes.
 - **Resumo honesto.** Mostra o que falta e, quando você estoura a meta, mostra o excesso
@@ -25,6 +26,8 @@ Uso pessoal, feito para rodar numa VPS própria.
 
 TypeScript de ponta a ponta. React 19 + Vite no front (CSS puro, tema escuro, zero
 framework de UI). Express 5 + PostgreSQL 16 com SQL puro no back. Docker Compose para subir.
+A IA fica atrás de uma interface só (`backend/src/ai/`), então trocar de provedor é mudar
+uma variável de ambiente.
 
 ## Rodar local
 

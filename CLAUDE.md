@@ -18,7 +18,7 @@ Uso pessoal, rodando numa VPS Contabo sem domínio.
 ## Stack
 
 TypeScript · React 19 + Vite (SPA) · Express 5 + `pg` (PostgreSQL 16) · Vitest ·
-Docker Compose · OpenAI API (visão, chat, Whisper) · npm
+Docker Compose · Gemini ou OpenAI (visão, chat, áudio) · npm
 
 ## Comandos canônicos
 
@@ -53,8 +53,9 @@ Stack completa: `docker compose up -d --build`
 - Toda entrada de rota é validada com Zod antes de tocar no banco.
 - Erros de domínio via `AppError(code, message, status)`; o middleware de erro serializa
   no formato do contrato. Nunca vaze stack trace na resposta.
-- Chamadas à OpenAI ficam isoladas em `backend/src/ai/`; o resto do código nunca importa
-  o SDK direto — isso mantém as rotas testáveis sem rede.
+- Chamadas à IA ficam isoladas em `backend/src/ai/`, atrás da interface `ProvedorIA`
+  (`openai.ts`, `gemini.ts`, escolhidos por `IA_PROVEDOR`); o resto do código nunca importa
+  SDK nem faz HTTP direto — isso mantém as rotas testáveis sem rede.
 - Testes com Vitest, focados em cálculo (resumo, metas, detecção de refeição) e parsing
   da resposta da IA. Sem teste que dependa de rede.
 
