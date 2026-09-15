@@ -13,7 +13,7 @@ Autenticação: header `Authorization: Bearer <jwt>` em tudo, exceto `/auth/*` e
 - Erro: `{ "error": { "code": "STRING_CODE", "message": "texto humano" } }` com status HTTP adequado.
   Códigos: `VALIDACAO`, `NAO_AUTORIZADO`, `CREDENCIAIS_INVALIDAS`, `EMAIL_EM_USO`,
   `NAO_ENCONTRADO`, `IA_INDISPONIVEL`, `IA_RESPOSTA_INVALIDA`, `ARQUIVO_INVALIDO`, `ERRO_INTERNO`,
-  `SEM_ACESSO`, `PEDIDO_DUPLICADO`.
+  `SEM_ACESSO`, `PEDIDO_DUPLICADO`, `REFEICAO_EM_USO`.
 
 ## Tipos compartilhados
 
@@ -32,7 +32,7 @@ interface Alimento {
   gordura_g: number;
 }
 
-interface FaixaRefeicao { refeicao: Refeicao; inicio: string; fim: string; } // "HH:MM"
+interface Refeicao { id: string; nome: string; inicio: string; fim: string; } // "HH:MM"
 
 interface Perfil {
   id: string;
@@ -51,7 +51,6 @@ interface Perfil {
   meta_agua_ml: number;
   metas_automaticas: boolean;    // true = recalcula metas a partir de peso/altura/idade/sexo/objetivo
   modo_preguicoso: boolean;      // true = grava sem tela de confirmação
-  faixas_refeicao: FaixaRefeicao[];
   timezone: string;              // ex: "America/Sao_Paulo"
   criado_em: string;
 }
@@ -103,6 +102,26 @@ Body: qualquer subconjunto de
    meta_proteina_g, meta_gordura_g, meta_agua_ml, metas_automaticas, modo_preguicoso,
    faixas_refeicao, timezone }`
 → `200 Perfil` (já com metas recalculadas se `metas_automaticas`).
+
+### `GET /api/refeicoes` → `200 { refeicoes: Refeicao[] }`
+Ordenadas por `inicio`.
+
+### `POST /api/refeicoes`
+Body: `{ nome, inicio, fim }` (`inicio`/`fim` no formato `HH:MM`) → `201 Refeicao`
+Abre espaço para a janela nova: refeições vizinhas que encostam nela têm `inicio`/`fim`
+ajustados junto, na mesma transação. `400 VALIDACAO` se a janela nova engolir uma vizinha
+inteira, cair no meio de uma, ou se `fim` vier antes de `inicio`.
+
+### `PATCH /api/refeicoes/:id`
+Body: qualquer subconjunto de `{ nome, inicio, fim }` → `200 Refeicao`
+Mesmas regras de acomodação de vizinhas do `POST`. `404 NAO_ENCONTRADO` ·
+`400 VALIDACAO` (mesmos casos do `POST`, e nome duplicado)
+
+### `DELETE /api/refeicoes/:id` → `204`
+A vizinha anterior (circular — o dia dá a volta à meia-noite) absorve a janela liberada,
+para nenhum minuto do dia ficar sem dono. `404 NAO_ENCONTRADO` ·
+`409 REFEICAO_EM_USO` (já tem registro nessa refeição — renomeie em vez de apagar) ·
+`400 VALIDACAO` (é a única refeição da conta)
 
 ### `POST /api/registros/texto`
 Body: `{ texto: string }` → `200 Interpretacao`

@@ -14,6 +14,8 @@ CREATE INDEX IF NOT EXISTS idx_refeicoes_usuario_user
   ON refeicoes_usuario (user_id, inicio);
 
 -- Semeia a partir das faixas que cada pessoa já tinha: quem customizou mantém.
+-- Um valor de `refeicao` fora do esperado vira NULL de propósito — `nome NOT NULL`
+-- aborta a migration em vez de relabelar em silêncio como Ceia.
 INSERT INTO refeicoes_usuario (user_id, nome, inicio, fim)
 SELECT u.id,
        CASE f.refeicao
@@ -21,7 +23,8 @@ SELECT u.id,
          WHEN 'almoco'        THEN 'Almoço'
          WHEN 'lanche'        THEN 'Lanche'
          WHEN 'janta'         THEN 'Janta'
-         ELSE                      'Ceia'
+         WHEN 'ceia'          THEN 'Ceia'
+         ELSE                      NULL
        END,
        f.inicio,
        f.fim
@@ -29,8 +32,24 @@ FROM users u
 CROSS JOIN LATERAL jsonb_to_recordset(u.faixas_refeicao)
   AS f(refeicao text, inicio text, fim text);
 
+-- Trava de segurança: `faixas_refeicao` vazio (ou só com valores fora do esperado)
+-- deixaria a pessoa com zero refeições e conta inutilizável. Mesmo formato da
+-- trava de órfãos logo abaixo — a transação inteira volta, nada é perdido.
+DO $$
+DECLARE sem_refeicao INT;
+BEGIN
+  SELECT count(*) INTO sem_refeicao
+  FROM users u
+  WHERE NOT EXISTS (SELECT 1 FROM refeicoes_usuario ru WHERE ru.user_id = u.id);
+  IF sem_refeicao > 0 THEN
+    RAISE EXCEPTION 'migration 003: % usuário(s) sem nenhuma refeição', sem_refeicao;
+  END IF;
+END $$;
+
 ALTER TABLE registros_alimentares ADD COLUMN refeicao_id UUID;
 
+-- Mesmo catch-all removido aqui: um `r.refeicao` fora do esperado vira NULL dentro
+-- do lower(...), a comparação nunca casa, e a trava de órfãos logo abaixo pega isso.
 UPDATE registros_alimentares r
 SET refeicao_id = ru.id
 FROM refeicoes_usuario ru
@@ -40,7 +59,8 @@ WHERE ru.user_id = r.user_id
         WHEN 'almoco'        THEN 'Almoço'
         WHEN 'lanche'        THEN 'Lanche'
         WHEN 'janta'         THEN 'Janta'
-        ELSE                      'Ceia'
+        WHEN 'ceia'          THEN 'Ceia'
+        ELSE                      NULL
       END);
 
 -- Trava de segurança: se sobrou registro sem refeição, a transação inteira volta

@@ -1,7 +1,8 @@
 import { randomInt } from 'node:crypto';
-import { consultar, consultarUm } from '../db/index.js';
+import { consultar, consultarUm, pool } from '../db/index.js';
 import { AppError } from '../lib/erros.js';
 import { FAIXAS_PADRAO, type FaixaRefeicao, type Perfil } from '../domain/tipos.js';
+import { semearRefeicoes } from './refeicoes.js';
 
 interface LinhaUsuario {
   id: string;
@@ -101,6 +102,7 @@ export async function buscarPorNomeTag(nome: string, tag: string): Promise<Linha
   );
 }
 
+/** Conta e refeições nascem juntas na mesma transação, ou nenhuma das duas nasce. */
 export async function criarUsuario(
   email: string,
   passwordHash: string,
@@ -108,14 +110,30 @@ export async function criarUsuario(
   timezone: string,
 ): Promise<LinhaUsuario> {
   const limpo = nome.trim();
-  const linha = await consultarUm<LinhaUsuario>(
-    `INSERT INTO users (email, password_hash, nome, tag, timezone)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING ${COLUNAS}`,
-    [email.trim().toLowerCase(), passwordHash, limpo, await tagLivrePara(limpo), timezone],
-  );
-  if (!linha) throw new Error('INSERT em users não devolveu linha');
-  return linha;
+  const tag = await tagLivrePara(limpo);
+
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    const resultado = await cliente.query<LinhaUsuario>(
+      `INSERT INTO users (email, password_hash, nome, tag, timezone)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING ${COLUNAS}`,
+      [email.trim().toLowerCase(), passwordHash, limpo, tag, timezone],
+    );
+    const linha = resultado.rows[0];
+    if (!linha) throw new Error('INSERT em users não devolveu linha');
+
+    await semearRefeicoes(cliente, linha.id);
+
+    await cliente.query('COMMIT');
+    return linha;
+  } catch (e) {
+    await cliente.query('ROLLBACK');
+    throw e;
+  } finally {
+    cliente.release();
+  }
 }
 
 /** Campos do perfil que o usuário pode alterar. `undefined` significa "não mexe". */

@@ -1,10 +1,11 @@
 import type pg from 'pg';
 import { consultar, consultarUm, pool } from '../db/index.js';
-import { acomodar } from '../domain/refeicao.js';
+import { acomodar, paraMinutos } from '../domain/refeicao.js';
 import { AppError } from '../lib/erros.js';
 import { REFEICOES_INICIAIS, type Refeicao } from '../domain/tipos.js';
 
 const COLUNAS = 'id, nome, inicio, fim';
+const DIA_MINUTOS = 1440;
 
 export async function listarRefeicoes(userId: string): Promise<Refeicao[]> {
   return consultar<Refeicao>(
@@ -54,7 +55,7 @@ export async function criarRefeicao(
     return nova.rows[0]!;
   } catch (e) {
     await cliente.query('ROLLBACK');
-    throw traduzirConflito(e);
+    traduzirConflito(e);
   } finally {
     cliente.release();
   }
@@ -90,28 +91,74 @@ export async function atualizarRefeicao(
     return linha.rows[0] ?? null;
   } catch (e) {
     await cliente.query('ROLLBACK');
-    throw traduzirConflito(e);
+    traduzirConflito(e);
   } finally {
     cliente.release();
   }
 }
 
+/**
+ * Apagar não pode deixar buraco no dia: a vizinha anterior (circular — o dia dá
+ * a volta à meia-noite) absorve a janela liberada, estendendo o próprio fim até
+ * onde a apagada terminava. Tudo numa transação com a mesma trava das outras
+ * escritas, para o buraco nunca existir nem por um instante.
+ */
 export async function apagarRefeicao(userId: string, id: string): Promise<boolean> {
-  const emUso = await consultarUm<{ existe: boolean }>(
-    'SELECT EXISTS (SELECT 1 FROM registros_alimentares WHERE refeicao_id = $1) AS existe',
-    [id],
-  );
-  if (emUso?.existe) {
-    throw new AppError(
-      'REFEICAO_EM_USO',
-      'essa refeição já tem comida registrada. renomeie em vez de apagar',
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    const existentes = await listarNaTransacao(cliente, userId);
+    const alvo = existentes.find((r) => r.id === id);
+    if (!alvo) {
+      await cliente.query('ROLLBACK');
+      return false;
+    }
+
+    if (existentes.length === 1) {
+      throw new AppError('VALIDACAO', 'você precisa de pelo menos uma refeição');
+    }
+
+    // Ownership já está estabelecida (o SELECT acima é filtrado por user_id); o
+    // JOIN aqui é reforço, não a checagem que decide dono.
+    const emUso = await cliente.query<{ existe: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM registros_alimentares ra
+         JOIN refeicoes_usuario ru ON ru.id = ra.refeicao_id
+         WHERE ra.refeicao_id = $1 AND ru.user_id = $2
+       ) AS existe`,
+      [id, userId],
     );
+    if (emUso.rows[0]?.existe) {
+      throw new AppError(
+        'REFEICAO_EM_USO',
+        'essa refeição já tem comida registrada. renomeie em vez de apagar',
+      );
+    }
+
+    const inicioAlvo = paraMinutos(alvo.inicio);
+    const fimEsperadoAnterior = (inicioAlvo - 1 + DIA_MINUTOS) % DIA_MINUTOS;
+    const anterior = existentes.find(
+      (r) => r.id !== id && paraMinutos(r.fim) === fimEsperadoAnterior,
+    );
+    if (anterior) {
+      await cliente.query(
+        'UPDATE refeicoes_usuario SET fim = $3 WHERE id = $1 AND user_id = $2',
+        [anterior.id, userId, alvo.fim],
+      );
+    }
+
+    await cliente.query('DELETE FROM refeicoes_usuario WHERE id = $1 AND user_id = $2', [
+      id,
+      userId,
+    ]);
+    await cliente.query('COMMIT');
+    return true;
+  } catch (e) {
+    await cliente.query('ROLLBACK');
+    traduzirConflito(e);
+  } finally {
+    cliente.release();
   }
-  const linhas = await consultar<{ id: string }>(
-    'DELETE FROM refeicoes_usuario WHERE id = $1 AND user_id = $2 RETURNING id',
-    [id, userId],
-  );
-  return linhas.length > 0;
 }
 
 async function listarNaTransacao(cliente: pg.PoolClient, userId: string): Promise<Refeicao[]> {
@@ -135,10 +182,21 @@ async function aplicarMudancas(
   }
 }
 
-/** O índice único de nome vira mensagem de gente em vez de erro do Postgres. */
-function traduzirConflito(e: unknown): unknown {
-  if ((e as { code?: string }).code === '23505') {
-    return new AppError('VALIDACAO', 'você já tem uma refeição com esse nome');
+/**
+ * Traduz erros de índice/constraint do Postgres em mensagem de gente e relança.
+ * Sempre lança — nunca devolve — para um call site esquecer o `throw` não compilar
+ * em silêncio. `e` pode ser `null`/`undefined` (alguém lançou isso), daí o `?.`.
+ */
+function traduzirConflito(e: unknown): never {
+  const codigo = (e as { code?: string } | null | undefined)?.code;
+  if (codigo === '23505') {
+    throw new AppError('VALIDACAO', 'você já tem uma refeição com esse nome');
   }
-  return e;
+  if (codigo === '23503') {
+    throw new AppError(
+      'REFEICAO_EM_USO',
+      'essa refeição já tem comida registrada. renomeie em vez de apagar',
+    );
+  }
+  throw e;
 }
