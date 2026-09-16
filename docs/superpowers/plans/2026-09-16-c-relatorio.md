@@ -4,13 +4,13 @@
 >
 > **Modelo:** cada tarefa é implementada por subagente **Sonnet** (`model: "sonnet"`); a sessão Opus só coordena e revisa. Não executar antes de o usuário liberar.
 
-**Goal:** Entregar a tela Relatório (03 do design "Sistema") ponta a ponta: contrato, cálculo testado no backend, `GET /api/resumo/mes` e a página `/relatorio` em MUI + Motion.
+**Goal:** Entregar a tela Relatório (03 do design "Sistema") ponta a ponta: contrato, cálculo testado no backend, `GET /api/resumo/mes` e a página `/relatorio` em MUI + Motion com duas visões navegáveis por setas (D15): mês (`?mes=`, `‹ setembro ›`) e dia (`?data=`, `‹ 13 set ›`).
 
-**Architecture:** O cálculo inteiro (médias, variação vs. mês anterior, agrupamento por dia local) é uma função pura em `backend/src/domain/relatorio.ts`, alimentada pela consulta que já existe (`listarNoIntervalo`) sobre os intervalos de `intervaloDoMes`. A rota em `routes/resumo.ts` só valida, busca e serializa. No frontend, a lógica de apresentação (linhas de variação, filtro, formatação) fica em `frontend/src/lib/relatorio.ts` com testes; a página só desenha.
+**Architecture:** O cálculo inteiro (médias, variação vs. mês anterior, agrupamento por dia local) é uma função pura em `backend/src/domain/relatorio.ts`, alimentada pela consulta que já existe (`listarNoIntervalo`) sobre os intervalos de `intervaloDoMes`. A rota em `routes/resumo.ts` só valida, busca e serializa. No frontend, a lógica de apresentação e navegação (linhas de variação, filtro, formatação, escolha da visão pela URL, deslocar dia, status do dia) fica em `frontend/src/lib/relatorio.ts` com testes; `pages/Relatorio.tsx` só escolhe entre `VisaoMes` e `VisaoDia`, que compartilham cabeçalho com setas, barras e linha de refeição em `components/relatorio/`. A visão do dia não tem endpoint novo: usa `resumo/dia` + `registros/dia`.
 
 **Tech Stack:** Express 5 + `pg` + Zod 4 + Vitest (backend); React 19 + MUI 9 (CSS variables) + `motion/react` + Vitest (frontend).
 
-**Spec:** `docs/superpowers/specs/2026-09-16-redesign-liquid-glass-design.md` (seções "Relatório mensal", "Telas › Relatório", "Tokens", "Funções puras compartilhadas"). Referência visual: seção `scr-relatorio` de `C:\dz\design_handoff_calendario_agua\Dieta Preguicoso - Sistema.dc.html` (linhas 362–451) e `screenshots/03-telas.png`.
+**Spec:** `docs/superpowers/specs/2026-09-16-redesign-liquid-glass-design.md` (decisão D15 e seções "Relatório mensal", "Relatório do dia (D15)", "Telas › Relatório", "Tokens", "Funções puras compartilhadas"). Referência visual: seção `scr-relatorio` de `C:\dz\design_handoff_calendario_agua\Dieta Preguicoso - Sistema.dc.html` (linhas 362–451) e `screenshots/03-telas.png`.
 
 ## Global Constraints
 
@@ -24,6 +24,8 @@
 - `dias`: só dias com registro, ordem desc; refeições do dia na ordem de `inicio`; `descricao` = nomes dos alimentos juntados com `", "`.
 - Frontend sem CSS puro: estilos via `sx`/tema MUI. Cores só por token do tema (`theme.vars.palette.*`), incluindo `theme.vars.palette.refeicao[corDaRefeicao(id, refeicoes)]` para as barras.
 - Pré-requisito: plano A concluído (tema com `cssVariables`, `lib/visual.ts` com `corDaRefeicao`/`mesLongo`/`deslocarMes`, Vitest no frontend com `npm test`, rota `/relatorio` apontando para `frontend/src/pages/Relatorio.tsx`).
+- Navegação (D15): `?data=` válida e ≤ hoje → visão do dia; senão `?mes=` válido e ≤ mês atual → visão do mês; senão mês atual. Seta `›` desabilitada no mês atual / em hoje. Rótulos acessíveis: "mês anterior", "próximo mês", "dia anterior", "próximo dia".
+- Status do dia no frontend segue a mesma regra do backend (`domain/social.ts`): percentual arredondado a 1 casa, `<90` abaixo, `>110` acima.
 - Testes sem rede. Commits em português.
 
 ---
@@ -40,9 +42,15 @@
 | `backend/src/routes/resumo.ts` | Modificar | Rota `GET /mes` |
 | `frontend/src/lib/types.ts` | Modificar | Tipos `RelatorioMes` & cia. |
 | `frontend/src/lib/api.ts` | Modificar | `api.resumoMes(mes?)` |
-| `frontend/src/lib/relatorio.ts` | Criar | Funções puras de apresentação |
+| `frontend/src/lib/relatorio.ts` | Criar | Funções puras de apresentação e navegação (mês e dia) |
 | `frontend/src/lib/relatorio.test.ts` | Criar | Testes dessas funções |
-| `frontend/src/pages/Relatorio.tsx` | Substituir (stub do plano A) | Tela |
+| `frontend/src/components/relatorio/estilos.ts` | Criar | Estilos `sx` compartilhados |
+| `frontend/src/components/relatorio/CabecalhoNavegavel.tsx` | Criar | Título com setas `‹ ›` |
+| `frontend/src/components/relatorio/BarrasPorRefeicao.tsx` | Criar | Barras animadas (mês e dia) |
+| `frontend/src/components/relatorio/LinhaRefeicao.tsx` | Criar | Linha `refeição · descrição  kcal` |
+| `frontend/src/pages/relatorio/VisaoMes.tsx` | Criar | Visão do mês |
+| `frontend/src/pages/relatorio/VisaoDia.tsx` | Criar | Visão do dia |
+| `frontend/src/pages/Relatorio.tsx` | Substituir (stub do plano A) | Escolhe a visão pela URL |
 
 A consulta ao banco reaproveita `listarNoIntervalo` de `backend/src/repos/registros.ts` (já filtra por usuário e intervalo `[inicio, fim)` e traz `refeicao_nome`) e `listarRefeicoes` de `backend/src/repos/refeicoes.ts` (já ordena por `inicio`). Nenhuma consulta nova é necessária.
 
@@ -546,7 +554,7 @@ git commit -m "Adiciona GET /api/resumo/mes"
 
 ---
 
-### Task 3: Tipos, cliente da API e funções de apresentação do relatório (TDD)
+### Task 3: Tipos, cliente da API e funções puras do relatório (TDD)
 
 **Files:**
 - Modify: `frontend/src/lib/types.ts` (acrescentar ao fim)
@@ -555,7 +563,7 @@ git commit -m "Adiciona GET /api/resumo/mes"
 - Test: `frontend/src/lib/relatorio.test.ts`
 
 **Interfaces:**
-- Consumes: contrato da Task 1.
+- Consumes: contrato da Task 1; tipos existentes `ResumoDia`, `GrupoRefeicao`, `StatusDia` (`lib/types.ts`).
 - Produces:
   ```ts
   // types.ts
@@ -565,7 +573,7 @@ git commit -m "Adiciona GET /api/resumo/mes"
   export interface RelatorioMes { mes: string; media_calorias: number; por_refeicao: RelatorioRefeicao[]; dias: RelatorioDia[] }
   // api.ts
   api.resumoMes(mes?: string): Promise<RelatorioMes>
-  // relatorio.ts
+  // relatorio.ts — visão mensal
   export interface LinhaVariacao { sentido: 'menos' | 'mais'; texto: string }
   export interface OpcaoFiltro { id: string | null; rotulo: string }
   export function preposicao(nome: string): 'no' | 'na';
@@ -575,7 +583,20 @@ git commit -m "Adiciona GET /api/resumo/mes"
   export function diasFiltrados(dias: RelatorioDia[], filtro: string | null): RelatorioDia[];
   export function kcal(valor: number): string;        // 1890 → "1 890" (espaço não separável)
   export function diaCurto(data: string): string;     // "2026-09-13" → "13 SET"
+  // relatorio.ts — navegação e visão do dia (D15)
+  export type VisaoRelatorio = { tipo: 'mes'; mes: string } | { tipo: 'dia'; data: string };
+  export function visaoDosParametros(params: URLSearchParams, hoje: string): VisaoRelatorio;
+  export function deslocarDia(data: string, delta: number): string;   // "2026-09-01", -1 → "2026-08-31"
+  export function podeAvancarMes(mes: string, hoje: string): boolean;
+  export function podeAvancarDia(data: string, hoje: string): boolean;
+  export function statusDoDia(calorias: number, meta: number, quantidadeRegistros: number): StatusDia;
+  export interface ItemBarra { refeicao_id: string; refeicao_nome: string; calorias: number }
+  export function barrasDoMes(porRefeicao: RelatorioRefeicao[]): ItemBarra[];
+  export function barrasDoDia(refeicoes: ResumoDia['refeicoes']): ItemBarra[];
+  export function descricaoDoGrupo(grupo: GrupoRefeicao): string;
   ```
+
+`statusDoDia` espelha `backend/src/domain/social.ts` (regra "Status do dia" do contrato): sem registro ou meta ≤ 0 → `sem_registro`; percentual **arredondado a 1 casa** antes de comparar; `< 90` → `abaixo`, `> 110` → `acima`, senão `na_meta`. Mesma regra dos dois lados para o relatório do dia bater com a cor do calendário.
 
 - [ ] **Step 1: Acrescentar os tipos ao fim de `frontend/src/lib/types.ts`**
 
@@ -627,15 +648,23 @@ Criar `frontend/src/lib/relatorio.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest';
 import {
+  barrasDoDia,
+  barrasDoMes,
+  deslocarDia,
+  descricaoDoGrupo,
   diaCurto,
   diasFiltrados,
   kcal,
   linhasDeVariacao,
   opcoesDeFiltro,
+  podeAvancarDia,
+  podeAvancarMes,
   preposicao,
   proximoFiltro,
+  statusDoDia,
+  visaoDosParametros,
 } from './relatorio';
-import type { RelatorioMes, RelatorioRefeicao } from './types';
+import type { GrupoRefeicao, Registro, RelatorioMes, RelatorioRefeicao } from './types';
 
 function refeicao(id: string, nome: string, media: number, variacao: number | null): RelatorioRefeicao {
   return { refeicao_id: id, refeicao_nome: nome, media_calorias: media, variacao_percentual: variacao };
@@ -728,14 +757,115 @@ describe('filtro', () => {
 
 describe('formatação', () => {
   it('kcal arredonda e separa milhar com espaço não separável', () => {
-    expect(kcal(1890.4)).toBe('1\u00A0890');
+    expect(kcal(1890.4)).toBe('1 890');
     expect(kcal(712)).toBe('712');
-    expect(kcal(12041)).toBe('12\u00A0041');
+    expect(kcal(12041)).toBe('12 041');
   });
 
   it('diaCurto usa dia e mês abreviado em maiúsculas', () => {
     expect(diaCurto('2026-09-13')).toBe('13 SET');
     expect(diaCurto('2026-01-02')).toBe('2 JAN');
+  });
+});
+
+describe('visaoDosParametros', () => {
+  const HOJE = '2026-09-16';
+  const p = (query: string) => new URLSearchParams(query);
+
+  it('sem parâmetro abre o mês atual', () => {
+    expect(visaoDosParametros(p(''), HOJE)).toEqual({ tipo: 'mes', mes: '2026-09' });
+  });
+
+  it('data válida abre a visão do dia e ganha de mes', () => {
+    expect(visaoDosParametros(p('data=2026-09-13'), HOJE)).toEqual({ tipo: 'dia', data: '2026-09-13' });
+    expect(visaoDosParametros(p('data=2026-08-02&mes=2026-01'), HOJE)).toEqual({ tipo: 'dia', data: '2026-08-02' });
+    expect(visaoDosParametros(p('data=2026-09-16'), HOJE)).toEqual({ tipo: 'dia', data: '2026-09-16' });
+  });
+
+  it('data inválida, inexistente ou futura cai no mês atual', () => {
+    expect(visaoDosParametros(p('data=ontem'), HOJE)).toEqual({ tipo: 'mes', mes: '2026-09' });
+    expect(visaoDosParametros(p('data=2026-02-30'), HOJE)).toEqual({ tipo: 'mes', mes: '2026-09' });
+    expect(visaoDosParametros(p('data=2026-09-17'), HOJE)).toEqual({ tipo: 'mes', mes: '2026-09' });
+  });
+
+  it('mes válido é respeitado; futuro ou inválido vira o atual', () => {
+    expect(visaoDosParametros(p('mes=2026-03'), HOJE)).toEqual({ tipo: 'mes', mes: '2026-03' });
+    expect(visaoDosParametros(p('mes=2025-12'), HOJE)).toEqual({ tipo: 'mes', mes: '2025-12' });
+    expect(visaoDosParametros(p('mes=2026-10'), HOJE)).toEqual({ tipo: 'mes', mes: '2026-09' });
+    expect(visaoDosParametros(p('mes=2026-13'), HOJE)).toEqual({ tipo: 'mes', mes: '2026-09' });
+  });
+});
+
+describe('navegação', () => {
+  it('deslocarDia atravessa mês, ano e fevereiro bissexto', () => {
+    expect(deslocarDia('2026-09-01', -1)).toBe('2026-08-31');
+    expect(deslocarDia('2025-12-31', 1)).toBe('2026-01-01');
+    expect(deslocarDia('2024-02-28', 1)).toBe('2024-02-29');
+    expect(deslocarDia('2026-03-01', -1)).toBe('2026-02-28');
+  });
+
+  it('só avança até o mês/dia de hoje', () => {
+    const HOJE = '2026-09-16';
+    expect(podeAvancarMes('2026-08', HOJE)).toBe(true);
+    expect(podeAvancarMes('2026-09', HOJE)).toBe(false);
+    expect(podeAvancarDia('2026-09-15', HOJE)).toBe(true);
+    expect(podeAvancarDia('2026-09-16', HOJE)).toBe(false);
+  });
+});
+
+describe('statusDoDia (mesma regra do backend)', () => {
+  it('sem registro ou sem meta é sem_registro', () => {
+    expect(statusDoDia(1000, 2000, 0)).toBe('sem_registro');
+    expect(statusDoDia(1000, 0, 3)).toBe('sem_registro');
+  });
+
+  it('90% a 110% (arredondado a 1 casa) é na_meta', () => {
+    expect(statusDoDia(1790, 2000, 2)).toBe('abaixo'); // 89,5%
+    expect(statusDoDia(1800, 2000, 2)).toBe('na_meta'); // 90%
+    expect(statusDoDia(2200, 2000, 2)).toBe('na_meta'); // 110%
+    expect(statusDoDia(2210, 2000, 2)).toBe('acima'); // 110,5%
+  });
+});
+
+describe('barras e descrição', () => {
+  it('barrasDoMes usa a média de cada refeição', () => {
+    expect(barrasDoMes(RELATORIO.por_refeicao)).toEqual([
+      { refeicao_id: 'almoco', refeicao_nome: 'Almoço', calorias: 712 },
+      { refeicao_id: 'janta', refeicao_nome: 'Janta', calorias: 534 },
+    ]);
+  });
+
+  it('barrasDoDia tira refeições zeradas e mantém a ordem', () => {
+    expect(
+      barrasDoDia([
+        { refeicao_id: 'cafe', refeicao_nome: 'Café da manhã', calorias: 418, quantidade_registros: 1 },
+        { refeicao_id: 'almoco', refeicao_nome: 'Almoço', calorias: 0, quantidade_registros: 0 },
+        { refeicao_id: 'janta', refeicao_nome: 'Janta', calorias: 612, quantidade_registros: 2 },
+      ]),
+    ).toEqual([
+      { refeicao_id: 'cafe', refeicao_nome: 'Café da manhã', calorias: 418 },
+      { refeicao_id: 'janta', refeicao_nome: 'Janta', calorias: 612 },
+    ]);
+  });
+
+  it('descricaoDoGrupo junta os alimentos de todos os registros', () => {
+    const alimento = (nome: string) => ({
+      nome,
+      quantidade_estimada: '1',
+      calorias: 1,
+      carboidrato_g: 0,
+      proteina_g: 0,
+      gordura_g: 0,
+    });
+    const registro = (nomes: string[]) => ({ alimentos_detectados: nomes.map(alimento) }) as unknown as Registro;
+    const grupo: GrupoRefeicao = {
+      refeicao_id: 'almoco',
+      refeicao_nome: 'Almoço',
+      calorias: 612,
+      registros: [registro(['arroz', 'feijão']), registro(['frango'])],
+    };
+    expect(descricaoDoGrupo(grupo)).toBe('arroz, feijão, frango');
+    expect(descricaoDoGrupo({ ...grupo, registros: [] })).toBe('');
   });
 });
 ```
@@ -748,7 +878,14 @@ Expected: FAIL — `Failed to resolve import "./relatorio"`.
 - [ ] **Step 5: Implementar `frontend/src/lib/relatorio.ts`**
 
 ```ts
-import type { RelatorioDia, RelatorioMes, RelatorioRefeicao } from './types';
+import type {
+  GrupoRefeicao,
+  RelatorioDia,
+  RelatorioMes,
+  RelatorioRefeicao,
+  ResumoDia,
+  StatusDia,
+} from './types';
 
 export interface LinhaVariacao {
   sentido: 'menos' | 'mais';
@@ -761,7 +898,18 @@ export interface OpcaoFiltro {
   rotulo: string;
 }
 
+export type VisaoRelatorio = { tipo: 'mes'; mes: string } | { tipo: 'dia'; data: string };
+
+export interface ItemBarra {
+  refeicao_id: string;
+  refeicao_nome: string;
+  calorias: number;
+}
+
 const MESES_CURTOS = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+const RE_MES = /^\d{4}-(0[1-9]|1[0-2])$/;
+const RE_DATA = /^\d{4}-\d{2}-\d{2}$/;
+const TOLERANCIA_PERCENTUAL = 10;
 
 /** Refeições são nomes livres: "na janta", "no lanche". Heurística pela última letra. */
 export function preposicao(nome: string): 'no' | 'na' {
@@ -822,12 +970,71 @@ export function diasFiltrados(dias: RelatorioDia[], filtro: string | null): Rela
 }
 
 export function kcal(valor: number): string {
-  return String(Math.round(valor)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
+  return String(Math.round(valor)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
 export function diaCurto(data: string): string {
   const [, mes, dia] = data.split('-').map(Number);
   return `${dia ?? ''} ${MESES_CURTOS[(mes ?? 1) - 1] ?? ''}`;
+}
+
+/** Datas como dia do calendário, sem fuso: tudo em UTC para não escorregar um dia. */
+function dataUtc(data: string): Date | null {
+  if (!RE_DATA.test(data)) return null;
+  const [ano, mes, dia] = data.split('-').map(Number);
+  const d = new Date(Date.UTC(ano ?? 0, (mes ?? 1) - 1, dia ?? 1));
+  return d.toISOString().slice(0, 10) === data ? d : null;
+}
+
+export function visaoDosParametros(params: URLSearchParams, hoje: string): VisaoRelatorio {
+  const mesAtual = hoje.slice(0, 7);
+  const data = params.get('data');
+  if (data !== null && dataUtc(data) !== null && data <= hoje) return { tipo: 'dia', data };
+  const mes = params.get('mes');
+  if (mes !== null && RE_MES.test(mes) && mes <= mesAtual) return { tipo: 'mes', mes };
+  return { tipo: 'mes', mes: mesAtual };
+}
+
+export function deslocarDia(data: string, delta: number): string {
+  const d = dataUtc(data);
+  if (d === null) return data;
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+export function podeAvancarMes(mes: string, hoje: string): boolean {
+  return mes < hoje.slice(0, 7);
+}
+
+export function podeAvancarDia(data: string, hoje: string): boolean {
+  return data < hoje;
+}
+
+/** Espelho de `statusDoDia` do backend (`domain/social.ts`) — manter as duas iguais. */
+export function statusDoDia(calorias: number, meta: number, quantidadeRegistros: number): StatusDia {
+  if (quantidadeRegistros <= 0 || meta <= 0) return 'sem_registro';
+  const percentual = Math.round((calorias / meta) * 100 * 10) / 10;
+  if (percentual < 100 - TOLERANCIA_PERCENTUAL) return 'abaixo';
+  if (percentual > 100 + TOLERANCIA_PERCENTUAL) return 'acima';
+  return 'na_meta';
+}
+
+export function barrasDoMes(porRefeicao: RelatorioRefeicao[]): ItemBarra[] {
+  return porRefeicao.map((r) => ({
+    refeicao_id: r.refeicao_id,
+    refeicao_nome: r.refeicao_nome,
+    calorias: r.media_calorias,
+  }));
+}
+
+export function barrasDoDia(refeicoes: ResumoDia['refeicoes']): ItemBarra[] {
+  return refeicoes
+    .filter((r) => r.calorias > 0)
+    .map((r) => ({ refeicao_id: r.refeicao_id, refeicao_nome: r.refeicao_nome, calorias: r.calorias }));
+}
+
+export function descricaoDoGrupo(grupo: GrupoRefeicao): string {
+  return grupo.registros.flatMap((r) => r.alimentos_detectados.map((a) => a.nome)).join(', ');
 }
 ```
 
@@ -845,78 +1052,81 @@ Expected: código 0.
 
 ```bash
 git add frontend/src/lib/types.ts frontend/src/lib/api.ts frontend/src/lib/relatorio.ts frontend/src/lib/relatorio.test.ts
-git commit -m "Frontend: tipos, cliente e formatação do relatório mensal"
+git commit -m "Frontend: tipos, cliente e funções puras do relatório (mês e dia)"
 ```
 
 ---
 
-### Task 4: Tela `/relatorio`
+### Task 4: Peças do relatório e visão do mês com setas
 
 **Files:**
+- Create: `frontend/src/components/relatorio/estilos.ts`
+- Create: `frontend/src/components/relatorio/CabecalhoNavegavel.tsx`
+- Create: `frontend/src/components/relatorio/BarrasPorRefeicao.tsx`
+- Create: `frontend/src/components/relatorio/LinhaRefeicao.tsx`
+- Create: `frontend/src/pages/relatorio/VisaoMes.tsx`
 - Modify (substituir o conteúdo inteiro do stub do plano A): `frontend/src/pages/Relatorio.tsx`
 
 **Interfaces:**
-- Consumes: `api.resumoMes`, `mensagemDoErro` (`lib/api.ts`); funções da Task 3; `corDaRefeicao(refeicaoId, refeicoes)`, `mesLongo(mes)`, `deslocarMes(mes, delta)` (`lib/visual.ts`, plano A); `useRefeicoes()` → `{ refeicoes: Refeicao[] }` (`lib/RefeicoesContext.tsx`); `hojeISO()` (`lib/format.ts`); `theme.vars.palette.{text,neutro,pilula,primary,background,refeicao}` (plano A).
-- Produces: `export default function Relatorio(): JSX.Element` (a rota `/relatorio` do plano A já importa esse default).
+- Consumes: `api.resumoMes`, `mensagemDoErro` (`lib/api.ts`); funções da Task 3; `corDaRefeicao(refeicaoId, refeicoes)`, `mesLongo(mes)`, `deslocarMes(mes, delta)` (`lib/visual.ts`, plano A); `useRefeicoes()` → `{ refeicoes: Refeicao[] }` (`lib/RefeicoesContext.tsx`); `hojeISO()` (`lib/format.ts`); `theme.vars.palette.{text,neutro,pilula,primary,background,refeicao}` (plano A); `lucide-react` (`ChevronLeft`, `ChevronRight`, plano A instalou).
+- Produces:
+  ```ts
+  // components/relatorio/estilos.ts
+  export const FONTE: string;                          // "'Plus Jakarta Sans Variable', sans-serif"
+  export const rotuloSecao: SxProps<Theme>;
+  export const botaoFiltro: SxProps<Theme>;
+  export const botaoSecundario: SxProps<Theme>;
+  // components/relatorio/CabecalhoNavegavel.tsx
+  export default function CabecalhoNavegavel(props: {
+    titulo: string; rotuloAnterior: string; rotuloProximo: string;
+    aoAnterior: () => void; aoProximo: () => void; podeAvancar: boolean; lateral?: ReactNode;
+  }): JSX.Element;
+  // components/relatorio/BarrasPorRefeicao.tsx
+  export default function BarrasPorRefeicao(props: { itens: ItemBarra[]; rotuloAria: (item: ItemBarra) => string }): JSX.Element;
+  // components/relatorio/LinhaRefeicao.tsx
+  export default function LinhaRefeicao(props: { refeicaoId: string; nome: string; descricao: string; calorias: number }): JSX.Element;
+  // pages/relatorio/VisaoMes.tsx
+  export default function VisaoMes(props: { mes: string; hoje: string; aoTrocarMes: (mes: string) => void }): JSX.Element;
+  // pages/Relatorio.tsx
+  export default function Relatorio(): JSX.Element;   // a rota /relatorio do plano A importa este default
+  ```
+  A Task 5 cria `pages/relatorio/VisaoDia.tsx`; até lá `Relatorio.tsx` desta task trata `?data=` como mês (a Step 6 marca o ponto que a Task 5 troca).
 
 - [ ] **Step 1: Confirmar que a rota aponta para o arquivo**
 
 Run (na raiz): `git grep -n "Relatorio" frontend/src`
 Expected: `frontend/src/App.tsx` (ou o arquivo de rotas do plano A) importa `./pages/Relatorio` e o registra em `path="relatorio"`/`"/relatorio"` dentro da `Casca`. Se não importar, adicione a rota filha `<Route path="/relatorio" element={<Relatorio />} />` junto das outras rotas com tab bar, conforme a tabela de rotas da spec.
 
-- [ ] **Step 2: Escrever a tela**
+- [ ] **Step 2: Estilos compartilhados**
 
-Substituir `frontend/src/pages/Relatorio.tsx` por:
+Criar `frontend/src/components/relatorio/estilos.ts`:
 
-```tsx
-import { useEffect, useMemo, useState } from 'react';
-import { Link as RouterLink, useSearchParams } from 'react-router-dom';
-import { Box, ButtonBase, Typography, useTheme } from '@mui/material';
+```ts
 import type { SxProps, Theme } from '@mui/material';
-import { motion, useReducedMotion } from 'motion/react';
-import { api, mensagemDoErro } from '../lib/api';
-import { hojeISO } from '../lib/format';
-import { useRefeicoes } from '../lib/RefeicoesContext';
-import {
-  diaCurto,
-  diasFiltrados,
-  kcal,
-  linhasDeVariacao,
-  opcoesDeFiltro,
-  proximoFiltro,
-} from '../lib/relatorio';
-import type { RelatorioMes } from '../lib/types';
-import { corDaRefeicao, deslocarMes, mesLongo } from '../lib/visual';
 
-const RE_MES = /^\d{4}-(0[1-9]|1[0-2])$/;
-const ALTURA_MAX_BARRA = 96;
+export const FONTE = "'Plus Jakarta Sans Variable', sans-serif";
 
-type Estado =
-  | { tipo: 'carregando' }
-  | { tipo: 'erro'; mensagem: string }
-  | { tipo: 'pronto'; dados: RelatorioMes };
-
-const rotuloSecao: SxProps<Theme> = {
-  font: "600 9.5px/1 'Plus Jakarta Sans Variable', sans-serif",
+export const rotuloSecao: SxProps<Theme> = {
+  font: `600 9.5px/1 ${FONTE}`,
   letterSpacing: '.16em',
   textTransform: 'uppercase',
   color: 'text.secondary',
 };
 
-const botaoFiltro: SxProps<Theme> = (theme) => ({
+export const botaoFiltro: SxProps<Theme> = (theme) => ({
   minHeight: 34,
   px: '13px',
   borderRadius: '9px',
-  font: "600 11.5px 'Plus Jakarta Sans Variable', sans-serif",
+  font: `600 11.5px ${FONTE}`,
   bgcolor: theme.vars.palette.text.primary,
   color: theme.vars.palette.background.default,
 });
 
-const botaoSecundario: SxProps<Theme> = (theme) => ({
+export const botaoSecundario: SxProps<Theme> = (theme) => ({
   minHeight: 34,
   px: '13px',
   borderRadius: '9px',
-  font: "500 11.5px 'Plus Jakarta Sans Variable', sans-serif",
+  font: `500 11.5px ${FONTE}`,
   color: theme.vars.palette.text.secondary,
   bgcolor: theme.vars.palette.background.default,
   border: `1.4px solid ${theme.vars.palette.neutro.borda}`,
@@ -925,11 +1135,243 @@ const botaoSecundario: SxProps<Theme> = (theme) => ({
     borderWidth: '1px',
   }),
 });
+```
 
-export default function Relatorio() {
-  const [params] = useSearchParams();
-  const parametro = params.get('mes');
-  const mesPedido = parametro !== null && RE_MES.test(parametro) ? parametro : undefined;
+- [ ] **Step 3: Cabeçalho com setas**
+
+Criar `frontend/src/components/relatorio/CabecalhoNavegavel.tsx`:
+
+```tsx
+import type { ReactNode } from 'react';
+import { Box, IconButton, Typography } from '@mui/material';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { FONTE } from './estilos';
+
+interface Props {
+  titulo: string;
+  rotuloAnterior: string;
+  rotuloProximo: string;
+  aoAnterior: () => void;
+  aoProximo: () => void;
+  podeAvancar: boolean;
+  lateral?: ReactNode;
+}
+
+const seta = {
+  width: 32,
+  height: 32,
+  color: 'text.secondary',
+  '&.Mui-disabled': { color: 'neutro.fraco' },
+} as const;
+
+export default function CabecalhoNavegavel({
+  titulo,
+  rotuloAnterior,
+  rotuloProximo,
+  aoAnterior,
+  aoProximo,
+  podeAvancar,
+  lateral,
+}: Props) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px', minWidth: 0 }}>
+        <IconButton aria-label={rotuloAnterior} onClick={aoAnterior} sx={{ ...seta, ml: '-8px' }}>
+          <ChevronLeft size={20} strokeWidth={2} />
+        </IconButton>
+        <Typography
+          component="h1"
+          aria-live="polite"
+          noWrap
+          sx={{ m: 0, font: `700 22px/1 ${FONTE}`, letterSpacing: '-.02em' }}
+        >
+          {titulo}
+        </Typography>
+        <IconButton aria-label={rotuloProximo} onClick={aoProximo} disabled={!podeAvancar} sx={seta}>
+          <ChevronRight size={20} strokeWidth={2} />
+        </IconButton>
+      </Box>
+      {lateral}
+    </Box>
+  );
+}
+```
+
+- [ ] **Step 4: Barras por refeição**
+
+Criar `frontend/src/components/relatorio/BarrasPorRefeicao.tsx`:
+
+```tsx
+import { Box, Typography, useTheme } from '@mui/material';
+import { motion, useReducedMotion } from 'motion/react';
+import { useRefeicoes } from '../../lib/RefeicoesContext';
+import { kcal, type ItemBarra } from '../../lib/relatorio';
+import { corDaRefeicao } from '../../lib/visual';
+import { FONTE } from './estilos';
+
+const ALTURA_MAX_BARRA = 96;
+
+interface Props {
+  itens: ItemBarra[];
+  rotuloAria: (item: ItemBarra) => string;
+}
+
+export default function BarrasPorRefeicao({ itens, rotuloAria }: Props) {
+  const theme = useTheme();
+  const reduzirMovimento = useReducedMotion();
+  const { refeicoes } = useRefeicoes();
+  const maior = Math.max(1, ...itens.map((i) => i.calorias));
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: 130 }}>
+      {itens.map((item, indice) => {
+        const altura = Math.max(4, Math.round((item.calorias / maior) * ALTURA_MAX_BARRA));
+        const cor = theme.vars.palette.refeicao[corDaRefeicao(item.refeicao_id, refeicoes)];
+        return (
+          <Box
+            key={item.refeicao_id}
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '7px',
+            }}
+          >
+            <Typography sx={{ font: `700 13px/1 ${FONTE}`, fontVariantNumeric: 'tabular-nums' }}>
+              {kcal(item.calorias)}
+            </Typography>
+            <motion.div
+              role="img"
+              aria-label={rotuloAria(item)}
+              initial={{ height: reduzirMovimento ? altura : 0 }}
+              animate={{ height: altura }}
+              transition={
+                reduzirMovimento
+                  ? { duration: 0 }
+                  : { type: 'spring', stiffness: 170, damping: 22, delay: indice * 0.06 }
+              }
+              style={{ width: '100%', background: cor, borderRadius: '7px 7px 0 0' }}
+            />
+            <Typography
+              noWrap
+              sx={{
+                maxWidth: '100%',
+                font: `500 10px/1 ${FONTE}`,
+                color: 'text.secondary',
+                textTransform: 'lowercase',
+              }}
+            >
+              {item.refeicao_nome}
+            </Typography>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+```
+
+As barras recebem `key` pelo id da refeição dentro de um componente que a visão remonta a cada mês/dia (a `key` fica na Step 6), então a animação de crescer toca de novo a cada seta.
+
+- [ ] **Step 5: Linha de refeição**
+
+Criar `frontend/src/components/relatorio/LinhaRefeicao.tsx`:
+
+```tsx
+import { Box, Typography } from '@mui/material';
+import { useRefeicoes } from '../../lib/RefeicoesContext';
+import { kcal } from '../../lib/relatorio';
+import { corDaRefeicao } from '../../lib/visual';
+import { FONTE } from './estilos';
+
+interface Props {
+  refeicaoId: string;
+  nome: string;
+  descricao: string;
+  calorias: number;
+}
+
+export default function LinhaRefeicao({ refeicaoId, nome, descricao, calorias }: Props) {
+  const { refeicoes } = useRefeicoes();
+  return (
+    <Box
+      sx={(t) => ({
+        display: 'flex',
+        alignItems: 'center',
+        gap: '11px',
+        py: '10px',
+        borderTop: `1px solid ${t.vars.palette.neutro.linha}`,
+      })}
+    >
+      <Box
+        aria-hidden="true"
+        sx={(t) => ({
+          width: 6,
+          height: 28,
+          borderRadius: '3px',
+          flex: 'none',
+          bgcolor: t.vars.palette.refeicao[corDaRefeicao(refeicaoId, refeicoes)],
+        })}
+      />
+      <Typography sx={{ flex: 1, minWidth: 0, font: `600 13.5px ${FONTE}` }}>
+        {nome.toLowerCase()}
+        {descricao.length > 0 && (
+          <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}>
+            {' · '}
+            {descricao}
+          </Box>
+        )}
+      </Typography>
+      <Typography sx={{ font: `700 14px/1 ${FONTE}`, fontVariantNumeric: 'tabular-nums' }}>
+        {kcal(calorias)}
+      </Typography>
+    </Box>
+  );
+}
+```
+
+- [ ] **Step 6: Visão do mês**
+
+Criar `frontend/src/pages/relatorio/VisaoMes.tsx`:
+
+```tsx
+import { useEffect, useMemo, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, ButtonBase, Typography } from '@mui/material';
+import { api, mensagemDoErro } from '../../lib/api';
+import {
+  barrasDoMes,
+  diaCurto,
+  diasFiltrados,
+  kcal,
+  linhasDeVariacao,
+  opcoesDeFiltro,
+  podeAvancarMes,
+  proximoFiltro,
+} from '../../lib/relatorio';
+import type { RelatorioMes } from '../../lib/types';
+import { deslocarMes, mesLongo } from '../../lib/visual';
+import BarrasPorRefeicao from '../../components/relatorio/BarrasPorRefeicao';
+import CabecalhoNavegavel from '../../components/relatorio/CabecalhoNavegavel';
+import LinhaRefeicao from '../../components/relatorio/LinhaRefeicao';
+import { FONTE, botaoFiltro, botaoSecundario, rotuloSecao } from '../../components/relatorio/estilos';
+
+type Estado =
+  | { tipo: 'carregando' }
+  | { tipo: 'erro'; mensagem: string }
+  | { tipo: 'pronto'; dados: RelatorioMes };
+
+interface Props {
+  mes: string;
+  hoje: string;
+  aoTrocarMes: (mes: string) => void;
+}
+
+export default function VisaoMes({ mes, hoje, aoTrocarMes }: Props) {
   const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
   const [tentativa, setTentativa] = useState(0);
 
@@ -937,7 +1379,7 @@ export default function Relatorio() {
     let cancelado = false;
     setEstado({ tipo: 'carregando' });
     api
-      .resumoMes(mesPedido)
+      .resumoMes(mes)
       .then((dados) => {
         if (!cancelado) setEstado({ tipo: 'pronto', dados });
       })
@@ -947,25 +1389,27 @@ export default function Relatorio() {
     return () => {
       cancelado = true;
     };
-  }, [mesPedido, tentativa]);
+  }, [mes, tentativa]);
 
-  const mes = estado.tipo === 'pronto' ? estado.dados.mes : (mesPedido ?? hojeISO().slice(0, 7));
+  const temDados = estado.tipo === 'pronto' && estado.dados.dias.length > 0;
 
   return (
-    <Box component="main" sx={{ display: 'flex', flexDirection: 'column', gap: '22px', px: '22px', pt: '14px' }}>
-      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <Typography
-          component="h1"
-          sx={{ m: 0, font: "700 22px/1 'Plus Jakarta Sans Variable', sans-serif", letterSpacing: '-.02em' }}
-        >
-          {mesLongo(mes)}
-        </Typography>
-        {estado.tipo === 'pronto' && estado.dados.dias.length > 0 && (
-          <Typography sx={{ font: "500 12.5px 'Plus Jakarta Sans Variable', sans-serif", color: 'text.secondary' }}>
-            média {kcal(estado.dados.media_calorias)} kcal
-          </Typography>
-        )}
-      </Box>
+    <>
+      <CabecalhoNavegavel
+        titulo={mesLongo(mes)}
+        rotuloAnterior="mês anterior"
+        rotuloProximo="próximo mês"
+        aoAnterior={() => aoTrocarMes(deslocarMes(mes, -1))}
+        aoProximo={() => aoTrocarMes(deslocarMes(mes, 1))}
+        podeAvancar={podeAvancarMes(mes, hoje)}
+        lateral={
+          temDados && estado.tipo === 'pronto' ? (
+            <Typography sx={{ font: `500 12.5px ${FONTE}`, color: 'text.secondary', flex: 'none' }}>
+              média {kcal(estado.dados.media_calorias)} kcal
+            </Typography>
+          ) : undefined
+        }
+      />
 
       {estado.tipo === 'carregando' && (
         <Typography sx={{ color: 'text.secondary', fontSize: 13 }} role="status">
@@ -986,7 +1430,7 @@ export default function Relatorio() {
 
       {estado.tipo === 'pronto' && estado.dados.dias.length === 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-start' }}>
-          <Typography sx={{ font: "400 12.5px 'Plus Jakarta Sans Variable', sans-serif", color: 'text.secondary' }}>
+          <Typography sx={{ font: `400 12.5px ${FONTE}`, color: 'text.secondary' }}>
             nada registrado em {mesLongo(mes)}.
           </Typography>
           <ButtonBase component={RouterLink} to={`/calendario?mes=${mes}`} sx={botaoSecundario}>
@@ -996,23 +1440,19 @@ export default function Relatorio() {
       )}
 
       {estado.tipo === 'pronto' && estado.dados.dias.length > 0 && (
-        <ConteudoRelatorio dados={estado.dados} />
+        <ConteudoMes key={estado.dados.mes} dados={estado.dados} />
       )}
-    </Box>
+    </>
   );
 }
 
-function ConteudoRelatorio({ dados }: { dados: RelatorioMes }) {
-  const theme = useTheme();
-  const reduzirMovimento = useReducedMotion();
-  const { refeicoes } = useRefeicoes();
+function ConteudoMes({ dados }: { dados: RelatorioMes }) {
   const [filtro, setFiltro] = useState<string | null>(null);
 
   const opcoes = useMemo(() => opcoesDeFiltro(dados), [dados]);
   const rotuloFiltro = opcoes.find((o) => o.id === filtro)?.rotulo ?? 'todas as refeições';
   const dias = useMemo(() => diasFiltrados(dados.dias, filtro), [dados, filtro]);
   const variacoes = linhasDeVariacao(dados.por_refeicao, mesLongo(deslocarMes(dados.mes, -1)));
-  const maior = Math.max(1, ...dados.por_refeicao.map((r) => r.media_calorias));
 
   return (
     <>
@@ -1021,56 +1461,10 @@ function ConteudoRelatorio({ dados }: { dados: RelatorioMes }) {
           por refeição
         </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: 130 }}>
-          {dados.por_refeicao.map((r, indice) => {
-            const altura = Math.max(4, Math.round((r.media_calorias / maior) * ALTURA_MAX_BARRA));
-            const cor = theme.vars.palette.refeicao[corDaRefeicao(r.refeicao_id, refeicoes)];
-            return (
-              <Box
-                key={r.refeicao_id}
-                sx={{
-                  flex: 1,
-                  minWidth: 0,
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'flex-end',
-                  gap: '7px',
-                }}
-              >
-                <Typography
-                  sx={{ font: "700 13px/1 'Plus Jakarta Sans Variable', sans-serif", fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {kcal(r.media_calorias)}
-                </Typography>
-                <motion.div
-                  role="img"
-                  aria-label={`${r.refeicao_nome}: média de ${kcal(r.media_calorias)} kcal`}
-                  initial={{ height: reduzirMovimento ? altura : 0 }}
-                  animate={{ height: altura }}
-                  transition={
-                    reduzirMovimento
-                      ? { duration: 0 }
-                      : { type: 'spring', stiffness: 170, damping: 22, delay: indice * 0.06 }
-                  }
-                  style={{ width: '100%', background: cor, borderRadius: '7px 7px 0 0' }}
-                />
-                <Typography
-                  noWrap
-                  sx={{
-                    maxWidth: '100%',
-                    font: "500 10px/1 'Plus Jakarta Sans Variable', sans-serif",
-                    color: 'text.secondary',
-                    textTransform: 'lowercase',
-                  }}
-                >
-                  {r.refeicao_nome}
-                </Typography>
-              </Box>
-            );
-          })}
-        </Box>
+        <BarrasPorRefeicao
+          itens={barrasDoMes(dados.por_refeicao)}
+          rotuloAria={(item) => `${item.refeicao_nome}: média de ${kcal(item.calorias)} kcal`}
+        />
 
         {variacoes.length > 0 && (
           <Box
@@ -1086,7 +1480,7 @@ function ConteudoRelatorio({ dados }: { dados: RelatorioMes }) {
               <Typography
                 key={linha.texto}
                 sx={(t) => ({
-                  font: "500 12.5px/1.4 'Plus Jakarta Sans Variable', sans-serif",
+                  font: `500 12.5px/1.4 ${FONTE}`,
                   color: linha.sentido === 'menos' ? t.vars.palette.primary.main : t.vars.palette.pilula.passou.fg,
                 })}
               >
@@ -1113,55 +1507,28 @@ function ConteudoRelatorio({ dados }: { dados: RelatorioMes }) {
 
         {dias.map((dia) => (
           <Box key={dia.data} component="section" sx={{ display: 'flex', flexDirection: 'column', mb: '14px' }}>
-            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', pb: '9px' }}>
+            <ButtonBase
+              component={RouterLink}
+              to={`/relatorio?data=${dia.data}`}
+              aria-label={`ver relatório de ${diaCurto(dia.data).toLowerCase()}`}
+              sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', pb: '9px' }}
+            >
               <Typography component="h3" sx={rotuloSecao}>
                 {diaCurto(dia.data)}
               </Typography>
-              <Typography
-                sx={{ font: "600 12px/1 'Plus Jakarta Sans Variable', sans-serif", fontVariantNumeric: 'tabular-nums' }}
-              >
+              <Typography sx={{ font: `600 12px/1 ${FONTE}`, fontVariantNumeric: 'tabular-nums' }}>
                 {kcal(dia.calorias)}
               </Typography>
-            </Box>
+            </ButtonBase>
 
             {dia.refeicoes.map((r) => (
-              <Box
+              <LinhaRefeicao
                 key={r.refeicao_id}
-                sx={(t) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '11px',
-                  py: '10px',
-                  borderTop: `1px solid ${t.vars.palette.neutro.linha}`,
-                })}
-              >
-                <Box
-                  aria-hidden="true"
-                  sx={(t) => ({
-                    width: 6,
-                    height: 28,
-                    borderRadius: '3px',
-                    flex: 'none',
-                    bgcolor: t.vars.palette.refeicao[corDaRefeicao(r.refeicao_id, refeicoes)],
-                  })}
-                />
-                <Typography
-                  sx={{ flex: 1, minWidth: 0, font: "600 13.5px 'Plus Jakarta Sans Variable', sans-serif" }}
-                >
-                  {r.refeicao_nome.toLowerCase()}
-                  {r.descricao.length > 0 && (
-                    <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}>
-                      {' · '}
-                      {r.descricao}
-                    </Box>
-                  )}
-                </Typography>
-                <Typography
-                  sx={{ font: "700 14px/1 'Plus Jakarta Sans Variable', sans-serif", fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {kcal(r.calorias)}
-                </Typography>
-              </Box>
+                refeicaoId={r.refeicao_id}
+                nome={r.refeicao_nome}
+                descricao={r.descricao}
+                calorias={r.calorias}
+              />
             ))}
           </Box>
         ))}
@@ -1171,34 +1538,331 @@ function ConteudoRelatorio({ dados }: { dados: RelatorioMes }) {
 }
 ```
 
-- [ ] **Step 3: Testes, typecheck e build do frontend**
+O cabeçalho de cada dia da lista vira link para a visão daquele dia (`/relatorio?data=`) — é o caminho natural mês → dia; a volta é o `ver mês` da visão do dia.
+
+- [ ] **Step 7: Página que escolhe a visão**
+
+Substituir `frontend/src/pages/Relatorio.tsx` por (versão desta task; a Task 5 troca o ramo marcado):
+
+```tsx
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Box } from '@mui/material';
+import { hojeISO } from '../lib/format';
+import { visaoDosParametros } from '../lib/relatorio';
+import VisaoMes from './relatorio/VisaoMes';
+
+export default function Relatorio() {
+  const [params, setParams] = useSearchParams();
+  const [hoje] = useState(hojeISO);
+  const visao = visaoDosParametros(params, hoje);
+
+  // Task 5 troca este ramo por <VisaoDia />; até lá, ?data= abre o mês daquela data.
+  const mes = visao.tipo === 'mes' ? visao.mes : visao.data.slice(0, 7);
+
+  return (
+    <Box component="main" sx={{ display: 'flex', flexDirection: 'column', gap: '22px', px: '22px', pt: '14px' }}>
+      <VisaoMes mes={mes} hoje={hoje} aoTrocarMes={(novo) => setParams({ mes: novo })} />
+    </Box>
+  );
+}
+```
+
+- [ ] **Step 8: Testes, typecheck e build do frontend**
 
 Run (em `frontend/`): `npm test && npm run typecheck && npm run build`
 Expected: testes PASS; typecheck e build com código 0. Se o typecheck acusar `palette.refeicao`/`neutro`/`pilula` inexistente em `theme.vars.palette`, a augmentação do plano A (`frontend/src/theme/tipos.d.ts`) não está completa — corrija lá conforme a spec (seção Tokens), não com `as any` aqui.
 
-- [ ] **Step 4: Conferir no navegador (claro e escuro)**
+- [ ] **Step 9: Conferir no navegador (claro e escuro)**
 
 Com backend e frontend em dev (`npm run dev` nos dois), logado numa conta com registros neste mês e no anterior:
-1. Início → `relatório`: abre `/relatorio`, título com o mês atual e `média N kcal`.
-2. As barras crescem ao abrir (com "reduzir movimento" do sistema ligado, aparecem já no tamanho final), com as mesmas cores das barrinhas da lista do Início.
-3. Até 2 linhas `↓ … menos …` (verde) / `↑ … mais …` (vermelho) aparecem quando existe mês anterior.
-4. O botão preto (claro) / claro (escuro) cicla `todas as refeições → só … → todas`, e a lista por dia filtra e recalcula o total do dia.
-5. `ver calendário` leva a `/calendario?mes=YYYY-MM`.
-6. `/relatorio?mes=2020-01` (mês sem nada) mostra "nada registrado em janeiro." e `ver calendário`.
-7. Parar o backend e recarregar: aparece a mensagem de erro e `tentar de novo` recarrega quando o backend volta.
-8. Trocar o tema em Perfil (ou no sistema) e conferir contra `screenshots/03-telas.png` (claro à esquerda, escuro à direita).
+1. Início → `relatório`: abre `/relatorio`, título `‹ setembro ›` com o mês atual e `média N kcal` à direita.
+2. `›` desabilitada (cinza, sem clique) no mês atual; `‹` vai para `?mes=2026-08`, título `agosto`, barras crescem de novo; agora `›` volta para setembro. `‹` repetido atravessa o ano (`dezembro` de 2025).
+3. `/relatorio?mes=2027-01` (futuro) abre o mês atual; `/relatorio?mes=lixo` também.
+4. As barras crescem ao abrir (com "reduzir movimento" do sistema ligado, aparecem já no tamanho final), com as mesmas cores das barrinhas da lista do Início.
+5. Até 2 linhas `↓ … menos …` (verde) / `↑ … mais …` (vermelho) aparecem quando existe mês anterior.
+6. O botão preto (claro) / claro (escuro) cicla `todas as refeições → só … → todas`, e a lista por dia filtra e recalcula o total do dia. Trocar de mês zera o filtro.
+7. `ver calendário` leva a `/calendario?mes=YYYY-MM`.
+8. `/relatorio?mes=2020-01` (mês sem nada) mostra "nada registrado em janeiro." e `ver calendário`; as setas continuam funcionando.
+9. Parar o backend e recarregar: aparece a mensagem de erro e `tentar de novo` recarrega quando o backend volta.
+10. Leitor de tela/teclado: `Tab` passa por "mês anterior", "próximo mês" (anunciado como desabilitado no mês atual).
+11. Trocar o tema em Perfil (ou no sistema) e conferir contra `screenshots/03-telas.png` (claro à esquerda, escuro à direita).
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add frontend/src/components/relatorio frontend/src/pages/relatorio/VisaoMes.tsx frontend/src/pages/Relatorio.tsx
+git commit -m "Relatório mensal no design Sistema com setas entre meses"
+```
+
+---
+
+### Task 5: Visão do dia com setas entre dias
+
+**Files:**
+- Create: `frontend/src/pages/relatorio/VisaoDia.tsx`
+- Modify: `frontend/src/pages/Relatorio.tsx` (trocar o ramo marcado na Task 4)
+
+**Interfaces:**
+- Consumes: `api.resumoDia(data): Promise<ResumoDia>`, `api.registrosDoDia(data): Promise<RegistrosDoDia>`, `mensagemDoErro` (`lib/api.ts`, existentes); `deslocarDia`, `podeAvancarDia`, `statusDoDia`, `barrasDoDia`, `descricaoDoGrupo`, `diaCurto`, `kcal` (Task 3); `CabecalhoNavegavel`, `BarrasPorRefeicao`, `LinhaRefeicao`, estilos (Task 4); `statusVisual(status, data, hoje)` e `ROTULO_STATUS` (`lib/visual.ts`, plano A); `theme.vars.palette.pilula.{meta,sobrou,passou}.{bg,fg}`, `neutro.cartao` (plano A).
+- Produces:
+  ```ts
+  export default function VisaoDia(props: {
+    data: string; hoje: string; aoTrocarDia: (data: string) => void;
+  }): JSX.Element;
+  ```
+  Entrada por URL: `/relatorio?data=YYYY-MM-DD` — é o que o `ver relatório` do calendário (plano B, D15) abre.
+
+- [ ] **Step 1: Escrever a visão do dia**
+
+Criar `frontend/src/pages/relatorio/VisaoDia.tsx`:
+
+```tsx
+import { useEffect, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, ButtonBase, Typography } from '@mui/material';
+import { api, mensagemDoErro } from '../../lib/api';
+import {
+  barrasDoDia,
+  deslocarDia,
+  descricaoDoGrupo,
+  diaCurto,
+  kcal,
+  podeAvancarDia,
+  statusDoDia,
+} from '../../lib/relatorio';
+import type { RegistrosDoDia, ResumoDia } from '../../lib/types';
+import { ROTULO_STATUS, statusVisual } from '../../lib/visual';
+import BarrasPorRefeicao from '../../components/relatorio/BarrasPorRefeicao';
+import CabecalhoNavegavel from '../../components/relatorio/CabecalhoNavegavel';
+import LinhaRefeicao from '../../components/relatorio/LinhaRefeicao';
+import { FONTE, botaoSecundario, rotuloSecao } from '../../components/relatorio/estilos';
+
+type Estado =
+  | { tipo: 'carregando' }
+  | { tipo: 'erro'; mensagem: string }
+  | { tipo: 'pronto'; resumo: ResumoDia; registros: RegistrosDoDia };
+
+interface Props {
+  data: string;
+  hoje: string;
+  aoTrocarDia: (data: string) => void;
+}
+
+export default function VisaoDia({ data, hoje, aoTrocarDia }: Props) {
+  const [estado, setEstado] = useState<Estado>({ tipo: 'carregando' });
+  const [tentativa, setTentativa] = useState(0);
+
+  useEffect(() => {
+    let cancelado = false;
+    setEstado({ tipo: 'carregando' });
+    Promise.all([api.resumoDia(data), api.registrosDoDia(data)])
+      .then(([resumo, registros]) => {
+        if (!cancelado) setEstado({ tipo: 'pronto', resumo, registros });
+      })
+      .catch((falha: unknown) => {
+        if (!cancelado) setEstado({ tipo: 'erro', mensagem: mensagemDoErro(falha) });
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [data, tentativa]);
+
+  return (
+    <>
+      <CabecalhoNavegavel
+        titulo={diaCurto(data).toLowerCase()}
+        rotuloAnterior="dia anterior"
+        rotuloProximo="próximo dia"
+        aoAnterior={() => aoTrocarDia(deslocarDia(data, -1))}
+        aoProximo={() => aoTrocarDia(deslocarDia(data, 1))}
+        podeAvancar={podeAvancarDia(data, hoje)}
+        lateral={
+          <ButtonBase
+            component={RouterLink}
+            to={`/relatorio?mes=${data.slice(0, 7)}`}
+            sx={{ font: `500 12.5px ${FONTE}`, color: 'text.secondary', flex: 'none' }}
+          >
+            ver mês
+          </ButtonBase>
+        }
+      />
+
+      {estado.tipo === 'carregando' && (
+        <Typography sx={{ color: 'text.secondary', fontSize: 13 }} role="status">
+          carregando o dia...
+        </Typography>
+      )}
+
+      {estado.tipo === 'erro' && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-start' }}>
+          <Typography sx={{ color: 'error.main', fontSize: 13 }} role="alert">
+            {estado.mensagem}
+          </Typography>
+          <ButtonBase sx={botaoSecundario} onClick={() => setTentativa((n) => n + 1)}>
+            tentar de novo
+          </ButtonBase>
+        </Box>
+      )}
+
+      {estado.tipo === 'pronto' && (
+        <ConteudoDia key={data} data={data} hoje={hoje} resumo={estado.resumo} registros={estado.registros} />
+      )}
+    </>
+  );
+}
+
+function ConteudoDia({
+  data,
+  hoje,
+  resumo,
+  registros,
+}: {
+  data: string;
+  hoje: string;
+  resumo: ResumoDia;
+  registros: RegistrosDoDia;
+}) {
+  const quantidade = resumo.refeicoes.reduce((s, r) => s + r.quantidade_registros, 0);
+  const visual = statusVisual(statusDoDia(resumo.calorias.consumido, resumo.calorias.meta, quantidade), data, hoje);
+  const grupos = registros.refeicoes.filter((g) => g.registros.length > 0);
+
+  if (quantidade === 0) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-start' }}>
+        <Typography sx={{ font: `400 12.5px ${FONTE}`, color: 'text.secondary' }}>
+          nada registrado em {diaCurto(data).toLowerCase()}.
+        </Typography>
+        <ButtonBase component={RouterLink} to={`/calendario?mes=${data.slice(0, 7)}`} sx={botaoSecundario}>
+          ver calendário
+        </ButtonBase>
+      </Box>
+    );
+  }
+
+  return (
+    <>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            <Typography
+              sx={{ font: `800 34px/.9 ${FONTE}`, letterSpacing: '-.03em', fontVariantNumeric: 'tabular-nums' }}
+            >
+              {kcal(resumo.calorias.consumido)}
+            </Typography>
+            <Typography sx={{ font: `600 13px ${FONTE}`, color: 'text.secondary' }}>
+              / {kcal(resumo.calorias.meta)} kcal
+            </Typography>
+          </Box>
+          {visual !== 'vazio' && (
+            <Box
+              component="span"
+              sx={(t) => ({
+                minHeight: 26,
+                display: 'flex',
+                alignItems: 'center',
+                px: '10px',
+                borderRadius: '8px',
+                font: `600 11px ${FONTE}`,
+                bgcolor: t.vars.palette.pilula[visual].bg,
+                color: t.vars.palette.pilula[visual].fg,
+              })}
+            >
+              {ROTULO_STATUS[visual]}
+            </Box>
+          )}
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <Typography component="h2" sx={rotuloSecao}>
+          por refeição
+        </Typography>
+        <BarrasPorRefeicao
+          itens={barrasDoDia(resumo.refeicoes)}
+          rotuloAria={(item) => `${item.refeicao_nome}: ${kcal(item.calorias)} kcal`}
+        />
+      </Box>
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px', pb: 2 }}>
+        <Typography component="h2" sx={{ ...rotuloSecao, pb: '9px' }}>
+          registros
+        </Typography>
+        {grupos.map((g) => (
+          <LinhaRefeicao
+            key={g.refeicao_id}
+            refeicaoId={g.refeicao_id}
+            nome={g.refeicao_nome}
+            descricao={descricaoDoGrupo(g)}
+            calorias={g.calorias}
+          />
+        ))}
+      </Box>
+    </>
+  );
+}
+```
+
+Nota: `sx={{ ...rotuloSecao, pb: '9px' }}` funciona porque `rotuloSecao` é objeto (não função); não transformar `rotuloSecao` em função na Task 4.
+
+- [ ] **Step 2: Ligar a visão do dia na página**
+
+Em `frontend/src/pages/Relatorio.tsx`, substituir o arquivo inteiro por:
+
+```tsx
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Box } from '@mui/material';
+import { hojeISO } from '../lib/format';
+import { visaoDosParametros } from '../lib/relatorio';
+import VisaoDia from './relatorio/VisaoDia';
+import VisaoMes from './relatorio/VisaoMes';
+
+export default function Relatorio() {
+  const [params, setParams] = useSearchParams();
+  const [hoje] = useState(hojeISO);
+  const visao = visaoDosParametros(params, hoje);
+
+  return (
+    <Box component="main" sx={{ display: 'flex', flexDirection: 'column', gap: '22px', px: '22px', pt: '14px' }}>
+      {visao.tipo === 'dia' ? (
+        <VisaoDia data={visao.data} hoje={hoje} aoTrocarDia={(data) => setParams({ data })} />
+      ) : (
+        <VisaoMes mes={visao.mes} hoje={hoje} aoTrocarMes={(mes) => setParams({ mes })} />
+      )}
+    </Box>
+  );
+}
+```
+
+- [ ] **Step 3: Testes, typecheck e build do frontend**
+
+Run (em `frontend/`): `npm test && npm run typecheck && npm run build`
+Expected: testes PASS; typecheck e build com código 0. Se `palette.pilula[visual]` reclamar do índice, conferir que `StatusVisual` sem `'vazio'` indexa `pilula` (o `if visual !== 'vazio'` estreita o tipo); se a augmentação do plano A tipar `pilula` só com as três chaves, está certo.
+
+- [ ] **Step 4: Conferir no navegador (claro e escuro)**
+
+1. Calendário → dia com registro → `ver relatório`: abre `/relatorio?data=YYYY-MM-DD` com título `‹ 13 set ›`, total `1 476 / 2 200 kcal`, pílula com a mesma cor e rótulo do círculo daquele dia no calendário.
+2. Em hoje, `›` desabilitada; `‹` vai para ontem e atualiza a URL; `‹` no dia 1 vai para o último dia do mês anterior.
+3. Barras mostram só refeições com kcal no dia, na ordem das refeições, com as cores do Início; crescem de novo a cada troca de dia.
+4. Lista `registros` mostra uma linha por refeição com `nome · alimentos` e kcal.
+5. Dia sem registro (navegando com `‹`): "nada registrado em 3 set." + `ver calendário`; setas continuam.
+6. `ver mês` leva a `/relatorio?mes=` do mês do dia; lá, tocar no cabeçalho `13 SET` da lista volta para a visão do dia.
+7. `/relatorio?data=2099-01-01` (futuro) e `/relatorio?data=2026-02-30` abrem o mês atual.
+8. Botão voltar do navegador percorre os dias visitados (cada seta é uma entrada no histórico).
+9. Conferir claro e escuro (Perfil → aparência).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/pages/Relatorio.tsx
-git commit -m "Tela de relatório mensal no design Sistema"
+git add frontend/src/pages/relatorio/VisaoDia.tsx frontend/src/pages/Relatorio.tsx
+git commit -m "Relatório do dia com setas entre dias"
 ```
 
 ---
 
 ## Self-Review (feito na escrita)
 
-- **Cobertura da spec:** endpoint e formato exatos (Tasks 1–2); média só sobre dias com registro, média por refeição sobre dias com qualquer registro, variação com 1 casa e `null`, filtro de kcal > 0, ordem desc, dias desc, descrição com `", "`, fuso via `tempo.ts` (Task 1); tela com título + média, barras animadas até 96 px com cor D8, 2 linhas de maior |variação| ignorando `null`, filtro cíclico, `ver calendário`, lista por dia, `?mes`, estado vazio (Tasks 3–4).
-- **Decisões além da spec, registradas:** `mesAnterior` novo em `tempo.ts` (não havia helper de mês anterior); variação que arredonda a 0% não vira linha; preposição `no/na` por heurística da última letra; `kcal()` com espaço não separável como o "1 890" do design; tela sem seletor de mês (a spec só pede `?mes`, a navegação vem do calendário); erro com `tentar de novo` local, sem depender do componente `Erro` do plano B; empate em `media_calorias` ordenado por `inicio`.
-- **Tipos:** `RelatorioMes` do backend não tem `mes` (a rota acrescenta); o do frontend tem. Nomes `resumoMes`, `montarRelatorioMes`, `linhasDeVariacao`, `opcoesDeFiltro`, `proximoFiltro`, `diasFiltrados`, `kcal`, `diaCurto` são os mesmos em todas as tasks.
+- **Cobertura da spec:** endpoint e formato exatos (Tasks 1–2); média só sobre dias com registro, média por refeição sobre dias com qualquer registro, variação com 1 casa e `null`, filtro de kcal > 0, ordem desc, dias desc, descrição com `", "`, fuso via `tempo.ts` (Task 1); visão do mês com `‹ mês ›` (próximo desabilitado no mês atual), média, barras animadas até 96 px com cor D8, 2 linhas de maior |variação| ignorando `null`, filtro cíclico, `ver calendário`, lista por dia, estado vazio (Tasks 3–4); D15 — visão do dia em `?data=` com `‹ 13 set ›` (próximo desabilitado em hoje), total vs meta com pílula de status pela regra 90–110% do contrato, barras por refeição reaproveitadas, lista de registros e `ver mês`, sem endpoint novo (Tasks 3 e 5).
+- **Decisões além da spec, registradas:** `mesAnterior` novo em `tempo.ts`; variação que arredonda a 0% não vira linha; preposição `no/na` por heurística; `kcal()` com espaço não separável; erro com `tentar de novo` local; empate em `media_calorias` ordenado por `inicio`; `?data=` inválida/futura e `?mes=` inválido/futuro caem no mês atual; `?data=` ganha de `?mes=`; cabeçalho de cada dia na lista mensal leva à visão daquele dia; setas empilham histórico (`setParams` sem `replace`); `statusDoDia` do frontend espelha o do backend (mesmo arredondamento).
+- **Tipos:** `RelatorioMes` do backend não tem `mes` (a rota acrescenta); o do frontend tem. Nomes `resumoMes`, `montarRelatorioMes`, `linhasDeVariacao`, `opcoesDeFiltro`, `proximoFiltro`, `diasFiltrados`, `kcal`, `diaCurto`, `visaoDosParametros`, `deslocarDia`, `podeAvancarMes`, `podeAvancarDia`, `statusDoDia`, `barrasDoMes`, `barrasDoDia`, `descricaoDoGrupo`, `ItemBarra`, `CabecalhoNavegavel`, `BarrasPorRefeicao`, `LinhaRefeicao`, `VisaoMes`, `VisaoDia` são os mesmos em todas as tasks.
