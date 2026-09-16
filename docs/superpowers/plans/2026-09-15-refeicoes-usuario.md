@@ -951,11 +951,13 @@ opinião.
 
 ```bash
 git pull
-docker compose up -d --build backend
+docker compose up -d --build backend frontend
 docker compose logs --tail 30 backend
 ```
 
 Expected: `[migrate] aplicada: 003_refeicoes_usuario.sql` e `[api] ouvindo na porta 3001`. Se aparecer `migration 003: N registro(s) sem refeicao_id`, nada foi alterado — mande o log antes de tentar de novo.
+
+O frontend também mudou nesta entrega (perfil não manda mais `faixas_refeicao`) — reconstruir só o `backend` deixa o navegador com o bundle antigo, que quebra ao ler um campo que o backend não manda mais. Reconstrua os dois juntos quando o frontend também mudou.
 
 - [ ] **Step 4: Conferir os dados**
 
