@@ -4,10 +4,10 @@ import { useAuth } from '../auth/useAuth';
 import { api, mensagemDoErro } from '../lib/api';
 import { paraEntrada, paraFormulario } from './formularioPerfil';
 import type { Formulario } from './formularioPerfil';
-import Campo, { Interruptor } from '../components/Campo';
+import { Interruptor } from '../components/Campo';
 import SecaoDadosPessoais from '../components/SecaoDadosPessoais';
 import SecaoMetas from '../components/SecaoMetas';
-import FaixasHorario from '../components/FaixasHorario';
+import SecaoRefeicoes from '../components/SecaoRefeicoes';
 import Erro from '../components/Erro';
 import type { Perfil } from '../lib/types';
 
@@ -102,15 +102,6 @@ function FormularioPerfil({ inicial }: { inicial: Perfil }) {
             ligado={form.modo_preguicoso}
             aoMudar={(v) => mudar('modo_preguicoso', v)}
           />
-          <Campo rotulo="timezone" valor={form.timezone} aoMudar={(v) => mudar('timezone', v)} />
-        </section>
-
-        <section className="cartao">
-          <h2 className="titulo-secao">faixas de horário</h2>
-          <FaixasHorario
-            faixas={form.faixas_refeicao}
-            aoMudar={(faixas) => mudar('faixas_refeicao', faixas)}
-          />
         </section>
 
         <button
@@ -122,6 +113,8 @@ function FormularioPerfil({ inicial }: { inicial: Perfil }) {
           {salvando ? 'salvando...' : 'salvar'}
         </button>
       </form>
+
+      <SecaoRefeicoes aoFalhar={(falha: unknown) => setErro(mensagemDoErro(falha))} />
     </main>
   );
 }

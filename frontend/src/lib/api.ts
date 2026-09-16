@@ -153,7 +153,7 @@ export const api = {
   confirmar: (entrada: EntradaConfirmacao) =>
     requisitar<Registro>('/registros/confirmar', { method: 'POST', corpo: entrada }),
 
-  atualizarRegistro: (id: string, dados: { refeicao?: Refeicao }) =>
+  atualizarRegistro: (id: string, dados: { refeicao_id?: string }) =>
     requisitar<Registro>(`/registros/${id}`, { method: 'PATCH', corpo: dados }),
 
   excluirRegistro: (id: string) => requisitar<void>(`/registros/${id}`, { method: 'DELETE' }),
@@ -207,6 +207,16 @@ export const api = {
     requisitar<Feed>(
       `/social/usuarios/${id}/refeicoes${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`,
     ),
+
+  refeicoes: () => requisitar<{ refeicoes: Refeicao[] }>('/refeicoes'),
+
+  criarRefeicao: (dados: { nome: string; inicio: string; fim: string }) =>
+    requisitar<Refeicao>('/refeicoes', { method: 'POST', corpo: dados }),
+
+  atualizarRefeicao: (id: string, campos: { nome?: string; inicio?: string; fim?: string }) =>
+    requisitar<Refeicao>(`/refeicoes/${id}`, { method: 'PATCH', corpo: campos }),
+
+  excluirRefeicao: (id: string) => requisitar<void>(`/refeicoes/${id}`, { method: 'DELETE' }),
 };
 
 export function mensagemDoErro(erro: unknown): string {

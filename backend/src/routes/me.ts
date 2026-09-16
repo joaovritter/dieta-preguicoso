@@ -2,20 +2,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { perfilDe } from '../middleware/autenticar.js';
 import { calcularMetas } from '../domain/nutricao.js';
-import { horaValida } from '../domain/refeicao.js';
 import { timezoneValida } from '../domain/tempo.js';
-import { OBJETIVOS, REFEICOES, SEXOS } from '../domain/tipos.js';
+import { OBJETIVOS, SEXOS } from '../domain/tipos.js';
 import { atualizarUsuario, paraPerfil, type CamposAtualizaveis } from '../repos/usuarios.js';
 
 export const rotasMe: Router = Router();
-
-const hora = z.string().refine(horaValida, 'horário deve estar no formato HH:MM');
-
-const faixaSchema = z.object({
-  refeicao: z.enum(REFEICOES),
-  inicio: hora,
-  fim: hora,
-});
 
 const perfilSchema = z
   .object({
@@ -32,13 +23,6 @@ const perfilSchema = z
     meta_agua_ml: z.number().int().min(200).max(20000),
     metas_automaticas: z.boolean(),
     modo_preguicoso: z.boolean(),
-    faixas_refeicao: z
-      .array(faixaSchema)
-      .length(5)
-      .refine(
-        (f) => new Set(f.map((x) => x.refeicao)).size === 5,
-        'informe uma faixa para cada uma das 5 refeições, sem repetir',
-      ),
     timezone: z.string().refine(timezoneValida, 'fuso horário desconhecido'),
   })
   .partial();

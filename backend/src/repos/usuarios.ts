@@ -1,7 +1,8 @@
 import { randomInt } from 'node:crypto';
-import { consultar, consultarUm } from '../db/index.js';
+import { consultar, consultarUm, pool } from '../db/index.js';
 import { AppError } from '../lib/erros.js';
-import { FAIXAS_PADRAO, type FaixaRefeicao, type Perfil } from '../domain/tipos.js';
+import type { Perfil } from '../domain/tipos.js';
+import { semearRefeicoes } from './refeicoes.js';
 
 interface LinhaUsuario {
   id: string;
@@ -21,14 +22,13 @@ interface LinhaUsuario {
   meta_agua_ml: number;
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
-  faixas_refeicao: FaixaRefeicao[] | null;
   timezone: string;
   created_at: Date;
 }
 
 const COLUNAS = `id, email, password_hash, nome, tag, sexo, idade, peso_kg, altura_cm, objetivo,
   meta_calorias, meta_carboidrato_g, meta_proteina_g, meta_gordura_g, meta_agua_ml,
-  metas_automaticas, modo_preguicoso, faixas_refeicao, timezone, created_at`;
+  metas_automaticas, modo_preguicoso, timezone, created_at`;
 
 export function paraPerfil(l: LinhaUsuario): Perfil {
   return {
@@ -48,7 +48,6 @@ export function paraPerfil(l: LinhaUsuario): Perfil {
     meta_agua_ml: l.meta_agua_ml,
     metas_automaticas: l.metas_automaticas,
     modo_preguicoso: l.modo_preguicoso,
-    faixas_refeicao: l.faixas_refeicao?.length ? l.faixas_refeicao : FAIXAS_PADRAO,
     timezone: l.timezone,
     criado_em: l.created_at.toISOString(),
   };
@@ -101,6 +100,7 @@ export async function buscarPorNomeTag(nome: string, tag: string): Promise<Linha
   );
 }
 
+/** Conta e refeições nascem juntas na mesma transação, ou nenhuma das duas nasce. */
 export async function criarUsuario(
   email: string,
   passwordHash: string,
@@ -108,14 +108,30 @@ export async function criarUsuario(
   timezone: string,
 ): Promise<LinhaUsuario> {
   const limpo = nome.trim();
-  const linha = await consultarUm<LinhaUsuario>(
-    `INSERT INTO users (email, password_hash, nome, tag, timezone)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING ${COLUNAS}`,
-    [email.trim().toLowerCase(), passwordHash, limpo, await tagLivrePara(limpo), timezone],
-  );
-  if (!linha) throw new Error('INSERT em users não devolveu linha');
-  return linha;
+  const tag = await tagLivrePara(limpo);
+
+  const cliente = await pool.connect();
+  try {
+    await cliente.query('BEGIN');
+    const resultado = await cliente.query<LinhaUsuario>(
+      `INSERT INTO users (email, password_hash, nome, tag, timezone)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING ${COLUNAS}`,
+      [email.trim().toLowerCase(), passwordHash, limpo, tag, timezone],
+    );
+    const linha = resultado.rows[0];
+    if (!linha) throw new Error('INSERT em users não devolveu linha');
+
+    await semearRefeicoes(cliente, linha.id);
+
+    await cliente.query('COMMIT');
+    return linha;
+  } catch (e) {
+    await cliente.query('ROLLBACK');
+    throw e;
+  } finally {
+    cliente.release();
+  }
 }
 
 /** Campos do perfil que o usuário pode alterar. `undefined` significa "não mexe". */
@@ -133,7 +149,6 @@ export type CamposAtualizaveis = Partial<{
   meta_agua_ml: number;
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
-  faixas_refeicao: FaixaRefeicao[];
   timezone: string;
 }>;
 
@@ -155,7 +170,6 @@ const COLUNAS_ATUALIZAVEIS = [
   'meta_agua_ml',
   'metas_automaticas',
   'modo_preguicoso',
-  'faixas_refeicao',
   'timezone',
 ] as const;
 
@@ -186,10 +200,7 @@ export async function atualizarUsuario(
   }
 
   const atribuicoes = nomes.map((nome, i) => `${nome} = $${i + 2}`).join(', ');
-  const valores = nomes.map((nome) => {
-    const v = campos[nome as keyof CamposAtualizaveis];
-    return nome === 'faixas_refeicao' ? JSON.stringify(v) : v;
-  });
+  const valores = nomes.map((nome) => campos[nome as keyof CamposAtualizaveis]);
 
   const linha = await consultarUm<LinhaUsuario>(
     `UPDATE users SET ${atribuicoes} WHERE id = $1 RETURNING ${COLUNAS}`,

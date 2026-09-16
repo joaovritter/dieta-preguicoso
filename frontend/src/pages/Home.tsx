@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { dataLonga, ehHoje, hojeISO } from '../lib/format';
 import { useAuth } from '../auth/useAuth';
+import { useRefeicoes } from '../lib/RefeicoesContext';
 import { useDadosDoDia } from './useDadosDoDia';
 import { useEntradaIA } from './useEntradaIA';
 import FaixaSemanal from '../components/FaixaSemanal';
@@ -17,7 +18,6 @@ import EntradaTexto from '../components/EntradaTexto';
 import GravadorAudio from '../components/GravadorAudio';
 import { OverlayCarregando } from '../components/Overlay';
 import Erro from '../components/Erro';
-import type { Refeicao } from '../lib/types';
 
 type Modal = 'texto' | 'audio' | null;
 
@@ -31,6 +31,7 @@ export default function Home() {
 
   const dados = useDadosDoDia(data, hoje);
   const { recarregar, reportarErro } = dados;
+  const refeicoesCtx = useRefeicoes();
 
   // Registros novos caem sempre em hoje: volto a Home para hoje ao gravar.
   const aposGravar = useCallback(async () => {
@@ -63,8 +64,8 @@ export default function Home() {
       });
       if (ok) await comOcupado(() => api.excluirRegistro(id));
     })();
-  const trocarRefeicao = (id: string, refeicao: Refeicao) =>
-    void comOcupado(() => api.atualizarRegistro(id, { refeicao }));
+  const trocarRefeicao = (id: string, refeicaoId: string) =>
+    void comOcupado(() => api.atualizarRegistro(id, { refeicao_id: refeicaoId }));
 
   const { resumo, registros, semana, carregando, erro } = dados;
 
@@ -90,6 +91,9 @@ export default function Home() {
         </header>
 
         {erro !== null && <Erro mensagem={erro} aoFechar={dados.limparErro} />}
+        {refeicoesCtx.erro !== null && (
+          <Erro mensagem={refeicoesCtx.erro} aoFechar={refeicoesCtx.limparErro} />
+        )}
 
         {semana !== null && (
           <FaixaSemanal dias={semana.dias} selecionada={data} aoSelecionar={setData} />

@@ -1,14 +1,19 @@
-import { NOME_REFEICAO, REFEICOES, horaDoTimestamp, numero } from '../lib/format';
-import type { Refeicao, Registro } from '../lib/types';
+import { horaDoTimestamp, numero } from '../lib/format';
+import { useRefeicoes } from '../lib/RefeicoesContext';
+import type { Registro } from '../lib/types';
 
 interface Props {
   registro: Registro;
   ocupado: boolean;
-  aoTrocarRefeicao: (id: string, refeicao: Refeicao) => void;
+  aoTrocarRefeicao: (id: string, refeicaoId: string) => void;
   aoExcluir: (id: string) => void;
 }
 
 export default function ItemRegistro({ registro, ocupado, aoTrocarRefeicao, aoExcluir }: Props) {
+  const { refeicoes } = useRefeicoes();
+  const semOpcoes = refeicoes.length === 0;
+  const opcaoValida = refeicoes.some((refeicao) => refeicao.id === registro.refeicao_id);
+
   return (
     <article className="registro">
       <div className="registro-topo">
@@ -39,13 +44,23 @@ export default function ItemRegistro({ registro, ocupado, aoTrocarRefeicao, aoEx
         <select
           id={`refeicao-${registro.id}`}
           className="seletor"
-          value={registro.refeicao}
-          disabled={ocupado}
-          onChange={(evento) => aoTrocarRefeicao(registro.id, evento.target.value as Refeicao)}
+          value={opcaoValida ? registro.refeicao_id : ''}
+          disabled={ocupado || semOpcoes}
+          onChange={(evento) => aoTrocarRefeicao(registro.id, evento.target.value)}
         >
-          {REFEICOES.map((refeicao) => (
-            <option key={refeicao} value={refeicao}>
-              {NOME_REFEICAO[refeicao]}
+          {semOpcoes && (
+            <option value="" disabled>
+              carregando refeições...
+            </option>
+          )}
+          {!semOpcoes && !opcaoValida && (
+            <option value="" disabled>
+              refeição não encontrada
+            </option>
+          )}
+          {refeicoes.map((refeicao) => (
+            <option key={refeicao.id} value={refeicao.id}>
+              {refeicao.nome}
             </option>
           ))}
         </select>

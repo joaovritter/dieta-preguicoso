@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import type { ReactElement } from 'react';
 import { AuthProvider } from './auth/AuthContext';
 import { useAuth } from './auth/useAuth';
+import { RefeicoesProvider } from './lib/RefeicoesContext';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import PerfilPage from './pages/Perfil';
@@ -81,9 +82,11 @@ function Rotas() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Rotas />
-      </BrowserRouter>
+      <RefeicoesProvider>
+        <BrowserRouter>
+          <Rotas />
+        </BrowserRouter>
+      </RefeicoesProvider>
     </AuthProvider>
   );
 }

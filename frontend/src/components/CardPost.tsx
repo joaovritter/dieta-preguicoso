@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { NOME_REFEICAO, horaDoTimestamp, numero } from '../lib/format';
+import { horaDoTimestamp, numero } from '../lib/format';
 import type { Post } from '../lib/types';
 
 export default function CardPost({ post }: { post: Post }) {
@@ -10,7 +10,7 @@ export default function CardPost({ post }: { post: Post }) {
           {post.autor.nome_tag}
         </Link>
         <span className="post-quando num">
-          {NOME_REFEICAO[post.refeicao]} · {horaDoTimestamp(post.criado_em)}
+          {post.refeicao_nome} · {horaDoTimestamp(post.criado_em)}
         </span>
       </header>
 

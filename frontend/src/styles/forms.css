@@ -44,6 +44,32 @@ textarea.campo-entrada {
   gap: var(--esp-3);
 }
 
+/* nome de refeição editável inline: parece texto até o clique */
+.refeicao-nome-botao {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: var(--esp-2) var(--esp-1);
+  margin: 0 calc(var(--esp-1) * -1);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  min-height: 44px;
+  transition: background-color var(--duracao) var(--easing);
+}
+
+.refeicao-nome-botao:hover {
+  background: var(--surface-2);
+}
+
+.refeicao-nova {
+  margin-top: var(--esp-3);
+  padding-top: var(--esp-3);
+  border-top: 1px solid var(--border);
+}
+
 .interruptor {
   display: flex;
   align-items: center;
@@ -67,27 +93,6 @@ textarea.campo-entrada {
   width: 20px;
   height: 20px;
   accent-color: var(--accent);
-}
-
-.faixa-horario {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: var(--esp-2);
-  margin-bottom: var(--esp-2);
-}
-
-.faixa-horario input {
-  width: 100px;
-  min-height: 40px;
-  padding: 0 var(--esp-2);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.faixa-nome {
-  font-size: 14px;
 }
 
 .erro-faixa {

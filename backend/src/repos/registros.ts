@@ -5,7 +5,6 @@ import type {
   Alimento,
   Objetivo,
   Post,
-  Refeicao,
   Registro,
   TipoEntrada,
 } from '../domain/tipos.js';
@@ -13,7 +12,8 @@ import type {
 interface LinhaRegistro {
   id: string;
   tipo_entrada: TipoEntrada;
-  refeicao: Refeicao;
+  refeicao_id: string;
+  refeicao_nome: string;
   descricao_bruta: string;
   midia_url: string | null;
   alimentos_detectados: Alimento[];
@@ -24,14 +24,18 @@ interface LinhaRegistro {
   criado_em: Date;
 }
 
-const COLUNAS = `id, tipo_entrada, refeicao, descricao_bruta, midia_url, alimentos_detectados,
-  calorias_total, carboidrato_total_g, proteina_total_g, gordura_total_g, criado_em`;
+const COLUNAS = `r.id, r.tipo_entrada, r.refeicao_id, ref.nome AS refeicao_nome,
+  r.descricao_bruta, r.midia_url, r.alimentos_detectados, r.calorias_total,
+  r.carboidrato_total_g, r.proteina_total_g, r.gordura_total_g, r.criado_em`;
+
+const DE = `FROM registros_alimentares r JOIN refeicoes_usuario ref ON ref.id = r.refeicao_id`;
 
 function paraRegistro(l: LinhaRegistro): Registro {
   return {
     id: l.id,
     tipo_entrada: l.tipo_entrada,
-    refeicao: l.refeicao,
+    refeicao_id: l.refeicao_id,
+    refeicao_nome: l.refeicao_nome,
     descricao_bruta: l.descricao_bruta,
     midia_url: l.midia_url,
     alimentos_detectados: l.alimentos_detectados ?? [],
@@ -43,10 +47,20 @@ function paraRegistro(l: LinhaRegistro): Registro {
   };
 }
 
+/**
+ * `RETURNING` do INSERT/UPDATE não alcança a tabela do JOIN (o nome da refeição),
+ * então essas escritas devolvem só o `id` e o registro completo vem daqui.
+ */
+async function porId(id: string): Promise<Registro> {
+  const linha = await consultarUm<LinhaRegistro>(`SELECT ${COLUNAS} ${DE} WHERE r.id = $1`, [id]);
+  if (!linha) throw new Error(`registro ${id} sumiu logo após ser gravado`);
+  return paraRegistro(linha);
+}
+
 export interface NovoRegistro {
   userId: string;
   tipo_entrada: TipoEntrada;
-  refeicao: Refeicao;
+  refeicao_id: string;
   descricao_bruta: string;
   midia_url: string | null;
   alimentos: Alimento[];
@@ -55,16 +69,16 @@ export interface NovoRegistro {
 
 export async function criarRegistro(n: NovoRegistro): Promise<Registro> {
   const t = somarTotais(n.alimentos);
-  const linha = await consultarUm<LinhaRegistro>(
+  const linha = await consultarUm<{ id: string }>(
     `INSERT INTO registros_alimentares
-       (user_id, tipo_entrada, refeicao, descricao_bruta, midia_url, alimentos_detectados,
+       (user_id, tipo_entrada, refeicao_id, descricao_bruta, midia_url, alimentos_detectados,
         calorias_total, carboidrato_total_g, proteina_total_g, gordura_total_g, criado_em)
      VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11)
-     RETURNING ${COLUNAS}`,
+     RETURNING id`,
     [
       n.userId,
       n.tipo_entrada,
-      n.refeicao,
+      n.refeicao_id,
       n.descricao_bruta,
       n.midia_url,
       JSON.stringify(n.alimentos),
@@ -76,7 +90,7 @@ export async function criarRegistro(n: NovoRegistro): Promise<Registro> {
     ],
   );
   if (!linha) throw new Error('INSERT em registros_alimentares não devolveu linha');
-  return paraRegistro(linha);
+  return porId(linha.id);
 }
 
 export async function listarNoIntervalo(
@@ -85,9 +99,9 @@ export async function listarNoIntervalo(
   fim: Date,
 ): Promise<Registro[]> {
   const linhas = await consultar<LinhaRegistro>(
-    `SELECT ${COLUNAS} FROM registros_alimentares
-     WHERE user_id = $1 AND criado_em >= $2 AND criado_em < $3
-     ORDER BY criado_em ASC`,
+    `SELECT ${COLUNAS} ${DE}
+     WHERE r.user_id = $1 AND r.criado_em >= $2 AND r.criado_em < $3
+     ORDER BY r.criado_em ASC`,
     [userId, inicio, fim],
   );
   return linhas.map(paraRegistro);
@@ -95,7 +109,7 @@ export async function listarNoIntervalo(
 
 export async function buscarRegistro(userId: string, id: string): Promise<Registro | null> {
   const linha = await consultarUm<LinhaRegistro>(
-    `SELECT ${COLUNAS} FROM registros_alimentares WHERE id = $1 AND user_id = $2`,
+    `SELECT ${COLUNAS} ${DE} WHERE r.id = $1 AND r.user_id = $2`,
     [id, userId],
   );
   return linha ? paraRegistro(linha) : null;
@@ -104,24 +118,24 @@ export async function buscarRegistro(userId: string, id: string): Promise<Regist
 export async function atualizarRegistro(
   userId: string,
   id: string,
-  campos: { refeicao?: Refeicao; alimentos?: Alimento[] },
+  campos: { refeicao_id?: string; alimentos?: Alimento[] },
 ): Promise<Registro | null> {
   const atual = await buscarRegistro(userId, id);
   if (!atual) return null;
 
   const alimentos = campos.alimentos ?? atual.alimentos_detectados;
-  const refeicao = campos.refeicao ?? atual.refeicao;
+  const refeicaoId = campos.refeicao_id ?? atual.refeicao_id;
   const t = somarTotais(alimentos);
 
-  const linha = await consultarUm<LinhaRegistro>(
+  const linha = await consultarUm<{ id: string }>(
     `UPDATE registros_alimentares
-     SET refeicao = $3, alimentos_detectados = $4::jsonb, calorias_total = $5,
+     SET refeicao_id = $3, alimentos_detectados = $4::jsonb, calorias_total = $5,
          carboidrato_total_g = $6, proteina_total_g = $7, gordura_total_g = $8
      WHERE id = $1 AND user_id = $2
-     RETURNING ${COLUNAS}`,
-    [id, userId, refeicao, JSON.stringify(alimentos), t.calorias, t.carboidrato_g, t.proteina_g, t.gordura_g],
+     RETURNING id`,
+    [id, userId, refeicaoId, JSON.stringify(alimentos), t.calorias, t.carboidrato_g, t.proteina_g, t.gordura_g],
   );
-  return linha ? paraRegistro(linha) : null;
+  return linha ? porId(linha.id) : null;
 }
 
 export async function apagarRegistro(userId: string, id: string): Promise<boolean> {
@@ -168,12 +182,10 @@ export async function feedDeUsuarios(
   if (userIds.length === 0) return [];
 
   const linhas = await consultar<LinhaPost>(
-    `SELECT r.id, r.tipo_entrada, r.refeicao, r.descricao_bruta, r.midia_url,
-            r.alimentos_detectados, r.calorias_total, r.carboidrato_total_g,
-            r.proteina_total_g, r.gordura_total_g, r.criado_em,
+    `SELECT ${COLUNAS},
             u.id AS autor_id, u.nome AS autor_nome, u.tag AS autor_tag,
             u.objetivo AS autor_objetivo
-     FROM registros_alimentares r
+     ${DE}
      JOIN users u ON u.id = r.user_id
      WHERE r.user_id = ANY($1::uuid[])
        AND ($2::timestamptz IS NULL OR r.criado_em < $2)

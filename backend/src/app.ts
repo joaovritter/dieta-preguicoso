@@ -10,6 +10,7 @@ import { rotasAmigos } from './routes/amigos.js';
 import { rotasGrupos } from './routes/grupos.js';
 import { rotasAuth } from './routes/auth.js';
 import { rotasMe } from './routes/me.js';
+import { rotasRefeicoes } from './routes/refeicoes.js';
 import { rotasRegistros } from './routes/registros.js';
 import { rotasResumo } from './routes/resumo.js';
 import { rotasSocial } from './routes/social.js';
@@ -47,6 +48,7 @@ export function criarApp(): Express {
 
   // Tudo daqui pra baixo exige token.
   app.use('/api/me', autenticar, rotasMe);
+  app.use('/api/refeicoes', autenticar, rotasRefeicoes);
   app.use('/api/registros', autenticar, rotasRegistros);
   app.use('/api/agua', autenticar, rotasAgua);
   app.use('/api/resumo', autenticar, rotasResumo);

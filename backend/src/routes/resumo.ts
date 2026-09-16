@@ -2,10 +2,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { arredondar, metrica } from '../domain/nutricao.js';
 import { dataLocal, intervaloDoDia, somarDias } from '../domain/tempo.js';
-import { REFEICOES } from '../domain/tipos.js';
 import { perfilDe } from '../middleware/autenticar.js';
 import { totalAguaNoIntervalo } from '../repos/agua.js';
 import { listarNoIntervalo } from '../repos/registros.js';
+import { listarRefeicoes } from '../repos/refeicoes.js';
 
 export const rotasResumo: Router = Router();
 
@@ -41,10 +41,11 @@ rotasResumo.get('/dia', async (req, res, next) => {
       proteina_g: metrica(consumido.proteina_g, perfil.meta_proteina_g),
       gordura_g: metrica(consumido.gordura_g, perfil.meta_gordura_g),
       agua_ml: metrica(aguaMl, perfil.meta_agua_ml),
-      refeicoes: REFEICOES.map((refeicao) => {
-        const doGrupo = registros.filter((r) => r.refeicao === refeicao);
+      refeicoes: (await listarRefeicoes(perfil.id)).map((refeicao) => {
+        const doGrupo = registros.filter((r) => r.refeicao_id === refeicao.id);
         return {
-          refeicao,
+          refeicao_id: refeicao.id,
+          refeicao_nome: refeicao.nome,
           calorias: arredondar(doGrupo.reduce((s, r) => s + r.calorias_total, 0)),
           quantidade_registros: doGrupo.length,
         };

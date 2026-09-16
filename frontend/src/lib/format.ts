@@ -1,14 +1,4 @@
-import type { Alimento, Objetivo, Refeicao, StatusDia, Totais } from './types';
-
-export const REFEICOES: Refeicao[] = ['cafe_da_manha', 'almoco', 'lanche', 'janta', 'ceia'];
-
-export const NOME_REFEICAO: Record<Refeicao, string> = {
-  cafe_da_manha: 'café da manhã',
-  almoco: 'almoço',
-  lanche: 'lanche',
-  janta: 'janta',
-  ceia: 'ceia',
-};
+import type { Alimento, Objetivo, StatusDia, Totais } from './types';
 
 export const TEXTO_STATUS: Record<StatusDia, string> = {
   sem_registro: 'sem registro',
