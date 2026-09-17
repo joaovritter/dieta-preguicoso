@@ -7,11 +7,11 @@ import { CapturaProvider } from './captura/CapturaContext';
 import Casca from './layout/Casca';
 import Login from './pages/Login';
 import Home from './pages/Home';
+import Relatorio from './pages/Relatorio';
 import CalendarioPage from './pages/CalendarioPage';
 import PerfilPage from './pages/Perfil';
 import GrupoPage from './pages/Grupo';
 import PerfilPublico from './pages/PerfilPublico';
-import TelaProvisoria from './pages/TelaProvisoria';
 import SocialProvisorio from './pages/SocialProvisorio';
 import DetalheItemPage from './pages/DetalheItemPage';
 import MetasPage from './pages/perfil/MetasPage';
@@ -44,7 +44,7 @@ function Rotas() {
         }
       >
         <Route index element={<Home />} />
-        <Route path="relatorio" element={<TelaProvisoria titulo="relatório" />} />
+        <Route path="relatorio" element={<Relatorio />} />
         <Route path="calendario" element={<CalendarioPage />} />
         <Route path="social" element={<SocialProvisorio />} />
         <Route path="grupos/:id" element={<GrupoPage />} />
