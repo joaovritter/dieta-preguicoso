@@ -255,6 +255,22 @@ export async function dividemGrupo(a: string, b: string): Promise<boolean> {
   return linha !== null;
 }
 
+/** Todo mundo cujo progresso a pessoa enxerga, menos ela mesma: amigos aceitos e colegas de grupo. */
+export async function idsVisiveis(userId: string): Promise<string[]> {
+  const linhas = await consultar<{ id: string }>(
+    `SELECT CASE WHEN a.solicitante_id = $1 THEN a.destinatario_id ELSE a.solicitante_id END AS id
+     FROM amizades a
+     WHERE a.status = 'aceita' AND $1 IN (a.solicitante_id, a.destinatario_id)
+     UNION
+     SELECT outro.user_id AS id
+     FROM grupo_membros meu
+     JOIN grupo_membros outro ON outro.grupo_id = meu.grupo_id AND outro.user_id <> $1
+     WHERE meu.user_id = $1`,
+    [userId],
+  );
+  return linhas.map((l) => l.id);
+}
+
 /**
  * Regra de privacidade da rede: só vê o progresso de alguém quem é a própria pessoa,
  * amigo dela ou divide um grupo com ela.

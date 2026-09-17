@@ -5,7 +5,7 @@ import { AppError } from '../lib/erros.js';
 import { perfilDe } from '../middleware/autenticar.js';
 import { progressoNoDia, progressoNoMes } from '../repos/progresso.js';
 import { paraPerfilPublico } from '../domain/social.js';
-import { buscarUsuarioSocial } from '../repos/social.js';
+import { buscarUsuarioSocial, idsVisiveis } from '../repos/social.js';
 import { garantirAcesso, idSchema, montarFeed } from './socialComum.js';
 
 export const rotasSocial: Router = Router();
@@ -26,6 +26,15 @@ async function alvoVisivel(req: Request) {
   await garantirAcesso(perfil.id, alvo.id);
   return alvo;
 }
+
+rotasSocial.get('/feed', async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    res.json(await montarFeed(req, await idsVisiveis(perfil.id)));
+  } catch (e) {
+    next(e);
+  }
+});
 
 rotasSocial.get('/usuarios/:id', async (req, res, next) => {
   try {

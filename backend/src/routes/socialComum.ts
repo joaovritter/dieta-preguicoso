@@ -2,6 +2,7 @@ import type { Request } from 'express';
 import { z } from 'zod';
 import type { Feed, MembroComProgresso } from '../domain/tipos.js';
 import { AppError } from '../lib/erros.js';
+import { perfilDe } from '../middleware/autenticar.js';
 import { progressoNoDia } from '../repos/progresso.js';
 import { feedDeUsuarios } from '../repos/registros.js';
 import { paraPerfilPublico } from '../domain/social.js';
@@ -17,7 +18,8 @@ const feedSchema = z.object({
 /** Monta uma página do feed a partir da query da requisição. */
 export async function montarFeed(req: Request, userIds: string[]): Promise<Feed> {
   const { antes, limite } = feedSchema.parse(req.query);
-  const posts = await feedDeUsuarios(userIds, antes ? new Date(antes) : null, limite);
+  const observador = perfilDe(req).id;
+  const posts = await feedDeUsuarios(observador, userIds, antes ? new Date(antes) : null, limite);
 
   // Só oferece a próxima página quando a atual veio cheia; menos que isso é o fim da lista.
   const ultimo = posts.length === limite ? posts[posts.length - 1] : undefined;

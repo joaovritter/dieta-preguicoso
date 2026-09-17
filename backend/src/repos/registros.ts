@@ -168,13 +168,18 @@ interface LinhaPost extends LinhaRegistro {
   autor_nome: string;
   autor_tag: string;
   autor_objetivo: Objetivo;
+  curtidas: number;
+  curti: boolean;
+  comentarios: number;
 }
 
 /**
  * Refeições de um conjunto de pessoas, mais recentes primeiro — é o feed.
  * `antes` pagina: passe o `criado_em` do último post da página anterior.
+ * `observadorId` é quem está vendo: decide o `curti`.
  */
 export async function feedDeUsuarios(
+  observadorId: string,
   userIds: string[],
   antes: Date | null,
   limite: number,
@@ -184,14 +189,17 @@ export async function feedDeUsuarios(
   const linhas = await consultar<LinhaPost>(
     `SELECT ${COLUNAS},
             u.id AS autor_id, u.nome AS autor_nome, u.tag AS autor_tag,
-            u.objetivo AS autor_objetivo
+            u.objetivo AS autor_objetivo,
+            (SELECT count(*)::int FROM curtidas c WHERE c.registro_id = r.id) AS curtidas,
+            EXISTS (SELECT 1 FROM curtidas c WHERE c.registro_id = r.id AND c.user_id = $4) AS curti,
+            (SELECT count(*)::int FROM comentarios cm WHERE cm.registro_id = r.id) AS comentarios
      ${DE}
      JOIN users u ON u.id = r.user_id
      WHERE r.user_id = ANY($1::uuid[])
        AND ($2::timestamptz IS NULL OR r.criado_em < $2)
      ORDER BY r.criado_em DESC
      LIMIT $3`,
-    [userIds, antes, limite],
+    [userIds, antes, limite, observadorId],
   );
 
   return linhas.map((l) => ({
@@ -202,6 +210,9 @@ export async function feedDeUsuarios(
       tag: l.autor_tag,
       objetivo: l.autor_objetivo,
     }),
+    curtidas: l.curtidas,
+    curti: l.curti,
+    comentarios: l.comentarios,
   }));
 }
 

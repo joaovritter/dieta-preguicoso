@@ -129,6 +129,9 @@ export interface MembroComProgresso {
 /** Uma refeição de alguém, do jeito que aparece no feed. */
 export interface Post extends Registro {
   autor: PerfilPublico;
+  curtidas: number;
+  curti: boolean;
+  comentarios: number;
 }
 
 export interface Feed {
