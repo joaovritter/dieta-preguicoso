@@ -1,12 +1,15 @@
+import Alert from '@mui/material/Alert';
+
 export default function Erro({ mensagem, aoFechar }: { mensagem: string; aoFechar?: () => void }) {
   return (
-    <div className="erro-faixa" role="alert">
-      <span>{mensagem}</span>
-      {aoFechar !== undefined && (
-        <button type="button" onClick={aoFechar} aria-label="fechar aviso">
-          ×
-        </button>
-      )}
-    </div>
+    <Alert
+      severity="error"
+      variant="filled"
+      onClose={aoFechar}
+      slotProps={{ closeButton: { 'aria-label': 'fechar aviso' } }}
+      sx={{ borderRadius: '12px', fontSize: 13, fontWeight: 500, bgcolor: 'error.main', alignItems: 'center' }}
+    >
+      {mensagem}
+    </Alert>
   );
 }
