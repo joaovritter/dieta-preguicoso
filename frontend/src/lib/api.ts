@@ -1,4 +1,5 @@
 import type {
+  Alimento,
   Autenticacao,
   CalendarioMes,
   DetalheGrupo,
@@ -157,7 +158,7 @@ export const api = {
   confirmar: (entrada: EntradaConfirmacao) =>
     requisitar<Registro>('/registros/confirmar', { method: 'POST', corpo: entrada }),
 
-  atualizarRegistro: (id: string, dados: { refeicao_id?: string }) =>
+  atualizarRegistro: (id: string, dados: { refeicao_id?: string; alimentos?: Alimento[] }) =>
     requisitar<Registro>(`/registros/${id}`, { method: 'PATCH', corpo: dados }),
 
   excluirRegistro: (id: string) => requisitar<void>(`/registros/${id}`, { method: 'DELETE' }),

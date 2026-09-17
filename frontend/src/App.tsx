@@ -13,6 +13,7 @@ import GrupoPage from './pages/Grupo';
 import PerfilPublico from './pages/PerfilPublico';
 import TelaProvisoria from './pages/TelaProvisoria';
 import SocialProvisorio from './pages/SocialProvisorio';
+import DetalheItemPage from './pages/DetalheItemPage';
 
 function Protegida({ children }: { children: ReactElement }) {
   const { perfil, carregando } = useAuth();
@@ -47,6 +48,15 @@ function Rotas() {
         <Route path="u/:id" element={<PerfilPublico />} />
         <Route path="perfil" element={<PerfilPage />} />
       </Route>
+
+      <Route
+        path="/registros/:id/alimentos/:indice"
+        element={
+          <Protegida>
+            <DetalheItemPage />
+          </Protegida>
+        }
+      />
 
       <Route path="/amigos" element={<Navigate to="/social?aba=amigos" replace />} />
       <Route path="/grupos" element={<Navigate to="/social?aba=grupos" replace />} />
