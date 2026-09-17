@@ -1,79 +1,93 @@
 import { useState } from 'react';
+import Box from '@mui/material/Box';
+import ButtonBase from '@mui/material/ButtonBase';
+import Collapse from '@mui/material/Collapse';
+import Typography from '@mui/material/Typography';
+import { Link } from 'react-router-dom';
 import ItemRegistro from './ItemRegistro';
-import { numero } from '../lib/format';
-import type { GrupoRefeicao, Registro } from '../lib/types';
+import RotuloSecao from './ui/RotuloSecao';
+import { dataCurta, ehHoje, milhar } from '../lib/format';
+import { useRefeicoes } from '../lib/RefeicoesContext';
+import { corDaRefeicao } from '../lib/visual';
+import type { GrupoRefeicao } from '../lib/types';
 
 interface Props {
   grupos: GrupoRefeicao[];
+  data: string;
   ocupado: boolean;
   aoTrocarRefeicao: (id: string, refeicaoId: string) => void;
   aoExcluir: (id: string) => void;
 }
 
-export default function ListaRefeicoes({ grupos, ocupado, aoTrocarRefeicao, aoExcluir }: Props) {
+export default function ListaRefeicoes({ grupos, data, ocupado, aoTrocarRefeicao, aoExcluir }: Props) {
+  const { refeicoes } = useRefeicoes();
   const [abertas, setAbertas] = useState<string[]>([]);
+  const comRegistro = grupos.filter((g) => g.registros.length > 0);
+  const total = grupos.reduce((soma, g) => soma + g.calorias, 0);
 
-  function alternar(refeicaoId: string) {
-    setAbertas((atual) =>
-      atual.includes(refeicaoId) ? atual.filter((r) => r !== refeicaoId) : [...atual, refeicaoId],
-    );
-  }
-
-  const total = grupos.reduce((soma, grupo) => soma + grupo.registros.length, 0);
-  if (total === 0) {
-    return (
-      <section className="cartao">
-        <h2 className="titulo-secao">refeições</h2>
-        <p className="mudo estado-vazio">nada registrado ainda hoje</p>
-      </section>
-    );
+  function alternar(id: string) {
+    setAbertas((atual) => (atual.includes(id) ? atual.filter((r) => r !== id) : [...atual, id]));
   }
 
   return (
-    <section>
-      <h2 className="titulo-secao">refeições</h2>
-      {grupos.map((grupo) => {
+    <Box component="section" sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: '8px' }}>
+        <RotuloSecao>{dataCurta(data, true)}</RotuloSecao>
+        <Typography sx={{ fontWeight: 600, fontSize: 12, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{milhar(total)}</Typography>
+      </Box>
+
+      {comRegistro.length === 0 && (
+        <Typography sx={{ py: '14px', borderTop: '1px solid', borderColor: 'neutro.linha', fontSize: 13, color: 'text.secondary' }}>
+          {ehHoje(data) ? 'nada registrado ainda hoje' : 'nada registrado nesse dia'}
+        </Typography>
+      )}
+
+      {comRegistro.map((grupo) => {
         const aberta = abertas.includes(grupo.refeicao_id);
+        const resumo = grupo.registros
+          .flatMap((r) => r.alimentos_detectados.map((a) => a.nome))
+          .join(', ');
         return (
-          <div className="cartao" key={grupo.refeicao_id}>
-            <button
-              type="button"
-              className="refeicao-cabecalho"
+          <Box key={grupo.refeicao_id}>
+            <ButtonBase
               aria-expanded={aberta}
               onClick={() => alternar(grupo.refeicao_id)}
+              sx={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', py: '9px', borderTop: '1px solid', borderColor: 'neutro.linha', fontFamily: 'inherit', textAlign: 'left' }}
             >
-              <span className="refeicao-nome">{grupo.refeicao_nome}</span>
-              <span className="refeicao-kcal">
-                {numero(grupo.calorias)} kcal · {grupo.registros.length}{' '}
-                {grupo.registros.length === 1 ? 'registro' : 'registros'}
-                <span className={aberta ? 'refeicao-seta aberta' : 'refeicao-seta'} aria-hidden="true">
-                  ▸
-                </span>
-              </span>
-            </button>
-
-            {aberta && (
-              <div className="refeicao-corpo">
-                {grupo.registros.length === 0 ? (
-                  <p className="mudo" style={{ margin: 0, fontSize: 13 }}>
-                    nada nessa refeição
-                  </p>
-                ) : (
-                  grupo.registros.map((registro: Registro) => (
-                    <ItemRegistro
-                      key={registro.id}
-                      registro={registro}
-                      ocupado={ocupado}
-                      aoTrocarRefeicao={aoTrocarRefeicao}
-                      aoExcluir={aoExcluir}
-                    />
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+              <Box component="span" sx={{ width: 6, height: 34, borderRadius: '3px', flex: 'none', bgcolor: `refeicao.${corDaRefeicao(grupo.refeicao_id, refeicoes)}` }} />
+              <Box component="span" sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <Box component="span" sx={{ fontWeight: 600, fontSize: 14, lineHeight: 1.2 }}>{grupo.refeicao_nome}</Box>
+                <Box component="span" sx={{ fontSize: 11.5, lineHeight: 1.2, color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {resumo}
+                </Box>
+              </Box>
+              <Box component="span" sx={{ fontWeight: 700, fontSize: 15, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                {milhar(grupo.calorias)}
+              </Box>
+            </ButtonBase>
+            <Collapse in={aberta} unmountOnExit>
+              {grupo.registros.map((registro) => (
+                <ItemRegistro
+                  key={registro.id}
+                  registro={registro}
+                  data={data}
+                  ocupado={ocupado}
+                  aoTrocarRefeicao={aoTrocarRefeicao}
+                  aoExcluir={aoExcluir}
+                />
+              ))}
+            </Collapse>
+          </Box>
         );
       })}
-    </section>
+
+      <Typography
+        component={Link}
+        to="/calendario"
+        sx={{ textAlign: 'center', pt: '8px', pb: '4px', fontWeight: 600, fontSize: 12.5, color: 'primary.main', textDecoration: 'none' }}
+      >
+        ver calendário →
+      </Typography>
+    </Box>
   );
 }

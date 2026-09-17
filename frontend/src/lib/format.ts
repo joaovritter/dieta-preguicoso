@@ -77,3 +77,21 @@ export function duracao(segundos: number): string {
   const seg = segundos % 60;
   return `${String(min).padStart(2, '0')}:${String(seg).padStart(2, '0')}`;
 }
+
+const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+export function milhar(valor: number): string {
+  return String(Math.round(valor)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+export function dataCurta(iso: string, comAno = false): string {
+  const data = deISO(iso);
+  const base = `${data.getDate()} ${MESES_CURTOS[data.getMonth()]}`;
+  return comAno ? `${base} ${data.getFullYear()}` : base;
+}
+
+export function dataValida(texto: string | null, hoje: string): string {
+  if (texto === null || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) return hoje;
+  if (paraISO(deISO(texto)) !== texto) return hoje;
+  return texto <= hoje ? texto : hoje;
+}

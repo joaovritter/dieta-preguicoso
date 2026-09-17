@@ -1,54 +1,47 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useConfirmacao } from '../components/useConfirmacao';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import { dataLonga, ehHoje, hojeISO } from '../lib/format';
+import { dataCurta, dataValida, hojeISO } from '../lib/format';
 import { useAuth } from '../auth/useAuth';
 import { useRefeicoes } from '../lib/RefeicoesContext';
 import { useCaptura } from '../captura/CapturaContext';
+import { useConfirmacao } from '../components/useConfirmacao';
 import { useDadosDoDia } from './useDadosDoDia';
-import FaixaSemanal from '../components/FaixaSemanal';
-import AnelCalorias from '../components/AnelCalorias';
-import BarraMacro from '../components/BarraMacro';
+import SaldoDia from '../components/inicio/SaldoDia';
+import CartoesMacro from '../components/inicio/CartoesMacro';
 import CardAgua from '../components/CardAgua';
 import ListaRefeicoes from '../components/ListaRefeicoes';
 import Erro from '../components/Erro';
+import Tela from '../components/ui/Tela';
+import TituloTela from '../components/ui/TituloTela';
+
+const estiloLink = { color: 'inherit', textDecoration: 'none' } as const;
 
 export default function Home() {
-  const { perfil, sair } = useAuth();
-  const [hoje] = useState(hojeISO);
-  const [data, setData] = useState(hoje);
+  const { perfil } = useAuth();
+  const { versao } = useCaptura();
+  const [params] = useSearchParams();
+  const hoje = hojeISO();
+  const data = dataValida(params.get('data'), hoje);
   const [ocupado, setOcupado] = useState(false);
   const { confirmar, elemento: confirmacao } = useConfirmacao();
-  const { versao } = useCaptura();
-
-  const dados = useDadosDoDia(data, hoje);
-  const { recarregar, reportarErro } = dados;
+  const dados = useDadosDoDia(data, versao);
   const refeicoesCtx = useRefeicoes();
+  const { resumo, registros, carregando, erro, recarregar, reportarErro } = dados;
 
-  // Registros novos caem sempre em hoje: volto a Home para hoje quando a captura grava.
-  const versaoVista = useRef(versao);
-  useEffect(() => {
-    if (versao === versaoVista.current) return;
-    versaoVista.current = versao;
-    setData(hoje);
-    void recarregar();
-  }, [versao, hoje, recarregar]);
-
-  const comOcupado = useCallback(
-    async (acao: () => Promise<unknown>) => {
-      setOcupado(true);
-      try {
-        await acao();
-        await recarregar();
-      } catch (falha: unknown) {
-        reportarErro(falha);
-      } finally {
-        setOcupado(false);
-      }
-    },
-    [recarregar, reportarErro],
-  );
+  async function comOcupado(acao: () => Promise<unknown>) {
+    setOcupado(true);
+    try {
+      await acao();
+      await recarregar();
+    } catch (falha: unknown) {
+      reportarErro(falha);
+    } finally {
+      setOcupado(false);
+    }
+  }
 
   const adicionarAgua = (ml: number) => void comOcupado(() => api.adicionarAgua(ml));
   const excluirRegistro = (id: string) =>
@@ -63,72 +56,50 @@ export default function Home() {
   const trocarRefeicao = (id: string, refeicaoId: string) =>
     void comOcupado(() => api.atualizarRegistro(id, { refeicao_id: refeicaoId }));
 
-  const { resumo, registros, semana, carregando, erro } = dados;
-
   return (
-    <>
-      <main className="app">
-        <header className="topo">
-          <h1>{dataLonga(data)}</h1>
-          <div className="topo-links">
-            <Link className="link-texto" to="/relatorio">
-              relatório
-            </Link>
-            <button type="button" className="link-texto" onClick={sair}>
-              sair
-            </button>
-          </div>
-        </header>
+    <Tela gap={13}>
+      <TituloTela
+        direita={
+          <Box sx={{ display: 'flex', gap: '14px', fontWeight: 500, fontSize: 12.5, color: 'text.secondary' }}>
+            <Box component={Link} to="/relatorio" sx={estiloLink}>relatório</Box>
+            <Box component={Link} to="/social" sx={estiloLink}>amigos</Box>
+          </Box>
+        }
+      >
+        {data === hoje ? 'hoje' : dataCurta(data)}
+      </TituloTela>
 
-        {erro !== null && <Erro mensagem={erro} aoFechar={dados.limparErro} />}
-        {refeicoesCtx.erro !== null && (
-          <Erro mensagem={refeicoesCtx.erro} aoFechar={refeicoesCtx.limparErro} />
-        )}
+      {erro !== null && <Erro mensagem={erro} aoFechar={dados.limparErro} />}
+      {refeicoesCtx.erro !== null && <Erro mensagem={refeicoesCtx.erro} aoFechar={refeicoesCtx.limparErro} />}
 
-        {semana !== null && (
-          <FaixaSemanal dias={semana.dias} selecionada={data} aoSelecionar={setData} />
-        )}
-
-        {resumo === null ? (
-          <p className="carregando-pagina">{carregando ? 'carregando o dia...' : 'sem dados'}</p>
-        ) : (
-          <>
-            <section className="cartao">
-              <AnelCalorias metrica={resumo.calorias} />
-            </section>
-
-            <section className="cartao">
-              <h2 className="titulo-secao">macros</h2>
-              <BarraMacro rotulo="carboidrato" unidade="g" metrica={resumo.carboidrato_g} />
-              <BarraMacro rotulo="proteína" unidade="g" metrica={resumo.proteina_g} />
-              <BarraMacro rotulo="gordura" unidade="g" metrica={resumo.gordura_g} />
-            </section>
-
-            <CardAgua
-              metrica={resumo.agua_ml}
-              aoAdicionar={adicionarAgua}
-              ocupado={ocupado || !ehHoje(data)}
+      {resumo === null ? (
+        <Typography sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+          {carregando ? 'carregando o dia...' : 'sem dados'}
+        </Typography>
+      ) : (
+        <>
+          <SaldoDia metrica={resumo.calorias} />
+          <CartoesMacro resumo={resumo} />
+          <CardAgua metrica={resumo.agua_ml} aoAdicionar={adicionarAgua} ocupado={ocupado || data !== hoje} />
+          {registros !== null && (
+            <ListaRefeicoes
+              grupos={registros.refeicoes}
+              data={data}
+              ocupado={ocupado}
+              aoExcluir={excluirRegistro}
+              aoTrocarRefeicao={trocarRefeicao}
             />
+          )}
+        </>
+      )}
 
-            {registros !== null && (
-              <ListaRefeicoes
-                grupos={registros.refeicoes}
-                ocupado={ocupado}
-                aoExcluir={excluirRegistro}
-                aoTrocarRefeicao={trocarRefeicao}
-              />
-            )}
-          </>
-        )}
-
-        {perfil !== null && perfil.modo_preguicoso && (
-          <p className="mudo" style={{ fontSize: 12, textAlign: 'center' }}>
-            modo preguiçoso ligado — registros gravam sem confirmação
-          </p>
-        )}
-      </main>
+      {perfil !== null && perfil.modo_preguicoso && (
+        <Typography sx={{ fontSize: 12, textAlign: 'center', color: 'text.secondary' }}>
+          modo preguiçoso ligado — registros gravam sem confirmação
+        </Typography>
+      )}
 
       {confirmacao}
-    </>
+    </Tela>
   );
 }
