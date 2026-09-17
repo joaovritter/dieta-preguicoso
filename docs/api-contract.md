@@ -304,6 +304,9 @@ interface Post {
   proteina_total_g: number;
   gordura_total_g: number;
   criado_em: string;
+  curtidas: number;              // total de curtidas
+  curti: boolean;                // quem pede já curtiu
+  comentarios: number;           // total de comentários
 }
 
 interface Feed {
@@ -324,6 +327,17 @@ interface Grupo {
   quantidade_membros: number;
   sou_criador: boolean;
   criado_em: string;
+  /** Posição de quem pede no ranking dos últimos 7 dias. `null` se o grupo tem 1 membro. */
+  minha_posicao_semana: number | null;
+}
+
+interface Comentario {
+  id: string;
+  autor: PerfilPublico;
+  texto: string;
+  criado_em: string;
+  /** Quem pede é o autor do comentário ou o dono do post. */
+  posso_apagar: boolean;
 }
 ```
 
@@ -377,6 +391,14 @@ Quando o último membro sai, o grupo é apagado.
 Refeições de todos os membros, mais recentes primeiro. `limite` padrão 20.
 `200 Feed` · `403 SEM_ACESSO`
 
+#### Ranking semanal (`minha_posicao_semana`)
+Presente em `GET /api/grupos`, `POST /api/grupos`, `POST /api/grupos/entrar` e `GET /api/grupos/:id`.
+Janela: os 7 dias terminando hoje, no fuso **de quem pede**. Para cada membro:
+`dias_na_meta` (dias com status `na_meta`, meta do próprio membro) e `desvio_medio`
+(média de `|percentual − 100|` nos dias com registro). Ordem: `dias_na_meta` desc, depois
+`desvio_medio` asc; membro sem nenhum registro na janela fica depois de todos. Empate nos dois
+critérios → mesma posição, e a próxima pula (1, 2, 2, 4). Grupo com 1 membro → `null`.
+
 ### Perfil de outra pessoa
 
 #### `GET /api/social/usuarios/:id`
@@ -388,6 +410,32 @@ Um item por dia do mês (default: mês atual no fuso da pessoa).
 
 #### `GET /api/social/usuarios/:id/refeicoes?antes=<ISO>&limite=<1..50>`
 As refeições da pessoa, mais recentes primeiro. `200 Feed` · `403 SEM_ACESSO`
+
+### Feed geral e interações
+
+#### `GET /api/social/feed?antes=<ISO>&limite=<1..50>`
+Refeições de amigos aceitos e de quem divide grupo com você, **sem as suas**, mais recentes
+primeiro. `limite` padrão 20. `200 Feed`
+
+Acesso a um post: vale a regra "Quem vê o quê" aplicada ao dono do registro (o dono sempre vê
+o próprio). Registro inexistente `404 NAO_ENCONTRADO`; sem acesso `403 SEM_ACESSO`.
+
+#### `PUT /api/social/posts/:id/curtida` → `204`
+Idempotente: curtir de novo não duplica.
+
+#### `DELETE /api/social/posts/:id/curtida` → `204`
+Idempotente: descurtir o que não estava curtido também devolve `204`.
+
+#### `GET /api/social/posts/:id/comentarios`
+`200 { comentarios: Comentario[] }` em ordem `criado_em` crescente.
+
+#### `POST /api/social/posts/:id/comentarios`
+Body: `{ texto: string }` (trim, 1–500) → `201 Comentario` · `400 VALIDACAO`.
+Limite: 30 comentários por hora por usuário (`429 LIMITE_EXCEDIDO`).
+
+#### `DELETE /api/social/comentarios/:id` → `204`
+Só o autor do comentário ou o dono do post. Qualquer outro caso (inclusive comentário
+inexistente) → `404 NAO_ENCONTRADO`.
 
 ### Status do dia
 
