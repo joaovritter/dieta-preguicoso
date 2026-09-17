@@ -17,6 +17,7 @@ import type {
   Registro,
   RegistroAgua,
   RegistrosDoDia,
+  RelatorioMes,
   ResumoDia,
   ResumoSemana,
 } from './types';
@@ -172,6 +173,9 @@ export const api = {
   resumoDia: (data: string) => requisitar<ResumoDia>(`/resumo/dia?data=${encodeURIComponent(data)}`),
 
   resumoSemana: (fim: string) => requisitar<ResumoSemana>(`/resumo/semana?fim=${encodeURIComponent(fim)}`),
+
+  resumoMes: (mes?: string) =>
+    requisitar<RelatorioMes>(`/resumo/mes${mes === undefined ? '' : `?mes=${encodeURIComponent(mes)}`}`),
 
   amigos: () => requisitar<{ amigos: MembroComProgresso[] }>('/amigos'),
 

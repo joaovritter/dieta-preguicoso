@@ -233,3 +233,33 @@ export interface CalendarioMes {
   mes: string;
   dias: ProgressoDia[];
 }
+
+/* ---- relatório mensal ---- */
+
+export interface RelatorioRefeicao {
+  refeicao_id: string;
+  refeicao_nome: string;
+  media_calorias: number;
+  /** vs mês anterior, 1 casa; `null` quando o mês anterior não tinha essa refeição. */
+  variacao_percentual: number | null;
+}
+
+export interface RelatorioDiaRefeicao {
+  refeicao_id: string;
+  refeicao_nome: string;
+  calorias: number;
+  descricao: string;
+}
+
+export interface RelatorioDia {
+  data: string;
+  calorias: number;
+  refeicoes: RelatorioDiaRefeicao[];
+}
+
+export interface RelatorioMes {
+  mes: string;
+  media_calorias: number;
+  por_refeicao: RelatorioRefeicao[];
+  dias: RelatorioDia[];
+}
