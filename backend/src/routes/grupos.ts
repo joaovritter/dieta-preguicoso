@@ -13,6 +13,7 @@ import {
   paraGrupo,
   sairDoGrupo,
 } from '../repos/social.js';
+import { minhaPosicaoSemana } from '../repos/ranking.js';
 import { idSchema, listarComProgresso, montarFeed } from './socialComum.js';
 
 export const rotasGrupos: Router = Router();
@@ -34,7 +35,11 @@ rotasGrupos.get('/', async (req, res, next) => {
   try {
     const perfil = perfilDe(req);
     const grupos = await listarGruposDoUsuario(perfil.id);
-    res.json({ grupos: grupos.map((g) => paraGrupo(g, perfil.id)) });
+    res.json({
+      grupos: await Promise.all(
+        grupos.map(async (g) => paraGrupo(g, perfil.id, await minhaPosicaoSemana(g.id, perfil))),
+      ),
+    });
   } catch (e) {
     next(e);
   }
@@ -45,7 +50,7 @@ rotasGrupos.post('/', async (req, res, next) => {
     const perfil = perfilDe(req);
     const { nome } = nomeSchema.parse(req.body);
     const grupo = await criarGrupo(nome, perfil.id);
-    res.status(201).json(paraGrupo(grupo, perfil.id));
+    res.status(201).json(paraGrupo(grupo, perfil.id, await minhaPosicaoSemana(grupo.id, perfil)));
   } catch (e) {
     next(e);
   }
@@ -61,7 +66,7 @@ rotasGrupos.post('/entrar', async (req, res, next) => {
 
     await entrarNoGrupo(grupo.id, perfil.id);
     const atualizado = await buscarGrupo(grupo.id);
-    res.json(paraGrupo(atualizado ?? grupo, perfil.id));
+    res.json(paraGrupo(atualizado ?? grupo, perfil.id, await minhaPosicaoSemana(grupo.id, perfil)));
   } catch (e) {
     next(e);
   }
@@ -85,7 +90,7 @@ rotasGrupos.get('/:id', async (req, res, next) => {
     const { id } = idSchema.parse(req.params);
     const grupo = await grupoDoMembro(id, perfil.id);
     res.json({
-      grupo: paraGrupo(grupo, perfil.id),
+      grupo: paraGrupo(grupo, perfil.id, await minhaPosicaoSemana(id, perfil)),
       membros: await listarComProgresso(await membrosDoGrupo(id)),
     });
   } catch (e) {

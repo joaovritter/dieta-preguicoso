@@ -154,4 +154,5 @@ export interface Grupo {
   quantidade_membros: number;
   sou_criador: boolean;
   criado_em: string;
+  minha_posicao_semana: number | null;
 }

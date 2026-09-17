@@ -131,7 +131,7 @@ export async function desfazerAmizade(userId: string, outroId: string): Promise<
 
 // ------------------------------------------------------------------ grupos
 
-interface LinhaGrupo {
+export interface LinhaGrupo {
   id: string;
   nome: string;
   codigo_convite: string;
@@ -144,7 +144,7 @@ const SELECT_GRUPO = `SELECT g.id, g.nome, g.codigo_convite, g.criador_id, g.cri
     (SELECT count(*)::int FROM grupo_membros m WHERE m.grupo_id = g.id) AS quantidade_membros
   FROM grupos g`;
 
-export function paraGrupo(l: LinhaGrupo, userId: string): Grupo {
+export function paraGrupo(l: LinhaGrupo, userId: string, minhaPosicao: number | null): Grupo {
   return {
     id: l.id,
     nome: l.nome,
@@ -152,6 +152,7 @@ export function paraGrupo(l: LinhaGrupo, userId: string): Grupo {
     quantidade_membros: l.quantidade_membros,
     sou_criador: l.criador_id === userId,
     criado_em: l.criado_em.toISOString(),
+    minha_posicao_semana: minhaPosicao,
   };
 }
 
