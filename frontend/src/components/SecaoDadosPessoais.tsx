@@ -1,4 +1,6 @@
-import Campo from './Campo';
+import Box from '@mui/material/Box';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import { NOME_OBJETIVO } from '../lib/format';
 import type { Formulario } from '../pages/formularioPerfil';
 import type { Objetivo, Sexo } from '../lib/types';
@@ -8,60 +10,25 @@ interface Props {
   aoMudar: <C extends keyof Formulario>(campo: C, valor: Formulario[C]) => void;
 }
 
+const numerico = { htmlInput: { inputMode: 'decimal' as const, min: 0, step: 0.1 } };
+
 export default function SecaoDadosPessoais({ form, aoMudar }: Props) {
   return (
-    <section className="cartao">
-      <h2 className="titulo-secao">você</h2>
-
-      <Campo rotulo="nome" valor={form.nome} aoMudar={(v) => aoMudar('nome', v)} />
-
-      <label className="campo">
-        <span className="campo-rotulo">sexo</span>
-        <select
-          className="campo-entrada"
-          value={form.sexo}
-          onChange={(evento) => aoMudar('sexo', evento.target.value as '' | Sexo)}
-        >
-          <option value="">não informado</option>
-          <option value="M">masculino</option>
-          <option value="F">feminino</option>
-        </select>
-      </label>
-
-      <div className="linha-campos">
-        <Campo rotulo="idade" tipo="number" valor={form.idade} aoMudar={(v) => aoMudar('idade', v)} />
-        <Campo
-          rotulo="peso"
-          sufixo="kg"
-          tipo="number"
-          valor={form.peso_kg}
-          aoMudar={(v) => aoMudar('peso_kg', v)}
-        />
-      </div>
-
-      <div className="linha-campos">
-        <Campo
-          rotulo="altura"
-          sufixo="cm"
-          tipo="number"
-          valor={form.altura_cm}
-          aoMudar={(v) => aoMudar('altura_cm', v)}
-        />
-        <label className="campo">
-          <span className="campo-rotulo">objetivo</span>
-          <select
-            className="campo-entrada"
-            value={form.objetivo}
-            onChange={(evento) => aoMudar('objetivo', evento.target.value as Objetivo)}
-          >
-            {(Object.keys(NOME_OBJETIVO) as Objetivo[]).map((item) => (
-              <option key={item} value={item}>
-                {NOME_OBJETIVO[item]}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-    </section>
+    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <TextField label="nome" value={form.nome} onChange={(e) => aoMudar('nome', e.target.value)} autoComplete="name" sx={{ gridColumn: '1 / -1' }} />
+      <TextField select label="sexo" value={form.sexo} onChange={(e) => aoMudar('sexo', e.target.value as '' | Sexo)}>
+        <MenuItem value="">não informado</MenuItem>
+        <MenuItem value="M">masculino</MenuItem>
+        <MenuItem value="F">feminino</MenuItem>
+      </TextField>
+      <TextField label="idade" type="number" value={form.idade} onChange={(e) => aoMudar('idade', e.target.value)} slotProps={numerico} />
+      <TextField label="peso (kg)" type="number" value={form.peso_kg} onChange={(e) => aoMudar('peso_kg', e.target.value)} slotProps={numerico} />
+      <TextField label="altura (cm)" type="number" value={form.altura_cm} onChange={(e) => aoMudar('altura_cm', e.target.value)} slotProps={numerico} />
+      <TextField select label="objetivo" value={form.objetivo} onChange={(e) => aoMudar('objetivo', e.target.value as Objetivo)} sx={{ gridColumn: '1 / -1' }}>
+        {(Object.keys(NOME_OBJETIVO) as Objetivo[]).map((item) => (
+          <MenuItem key={item} value={item}>{NOME_OBJETIVO[item]}</MenuItem>
+        ))}
+      </TextField>
+    </Box>
   );
 }

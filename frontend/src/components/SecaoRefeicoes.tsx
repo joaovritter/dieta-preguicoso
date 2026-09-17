@@ -1,7 +1,15 @@
 import { useRef, useState } from 'react';
+import Box from '@mui/material/Box';
+import ButtonBase from '@mui/material/ButtonBase';
+import InputBase from '@mui/material/InputBase';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import { api } from '../lib/api';
 import { useRefeicoes } from '../lib/RefeicoesContext';
+import { corDaRefeicao } from '../lib/visual';
 import { useConfirmacao } from './useConfirmacao';
+import BotaoCta from './ui/BotaoCta';
+import RotuloSecao from './ui/RotuloSecao';
 import type { Refeicao } from '../lib/types';
 
 export default function SecaoRefeicoes({ aoFalhar }: { aoFalhar: (e: unknown) => void }) {
@@ -9,7 +17,6 @@ export default function SecaoRefeicoes({ aoFalhar }: { aoFalhar: (e: unknown) =>
   const { confirmar, elemento } = useConfirmacao();
   const [nova, setNova] = useState({ nome: '', inicio: '', fim: '' });
   const [salvando, setSalvando] = useState(false);
-
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [rascunho, setRascunho] = useState('');
   const canceladaRef = useRef(false);
@@ -29,11 +36,7 @@ export default function SecaoRefeicoes({ aoFalhar }: { aoFalhar: (e: unknown) =>
   }
 
   async function excluir(r: Refeicao) {
-    const ok = await confirmar({
-      titulo: `excluir ${r.nome}`,
-      texto: 'a faixa de horário dela passa para a refeição vizinha.',
-      rotulo: 'excluir',
-    });
+    const ok = await confirmar({ titulo: `excluir ${r.nome}`, texto: 'a faixa de horário dela passa para a refeição vizinha.', rotulo: 'excluir' });
     if (!ok) return;
     try {
       await api.excluirRefeicao(r.id);
@@ -41,11 +44,6 @@ export default function SecaoRefeicoes({ aoFalhar }: { aoFalhar: (e: unknown) =>
     } catch (falha: unknown) {
       aoFalhar(falha);
     }
-  }
-
-  function iniciarEdicao(r: Refeicao) {
-    setEditandoId(r.id);
-    setRascunho(r.nome);
   }
 
   async function salvarNome(r: Refeicao) {
@@ -64,90 +62,62 @@ export default function SecaoRefeicoes({ aoFalhar }: { aoFalhar: (e: unknown) =>
   }
 
   function aoTeclar(evento: React.KeyboardEvent<HTMLInputElement>) {
-    if (evento.key === 'Enter') {
-      evento.currentTarget.blur();
-    } else if (evento.key === 'Escape') {
+    if (evento.key === 'Enter') evento.currentTarget.blur();
+    else if (evento.key === 'Escape') {
       canceladaRef.current = true;
       evento.currentTarget.blur();
     }
   }
 
-  const nomeValido = nova.nome.trim() !== '' && nova.inicio !== '' && nova.fim !== '';
+  const novaValida = nova.nome.trim() !== '' && nova.inicio !== '' && nova.fim !== '';
 
   return (
-    <section className="cartao">
-      <h2 className="titulo-secao">refeições</h2>
-      {refeicoes.map((r) => (
-        <div className="linha-social" key={r.id}>
-          {editandoId === r.id ? (
-            <input
-              className="campo-entrada linha-social-nome"
-              value={rascunho}
-              autoFocus
-              onChange={(evento) => setRascunho(evento.target.value)}
-              onBlur={() => void salvarNome(r)}
-              onKeyDown={aoTeclar}
-            />
-          ) : (
-            <button
-              type="button"
-              className="linha-social-nome refeicao-nome-botao"
-              aria-label={`renomear ${r.nome}`}
-              onClick={() => iniciarEdicao(r)}
-            >
-              {r.nome}
-            </button>
-          )}
-          <span className="mudo linha-social-kcal">
-            {r.inicio}–{r.fim}
-          </span>
-          <button type="button" className="botao-mini botao-perigo" onClick={() => void excluir(r)}>
-            excluir
-          </button>
-        </div>
-      ))}
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <Box>
+        {refeicoes.map((r) => (
+          <Box key={r.id} sx={{ display: 'flex', alignItems: 'center', gap: '12px', minHeight: 52, borderTop: '1px solid', borderColor: 'neutro.linha' }}>
+            <Box sx={{ width: 6, height: 28, borderRadius: '3px', flex: 'none', bgcolor: `refeicao.${corDaRefeicao(r.id, refeicoes)}` }} />
+            {editandoId === r.id ? (
+              <InputBase
+                autoFocus
+                value={rascunho}
+                onChange={(e) => setRascunho(e.target.value)}
+                onBlur={() => void salvarNome(r)}
+                onKeyDown={aoTeclar}
+                sx={{ flex: 1, fontWeight: 600, fontSize: 14, borderBottom: '1.6px solid', borderColor: 'text.primary' }}
+              />
+            ) : (
+              <ButtonBase
+                aria-label={`renomear ${r.nome}`}
+                onClick={() => {
+                  setEditandoId(r.id);
+                  setRascunho(r.nome);
+                }}
+                sx={{ flex: 1, justifyContent: 'flex-start', minHeight: 44, fontFamily: 'inherit', fontWeight: 600, fontSize: 14, color: 'text.primary' }}
+              >
+                {r.nome}
+              </ButtonBase>
+            )}
+            <Typography sx={{ fontSize: 12.5, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+              {r.inicio}–{r.fim}
+            </Typography>
+            <ButtonBase onClick={() => void excluir(r)} sx={{ minHeight: 44, px: '6px', fontFamily: 'inherit', fontWeight: 600, fontSize: 12, color: 'error.main' }}>
+              excluir
+            </ButtonBase>
+          </Box>
+        ))}
+      </Box>
 
-      <form className="refeicao-nova" onSubmit={(evento) => void criar(evento)}>
-        <label className="campo">
-          <span className="campo-rotulo">nome</span>
-          <input
-            className="campo-entrada"
-            value={nova.nome}
-            onChange={(evento) => setNova((atual) => ({ ...atual, nome: evento.target.value }))}
-          />
-        </label>
-
-        <div className="linha-campos">
-          <label className="campo">
-            <span className="campo-rotulo">início</span>
-            <input
-              className="campo-entrada"
-              type="time"
-              value={nova.inicio}
-              onChange={(evento) => setNova((atual) => ({ ...atual, inicio: evento.target.value }))}
-            />
-          </label>
-          <label className="campo">
-            <span className="campo-rotulo">fim</span>
-            <input
-              className="campo-entrada"
-              type="time"
-              value={nova.fim}
-              onChange={(evento) => setNova((atual) => ({ ...atual, fim: evento.target.value }))}
-            />
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          className="botao"
-          style={{ width: '100%' }}
-          disabled={salvando || !nomeValido}
-        >
+      <Box component="form" onSubmit={(e: React.FormEvent) => void criar(e)} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <RotuloSecao sx={{ gridColumn: '1 / -1' }}>nova refeição</RotuloSecao>
+        <TextField label="nome" value={nova.nome} onChange={(e) => setNova((a) => ({ ...a, nome: e.target.value }))} sx={{ gridColumn: '1 / -1' }} />
+        <TextField label="início" type="time" value={nova.inicio} onChange={(e) => setNova((a) => ({ ...a, inicio: e.target.value }))} slotProps={{ inputLabel: { shrink: true } }} />
+        <TextField label="fim" type="time" value={nova.fim} onChange={(e) => setNova((a) => ({ ...a, fim: e.target.value }))} slotProps={{ inputLabel: { shrink: true } }} />
+        <BotaoCta type="submit" variante="contorno" altura={46} disabled={salvando || !novaValida} sx={{ gridColumn: '1 / -1' }}>
           {salvando ? 'criando...' : '+ nova refeição'}
-        </button>
-      </form>
+        </BotaoCta>
+      </Box>
       {elemento}
-    </section>
+    </Box>
   );
 }

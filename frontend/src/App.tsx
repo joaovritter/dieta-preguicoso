@@ -14,6 +14,9 @@ import PerfilPublico from './pages/PerfilPublico';
 import TelaProvisoria from './pages/TelaProvisoria';
 import SocialProvisorio from './pages/SocialProvisorio';
 import DetalheItemPage from './pages/DetalheItemPage';
+import MetasPage from './pages/perfil/MetasPage';
+import DadosPage from './pages/perfil/DadosPage';
+import RefeicoesPage from './pages/perfil/RefeicoesPage';
 
 function Protegida({ children }: { children: ReactElement }) {
   const { perfil, carregando } = useAuth();
@@ -57,6 +60,10 @@ function Rotas() {
           </Protegida>
         }
       />
+
+      <Route path="/perfil/metas" element={<Protegida><MetasPage /></Protegida>} />
+      <Route path="/perfil/dados" element={<Protegida><DadosPage /></Protegida>} />
+      <Route path="/perfil/refeicoes" element={<Protegida><RefeicoesPage /></Protegida>} />
 
       <Route path="/amigos" element={<Navigate to="/social?aba=amigos" replace />} />
       <Route path="/grupos" element={<Navigate to="/social?aba=grupos" replace />} />
