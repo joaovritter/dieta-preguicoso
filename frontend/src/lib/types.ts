@@ -191,6 +191,17 @@ export interface Post {
   proteina_total_g: number;
   gordura_total_g: number;
   criado_em: string;
+  curtidas: number;
+  curti: boolean;
+  comentarios: number;
+}
+
+export interface Comentario {
+  id: string;
+  autor: PerfilPublico;
+  texto: string;
+  criado_em: string;
+  posso_apagar: boolean;
 }
 
 export interface Feed {
@@ -211,6 +222,7 @@ export interface Grupo {
   quantidade_membros: number;
   sou_criador: boolean;
   criado_em: string;
+  minha_posicao_semana: number | null;
 }
 
 export interface PedidoAmizade {

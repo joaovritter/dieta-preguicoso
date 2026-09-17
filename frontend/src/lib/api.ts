@@ -2,6 +2,7 @@ import type {
   Alimento,
   Autenticacao,
   CalendarioMes,
+  Comentario,
   DetalheGrupo,
   EntradaConfirmacao,
   EntradaPerfil,
@@ -216,6 +217,23 @@ export const api = {
     requisitar<Feed>(
       `/social/usuarios/${id}/refeicoes${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`,
     ),
+
+  feedGeral: (antes?: string) =>
+    requisitar<Feed>(`/social/feed${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`),
+
+  curtir: (postId: string) => requisitar<void>(`/social/posts/${postId}/curtida`, { method: 'PUT' }),
+
+  descurtir: (postId: string) =>
+    requisitar<void>(`/social/posts/${postId}/curtida`, { method: 'DELETE' }),
+
+  comentarios: (postId: string) =>
+    requisitar<{ comentarios: Comentario[] }>(`/social/posts/${postId}/comentarios`),
+
+  comentar: (postId: string, texto: string) =>
+    requisitar<Comentario>(`/social/posts/${postId}/comentarios`, { method: 'POST', corpo: { texto } }),
+
+  apagarComentario: (id: string) =>
+    requisitar<void>(`/social/comentarios/${id}`, { method: 'DELETE' }),
 
   refeicoes: () => requisitar<{ refeicoes: Refeicao[] }>('/refeicoes'),
 
