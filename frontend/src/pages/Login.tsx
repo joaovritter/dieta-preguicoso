@@ -1,10 +1,74 @@
 import { useState } from 'react';
+import Box from '@mui/material/Box';
+import ButtonBase from '@mui/material/ButtonBase';
+import InputBase from '@mui/material/InputBase';
+import Typography from '@mui/material/Typography';
 import { useAuth } from '../auth/useAuth';
 import { mensagemDoErro } from '../lib/api';
-import Campo from '../components/Campo';
 import Erro from '../components/Erro';
+import BotaoCta from '../components/ui/BotaoCta';
+import RotuloSecao from '../components/ui/RotuloSecao';
+import Segmentado from '../components/ui/Segmentado';
 
 type Aba = 'entrar' | 'cadastrar';
+
+interface PropsCampo {
+  rotulo: string;
+  valor: string;
+  aoMudar: (valor: string) => void;
+  tipo?: 'text' | 'email' | 'password';
+  autoComplete: string;
+  aviso?: string;
+}
+
+function CampoSublinhado({ rotulo, valor, aoMudar, tipo = 'text', autoComplete, aviso }: PropsCampo) {
+  const [revelada, setRevelada] = useState(false);
+  const senha = tipo === 'password';
+  return (
+    <Box component="label" sx={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+      <RotuloSecao sx={{ letterSpacing: '.14em' }}>{rotulo}</RotuloSecao>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: 48,
+          borderBottom: '1.6px solid',
+          borderColor: valor === '' ? 'neutro.borda' : 'text.primary',
+          transition: 'border-color .2s',
+          '&:focus-within': { borderColor: 'text.primary' },
+        }}
+      >
+        <InputBase
+          fullWidth
+          type={senha && revelada ? 'text' : tipo}
+          value={valor}
+          autoComplete={autoComplete}
+          onChange={(evento) => aoMudar(evento.target.value)}
+          sx={{
+            fontWeight: 500,
+            fontSize: 16,
+            ...(senha && !revelada && valor !== '' && { letterSpacing: '.2em', fontSize: 18 }),
+          }}
+        />
+        {senha && (
+          <ButtonBase
+            aria-label={revelada ? 'ocultar senha' : 'mostrar senha'}
+            aria-pressed={revelada}
+            onClick={() => setRevelada((antes) => !antes)}
+            sx={{ minHeight: 32, px: 1, fontFamily: 'inherit', fontSize: 12, color: 'text.secondary' }}
+          >
+            {revelada ? 'ocultar' : 'ver'}
+          </ButtonBase>
+        )}
+      </Box>
+      {aviso !== undefined && (
+        <Typography component="span" sx={{ fontSize: 12, color: 'error.main' }}>
+          {aviso}
+        </Typography>
+      )}
+    </Box>
+  );
+}
 
 export default function Login() {
   const { entrar, cadastrar } = useAuth();
@@ -40,57 +104,59 @@ export default function Login() {
     }
   }
 
+  function trocarAba(nova: Aba) {
+    setAba(nova);
+    setErro(null);
+    setRepetida('');
+  }
+
   return (
-    <main className="login">
-      <h1>dieta preguiçoso</h1>
-      <p className="mudo">registre por foto, áudio ou texto. o resto é com a IA.</p>
+    <Box
+      component="main"
+      sx={{
+        maxWidth: 480,
+        mx: 'auto',
+        minHeight: '100dvh',
+        p: '44px 26px 26px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        gap: '32px',
+        position: 'relative',
+      }}
+    >
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
+        <RotuloSecao sx={{ fontSize: 10 }}>dieta preguiçoso</RotuloSecao>
+        <Typography
+          component="h1"
+          sx={{ m: 0, fontWeight: 800, fontSize: 50, lineHeight: 0.94, letterSpacing: '-.035em' }}
+        >
+          Foto,
+          <br />
+          áudio ou
+          <br />
+          texto.
+          <br />
+          <Box component="span" sx={{ color: 'primary.vivo' }}>
+            O resto é
+            <br />
+            com a gente.
+          </Box>
+        </Typography>
+      </Box>
 
-      <div className="abas" role="tablist">
-        {(['entrar', 'cadastrar'] as Aba[]).map((item) => (
-          <button
-            key={item}
-            type="button"
-            role="tab"
-            className="aba"
-            aria-selected={aba === item}
-            onClick={() => {
-              setAba(item);
-              setErro(null);
-              setRepetida('');
-            }}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
+      <Box
+        component="form"
+        onSubmit={(evento: React.FormEvent) => void enviar(evento)}
+        sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+      >
+        {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
 
-      {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
-
-      <form onSubmit={(evento) => void enviar(evento)}>
         {cadastrando && (
-          <label className="campo">
-            <span className="campo-rotulo">nome</span>
-            <input
-              className="campo-entrada"
-              value={nome}
-              autoComplete="name"
-              onChange={(evento) => setNome(evento.target.value)}
-            />
-          </label>
+          <CampoSublinhado rotulo="nome" valor={nome} aoMudar={setNome} autoComplete="name" />
         )}
-
-        <label className="campo">
-          <span className="campo-rotulo">e-mail</span>
-          <input
-            className="campo-entrada"
-            type="email"
-            value={email}
-            autoComplete="email"
-            onChange={(evento) => setEmail(evento.target.value)}
-          />
-        </label>
-
-        <Campo
+        <CampoSublinhado rotulo="e-mail" tipo="email" valor={email} aoMudar={setEmail} autoComplete="email" />
+        <CampoSublinhado
           rotulo="senha"
           tipo="password"
           valor={senha}
@@ -98,10 +164,9 @@ export default function Login() {
           autoComplete={cadastrando ? 'new-password' : 'current-password'}
           aviso={senhaCurta ? 'mínimo de 8 caracteres' : undefined}
         />
-
         {cadastrando && (
-          <Campo
-            rotulo="repita a senha"
+          <CampoSublinhado
+            rotulo="confirmar senha"
             tipo="password"
             valor={repetida}
             aoMudar={setRepetida}
@@ -110,10 +175,21 @@ export default function Login() {
           />
         )}
 
-        <button type="submit" className="botao botao-primario" style={{ width: '100%' }} disabled={!podeEnviar}>
+        <Segmentado<Aba>
+          rotulo="entrar ou cadastrar"
+          estilo="login"
+          valor={aba}
+          aoMudar={trocarAba}
+          opcoes={[
+            { valor: 'entrar', rotulo: 'entrar' },
+            { valor: 'cadastrar', rotulo: 'cadastrar' },
+          ]}
+        />
+
+        <BotaoCta type="submit" disabled={!podeEnviar}>
           {enviando ? 'aguarde...' : cadastrando ? 'criar conta' : 'entrar'}
-        </button>
-      </form>
-    </main>
+        </BotaoCta>
+      </Box>
+    </Box>
   );
 }
