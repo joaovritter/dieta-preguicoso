@@ -7,7 +7,6 @@ import App from './App';
 import { tema } from './theme/tema';
 import './styles/tokens.css';
 import './styles/base.css';
-import './styles/home.css';
 import './styles/forms.css';
 import './styles/overlay.css';
 import './styles/social.css';

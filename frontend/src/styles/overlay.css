@@ -93,13 +93,9 @@
   .gravador-ponto {
     animation: none;
   }
-  .anel-arco,
-  .macro-preenchido,
-  .macro-excesso,
   .overlay,
   .overlay-painel,
   .carregando-pagina,
-  .erro-faixa,
   .overlay-carregando {
     transition: none;
     animation: none;
@@ -130,103 +126,47 @@
   animation: pulso 1.2s ease-in-out infinite;
 }
 
-/* confirmação */
-.alimento {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: var(--esp-3);
-  margin-bottom: var(--esp-2);
-  background: var(--surface-2);
-  transition: border-color var(--duracao) var(--easing);
-}
-
-.alimento:focus-within {
-  border-color: var(--accent-dim);
-}
-
-.alimento-topo {
-  display: flex;
-  gap: var(--esp-2);
-  margin-bottom: var(--esp-2);
-}
-
-.alimento-topo input:first-child {
-  flex: 2;
-}
-
-.alimento-topo input:nth-child(2) {
-  flex: 1;
-}
-
-.alimento-grade {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--esp-2);
-}
-
-.alimento-campo {
+.acao {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.alimento-campo span {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.alimento-campo input,
-.alimento-topo input {
-  min-height: 40px;
-  width: 100%;
-  padding: 0 var(--esp-2);
-  background: var(--surface);
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 52px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-variant-numeric: tabular-nums;
-}
-
-.alimento-remover {
-  margin-top: var(--esp-2);
-  background: none;
-  border: none;
-  color: var(--danger);
-  font-size: 13px;
-  min-height: 36px;
-  padding: 0;
-}
-
-.totais {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--esp-2);
-  border-top: 1px solid var(--border);
-  margin-top: var(--esp-3);
-  padding-top: var(--esp-3);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.totais strong {
-  display: block;
-  font-size: 16px;
-  font-weight: 700;
+  background: var(--surface-2);
   color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  transition: border-color var(--duracao) var(--easing), transform var(--duracao) var(--easing),
+    background-color var(--duracao) var(--easing);
 }
 
-/* confirmação de ação destrutiva */
-.confirmacao-texto {
-  margin: 0 0 var(--esp-4);
-  font-size: 14px;
-  color: var(--text-muted);
-  line-height: 1.5;
+.acao:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface);
 }
 
-.confirmacao-acoes {
-  display: flex;
-  gap: var(--esp-2);
+.acao:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
-.confirmacao-acoes .botao {
-  flex: 1;
+.acao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
+
+.acao svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--accent);
+  fill: none;
+  stroke-width: 1.6;
+  transition: transform var(--duracao) var(--easing);
+}
+
+.acao:hover:not(:disabled) svg {
+  transform: scale(1.08);
+}
+
