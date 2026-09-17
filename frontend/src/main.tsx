@@ -9,7 +9,6 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/forms.css';
 import './styles/overlay.css';
-import './styles/social.css';
 
 const raiz = document.getElementById('root');
 if (raiz === null) throw new Error('elemento #root não encontrado');
