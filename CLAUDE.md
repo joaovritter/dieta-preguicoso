@@ -17,8 +17,8 @@ Uso pessoal, rodando numa VPS Contabo sem domínio.
 
 ## Stack
 
-TypeScript · React 19 + Vite (SPA) · Express 5 + `pg` (PostgreSQL 16) · Vitest ·
-Docker Compose · Gemini ou OpenAI (visão, chat, áudio) · npm
+TypeScript · React 19 + Vite (SPA) · MUI 9 + Emotion · Motion (`motion/react`) · lucide-react ·
+Express 5 + `pg` (PostgreSQL 16) · Vitest · Docker Compose · Gemini ou OpenAI (visão, chat, áudio) · npm
 
 ## Comandos canônicos
 
@@ -35,6 +35,7 @@ Frontend (`frontend/`):
 - Dev: `npm run dev`
 - Build: `npm run build`
 - Typecheck: `npm run typecheck`
+- Test: `npm test`
 
 Stack completa: `docker compose up -d --build`
 
@@ -58,6 +59,9 @@ Stack completa: `docker compose up -d --build`
   SDK nem faz HTTP direto — isso mantém as rotas testáveis sem rede.
 - Testes com Vitest, focados em cálculo (resumo, metas, detecção de refeição) e parsing
   da resposta da IA. Sem teste que dependa de rede.
+- Frontend estilizado só com MUI (`sx`/`styled`) e o tema de `frontend/src/theme/tema.ts`;
+  cores vêm do tema (`paleta(theme)`), nunca hex solto fora dele. Animação com Motion,
+  respeitando `useReducedMotion`. Sem CSS puro novo.
 
 ## Tabela de roteamento de especialistas
 
