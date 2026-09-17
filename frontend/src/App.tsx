@@ -3,13 +3,15 @@ import type { ReactElement } from 'react';
 import { AuthProvider } from './auth/AuthContext';
 import { useAuth } from './auth/useAuth';
 import { RefeicoesProvider } from './lib/RefeicoesContext';
+import { CapturaProvider } from './captura/CapturaContext';
+import Casca from './layout/Casca';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import PerfilPage from './pages/Perfil';
-import Amigos from './pages/Amigos';
-import Grupos from './pages/Grupos';
 import GrupoPage from './pages/Grupo';
 import PerfilPublico from './pages/PerfilPublico';
+import TelaProvisoria from './pages/TelaProvisoria';
+import SocialProvisorio from './pages/SocialProvisorio';
 
 function Protegida({ children }: { children: ReactElement }) {
   const { perfil, carregando } = useAuth();
@@ -26,54 +28,27 @@ function Rotas() {
         path="/login"
         element={carregando || perfil === null ? <Login /> : <Navigate to="/" replace />}
       />
+
       <Route
-        path="/"
         element={
           <Protegida>
-            <Home />
+            <CapturaProvider>
+              <Casca />
+            </CapturaProvider>
           </Protegida>
         }
-      />
-      <Route
-        path="/perfil"
-        element={
-          <Protegida>
-            <PerfilPage />
-          </Protegida>
-        }
-      />
-      <Route
-        path="/amigos"
-        element={
-          <Protegida>
-            <Amigos />
-          </Protegida>
-        }
-      />
-      <Route
-        path="/grupos"
-        element={
-          <Protegida>
-            <Grupos />
-          </Protegida>
-        }
-      />
-      <Route
-        path="/grupos/:id"
-        element={
-          <Protegida>
-            <GrupoPage />
-          </Protegida>
-        }
-      />
-      <Route
-        path="/u/:id"
-        element={
-          <Protegida>
-            <PerfilPublico />
-          </Protegida>
-        }
-      />
+      >
+        <Route index element={<Home />} />
+        <Route path="relatorio" element={<TelaProvisoria titulo="relatório" />} />
+        <Route path="calendario" element={<TelaProvisoria titulo="calendário" />} />
+        <Route path="social" element={<SocialProvisorio />} />
+        <Route path="grupos/:id" element={<GrupoPage />} />
+        <Route path="u/:id" element={<PerfilPublico />} />
+        <Route path="perfil" element={<PerfilPage />} />
+      </Route>
+
+      <Route path="/amigos" element={<Navigate to="/social?aba=amigos" replace />} />
+      <Route path="/grupos" element={<Navigate to="/social?aba=grupos" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
