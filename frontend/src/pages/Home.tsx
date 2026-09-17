@@ -1,58 +1,54 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useConfirmacao } from '../components/useConfirmacao';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { dataLonga, ehHoje, hojeISO } from '../lib/format';
 import { useAuth } from '../auth/useAuth';
 import { useRefeicoes } from '../lib/RefeicoesContext';
+import { useCaptura } from '../captura/CapturaContext';
 import { useDadosDoDia } from './useDadosDoDia';
-import { useEntradaIA } from './useEntradaIA';
 import FaixaSemanal from '../components/FaixaSemanal';
 import AnelCalorias from '../components/AnelCalorias';
 import BarraMacro from '../components/BarraMacro';
 import CardAgua from '../components/CardAgua';
 import ListaRefeicoes from '../components/ListaRefeicoes';
-import BarraAcoes from '../components/BarraAcoes';
-import ConfirmacaoRegistro from '../components/ConfirmacaoRegistro';
-import EntradaTexto from '../components/EntradaTexto';
-import GravadorAudio from '../components/GravadorAudio';
-import { OverlayCarregando } from '../components/Overlay';
 import Erro from '../components/Erro';
-
-type Modal = 'texto' | 'audio' | null;
 
 export default function Home() {
   const { perfil, sair } = useAuth();
   const [hoje] = useState(hojeISO);
   const [data, setData] = useState(hoje);
-  const [modal, setModal] = useState<Modal>(null);
   const [ocupado, setOcupado] = useState(false);
   const { confirmar, elemento: confirmacao } = useConfirmacao();
+  const { versao } = useCaptura();
 
   const dados = useDadosDoDia(data, hoje);
   const { recarregar, reportarErro } = dados;
   const refeicoesCtx = useRefeicoes();
 
-  // Registros novos caem sempre em hoje: volto a Home para hoje ao gravar.
-  const aposGravar = useCallback(async () => {
+  // Registros novos caem sempre em hoje: volto a Home para hoje quando a captura grava.
+  const versaoVista = useRef(versao);
+  useEffect(() => {
+    if (versao === versaoVista.current) return;
+    versaoVista.current = versao;
     setData(hoje);
-    setModal(null);
-    await recarregar();
-  }, [hoje, recarregar]);
+    void recarregar();
+  }, [versao, hoje, recarregar]);
 
-  const entrada = useEntradaIA(aposGravar, reportarErro);
-
-  async function comOcupado(acao: () => Promise<unknown>) {
-    setOcupado(true);
-    try {
-      await acao();
-      await recarregar();
-    } catch (falha: unknown) {
-      reportarErro(falha);
-    } finally {
-      setOcupado(false);
-    }
-  }
+  const comOcupado = useCallback(
+    async (acao: () => Promise<unknown>) => {
+      setOcupado(true);
+      try {
+        await acao();
+        await recarregar();
+      } catch (falha: unknown) {
+        reportarErro(falha);
+      } finally {
+        setOcupado(false);
+      }
+    },
+    [recarregar, reportarErro],
+  );
 
   const adicionarAgua = (ml: number) => void comOcupado(() => api.adicionarAgua(ml));
   const excluirRegistro = (id: string) =>
@@ -75,14 +71,8 @@ export default function Home() {
         <header className="topo">
           <h1>{dataLonga(data)}</h1>
           <div className="topo-links">
-            <Link className="link-texto" to="/amigos">
-              amigos
-            </Link>
-            <Link className="link-texto" to="/grupos">
-              grupos
-            </Link>
-            <Link className="link-texto" to="/perfil">
-              perfil
+            <Link className="link-texto" to="/relatorio">
+              relatório
             </Link>
             <button type="button" className="link-texto" onClick={sair}>
               sair
@@ -139,43 +129,6 @@ export default function Home() {
       </main>
 
       {confirmacao}
-
-      <BarraAcoes
-        desabilitado={entrada.textoCarregando !== null}
-        aoEscolherFoto={(arquivo) => void entrada.enviarFoto(arquivo)}
-        aoAbrirAudio={() => setModal('audio')}
-        aoAbrirTexto={() => setModal('texto')}
-      />
-
-      {modal === 'texto' && (
-        <EntradaTexto
-          aoFechar={() => setModal(null)}
-          aoEnviar={(texto) => {
-            setModal(null);
-            void entrada.enviarTexto(texto);
-          }}
-        />
-      )}
-
-      {modal === 'audio' && (
-        <GravadorAudio
-          aoFechar={() => setModal(null)}
-          aoEnviar={(audio) => {
-            setModal(null);
-            void entrada.enviarAudio(audio);
-          }}
-        />
-      )}
-
-      {entrada.interpretacao !== null && (
-        <ConfirmacaoRegistro
-          interpretacao={entrada.interpretacao}
-          aoConfirmar={entrada.confirmar}
-          aoDescartar={entrada.descartar}
-        />
-      )}
-
-      {entrada.textoCarregando !== null && <OverlayCarregando texto={entrada.textoCarregando} />}
     </>
   );
 }
