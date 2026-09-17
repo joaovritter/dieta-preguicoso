@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, mensagemDoErro } from '../lib/api';
 import { TEXTO_STATUS, deISO, hojeISO, numero } from '../lib/format';
 import Erro from '../components/Erro';
-import Calendario from '../components/Calendario';
+import GradeCalendario from '../components/calendario/GradeCalendario';
 import CardPost from '../components/CardPost';
 import type { CalendarioMes, Feed, MembroComProgresso } from '../lib/types';
 
@@ -128,7 +128,7 @@ export default function PerfilPublico() {
             {calendario === null ? (
               <p className="mudo estado-vazio">carregando o mês...</p>
             ) : (
-              <Calendario dias={calendario.dias} />
+              <GradeCalendario dias={calendario.dias} hoje={hojeISO()} selecionada={null} />
             )}
           </section>
 
