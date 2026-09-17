@@ -13,7 +13,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    # Sem `ports`: o banco só é alcançável pela rede interna do compose.
+    # Exposta só em localhost, para o backend rodar fora do Docker em dev (`npm run dev`).
+    # Porta 5433 porque a 5432 já está ocupada por um Postgres nativo nesta máquina.
+    # Na VPS isso não expõe nada à internet: 127.0.0.1 não é alcançável de fora.
+    ports:
+      - "127.0.0.1:5433:5432"
 
   backend:
     build: ./backend
