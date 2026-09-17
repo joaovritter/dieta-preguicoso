@@ -12,7 +12,7 @@ import CalendarioPage from './pages/CalendarioPage';
 import PerfilPage from './pages/Perfil';
 import GrupoPage from './pages/Grupo';
 import PerfilPublico from './pages/PerfilPublico';
-import SocialProvisorio from './pages/SocialProvisorio';
+import Social from './pages/Social';
 import DetalheItemPage from './pages/DetalheItemPage';
 import MetasPage from './pages/perfil/MetasPage';
 import DadosPage from './pages/perfil/DadosPage';
@@ -46,7 +46,7 @@ function Rotas() {
         <Route index element={<Home />} />
         <Route path="relatorio" element={<Relatorio />} />
         <Route path="calendario" element={<CalendarioPage />} />
-        <Route path="social" element={<SocialProvisorio />} />
+        <Route path="social" element={<Social />} />
         <Route path="grupos/:id" element={<GrupoPage />} />
         <Route path="u/:id" element={<PerfilPublico />} />
         <Route path="perfil" element={<PerfilPage />} />

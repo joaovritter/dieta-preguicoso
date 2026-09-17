@@ -1,164 +1,120 @@
 import { useCallback, useEffect, useState } from 'react';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { api, mensagemDoErro } from '../lib/api';
-import { TEXTO_STATUS, deISO, hojeISO, numero } from '../lib/format';
-import Erro from '../components/Erro';
 import GradeCalendario from '../components/calendario/GradeCalendario';
 import CardPost from '../components/CardPost';
-import type { CalendarioMes, Feed, MembroComProgresso } from '../lib/types';
-
-function mesAtual(): string {
-  return hojeISO().slice(0, 7);
-}
-
-function deslocarMes(mes: string, passo: number): string {
-  const [ano, numeroMes] = mes.split('-').map(Number);
-  const data = new Date(ano, numeroMes - 1 + passo, 1);
-  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function nomeDoMes(mes: string): string {
-  return deISO(`${mes}-01`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-}
+import Avatar from '../components/social/Avatar';
+import { useFeed } from '../components/social/useFeed';
+import { api, mensagemDoErro } from '../lib/api';
+import { hojeISO, numero } from '../lib/format';
+import { textoDoDia } from '../lib/social';
+import { deslocarMes, mesLongo } from '../lib/visual';
+import type { CalendarioMes, MembroComProgresso } from '../lib/types';
 
 export default function PerfilPublico() {
   const { id = '' } = useParams();
+  const hoje = hojeISO();
+  const mesAtual = hoje.slice(0, 7);
   const [pessoa, setPessoa] = useState<MembroComProgresso | null>(null);
-  const [feed, setFeed] = useState<Feed | null>(null);
   const [mes, setMes] = useState(mesAtual);
   const [calendario, setCalendario] = useState<CalendarioMes | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [ocupado, setOcupado] = useState(false);
+  const buscar = useCallback((antes?: string) => api.refeicoesDe(id, antes), [id]);
+  const feed = useFeed(buscar);
 
-  const carregar = useCallback(async () => {
-    try {
-      const [dados, primeiraPagina] = await Promise.all([api.perfilPublico(id), api.refeicoesDe(id)]);
-      setPessoa(dados);
-      setFeed(primeiraPagina);
-      setErro(null);
-    } catch (falha: unknown) {
-      setErro(mensagemDoErro(falha));
-    }
+  useEffect(() => {
+    api
+      .perfilPublico(id)
+      .then(setPessoa)
+      .catch((falha: unknown) => setErro(mensagemDoErro(falha)));
   }, [id]);
 
-  const carregarCalendario = useCallback(async () => {
-    try {
-      setCalendario(await api.calendarioDe(id, mes));
-    } catch (falha: unknown) {
-      setErro(mensagemDoErro(falha));
-    }
+  useEffect(() => {
+    setCalendario(null);
+    api
+      .calendarioDe(id, mes)
+      .then(setCalendario)
+      .catch((falha: unknown) => setErro(mensagemDoErro(falha)));
   }, [id, mes]);
 
-  useEffect(() => {
-    void carregar();
-  }, [carregar]);
-
-  useEffect(() => {
-    void carregarCalendario();
-  }, [carregarCalendario]);
-
-  async function carregarMais() {
-    if (feed === null || feed.proximo_antes === null) return;
-    setOcupado(true);
-    try {
-      const pagina = await api.refeicoesDe(id, feed.proximo_antes);
-      setFeed({ posts: [...feed.posts, ...pagina.posts], proximo_antes: pagina.proximo_antes });
-    } catch (falha: unknown) {
-      setErro(mensagemDoErro(falha));
-    } finally {
-      setOcupado(false);
-    }
-  }
+  const erroGeral = erro ?? feed.erro;
 
   return (
-    <main className="app" style={{ paddingBottom: 32 }}>
-      <header className="topo">
-        <h1>{pessoa === null ? 'perfil' : pessoa.perfil.nome_tag}</h1>
-        <div>
-          <Link className="link-texto" to="/amigos">
-            amigos
-          </Link>
-          <Link className="link-texto" to="/">
-            voltar
-          </Link>
-        </div>
-      </header>
+    <Box component="main" sx={{ px: '22px', pt: '14px', display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: 480, mx: 'auto' }}>
+      <Box component={Link} to="/social" sx={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600, fontSize: 13, color: 'text.secondary', textDecoration: 'none', minHeight: 44 }}>
+        <ChevronLeft size={16} /> social
+      </Box>
 
-      {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
+      {erroGeral !== null && (
+        <Alert severity="error" onClose={() => { setErro(null); feed.limparErro(); }}>
+          {erroGeral}
+        </Alert>
+      )}
 
       {pessoa === null ? (
-        <p className="carregando-pagina">carregando...</p>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>carregando...</Typography>
       ) : (
         <>
-          <section className="cartao">
-            <h2 className="titulo-secao">hoje</h2>
-            <div className="linha-social">
-              <span
-                className={`ponto-status status-${pessoa.progresso_hoje.status}`}
-                aria-hidden="true"
-              />
-              <span className="linha-social-nome num">
-                {numero(pessoa.progresso_hoje.calorias)} / {numero(pessoa.progresso_hoje.meta_calorias)} kcal
-              </span>
-              <span className="linha-social-kcal">{TEXTO_STATUS[pessoa.progresso_hoje.status]}</span>
-            </div>
-          </section>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <Avatar nome={pessoa.perfil.nome} tamanho={58} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography noWrap sx={{ fontWeight: 700, fontSize: 17 }}>
+                {pessoa.perfil.nome_tag}
+              </Typography>
+              <Typography sx={{ fontSize: 12.5, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                {textoDoDia(pessoa.progresso_hoje)} · {numero(pessoa.progresso_hoje.calorias)} /{' '}
+                {numero(pessoa.progresso_hoje.meta_calorias)} kcal
+              </Typography>
+            </Box>
+          </Box>
 
-          <section className="cartao">
-            <div className="cal-topo">
-              <button
-                type="button"
-                className="botao-mini"
-                aria-label="mês anterior"
-                onClick={() => setMes(deslocarMes(mes, -1))}
-              >
-                ‹
-              </button>
-              <span className="cal-mes">{nomeDoMes(mes)}</span>
-              <button
-                type="button"
-                className="botao-mini"
-                aria-label="mês seguinte"
-                disabled={mes >= mesAtual()}
-                onClick={() => setMes(deslocarMes(mes, 1))}
-              >
-                ›
-              </button>
-            </div>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 15 }}>calendário</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
+                <IconButton aria-label="mês anterior" onClick={() => setMes(deslocarMes(mes, -1))} size="small">
+                  <ChevronLeft size={16} />
+                </IconButton>
+                <Typography sx={{ fontWeight: 500, fontSize: 12.5 }}>{mesLongo(mes)}</Typography>
+                <IconButton aria-label="mês seguinte" disabled={mes >= mesAtual} onClick={() => setMes(deslocarMes(mes, 1))} size="small">
+                  <ChevronRight size={16} />
+                </IconButton>
+              </Box>
+            </Box>
             {calendario === null ? (
-              <p className="mudo estado-vazio">carregando o mês...</p>
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>carregando o mês...</Typography>
             ) : (
-              <GradeCalendario dias={calendario.dias} hoje={hojeISO()} selecionada={null} />
+              <GradeCalendario dias={calendario.dias} hoje={hoje} selecionada={null} />
             )}
-          </section>
+          </Box>
 
-          <h2 className="titulo-secao">refeições</h2>
-          {feed === null ? (
-            <p className="carregando-pagina">carregando as refeições...</p>
-          ) : feed.posts.length === 0 ? (
-            <section className="cartao">
-              <p className="mudo estado-vazio">nada registrado ainda</p>
-            </section>
-          ) : (
-            <>
-              {feed.posts.map((post) => (
-                <CardPost key={post.id} post={post} />
-              ))}
-              {feed.proximo_antes !== null && (
-                <button
-                  type="button"
-                  className="botao"
-                  style={{ width: '100%' }}
-                  disabled={ocupado}
-                  onClick={() => void carregarMais()}
-                >
-                  {ocupado ? 'carregando...' : 'carregar mais'}
-                </button>
-              )}
-            </>
-          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Typography sx={{ fontWeight: 600, fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase', color: 'text.secondary' }}>
+              refeições
+            </Typography>
+            {feed.feed === null ? (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>carregando as refeições...</Typography>
+            ) : feed.feed.posts.length === 0 ? (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>nada registrado ainda</Typography>
+            ) : (
+              feed.feed.posts.map((post) => (
+                <CardPost key={post.id} post={post} aoCurtir={feed.curtir} aoComentar={feed.abrirComentarios} />
+              ))
+            )}
+            {feed.feed !== null && feed.feed.proximo_antes !== null && (
+              <Button variant="outlined" disabled={feed.carregando} onClick={() => void feed.carregarMais()} sx={{ borderRadius: '12px', minHeight: 46 }}>
+                {feed.carregando ? 'carregando...' : 'carregar mais'}
+              </Button>
+            )}
+          </Box>
         </>
       )}
-    </main>
+      {feed.folha}
+    </Box>
   );
 }

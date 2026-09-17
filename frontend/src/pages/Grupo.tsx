@@ -1,56 +1,51 @@
 import { useCallback, useEffect, useState } from 'react';
+import Alert from '@mui/material/Alert';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import ButtonBase from '@mui/material/ButtonBase';
+import Typography from '@mui/material/Typography';
+import { ChevronLeft } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, mensagemDoErro } from '../lib/api';
-import Erro from '../components/Erro';
-import { useConfirmacao } from '../components/useConfirmacao';
 import CardPost from '../components/CardPost';
-import ProgressoAmigo from '../components/ProgressoAmigo';
-import type { DetalheGrupo, Feed } from '../lib/types';
+import LinhaPessoa from '../components/social/LinhaPessoa';
+import { useFeed } from '../components/social/useFeed';
+import { useConfirmacao } from '../components/useConfirmacao';
+import { api, mensagemDoErro } from '../lib/api';
+import { membros, textoRanking } from '../lib/social';
+import type { DetalheGrupo } from '../lib/types';
+
+const rotuloSecao = {
+  fontWeight: 600,
+  fontSize: 9.5,
+  letterSpacing: '.16em',
+  textTransform: 'uppercase',
+  color: 'text.secondary',
+  mb: '8px',
+} as const;
 
 export default function GrupoPage() {
   const { id = '' } = useParams();
   const navegar = useNavigate();
   const [detalhe, setDetalhe] = useState<DetalheGrupo | null>(null);
-  const [feed, setFeed] = useState<Feed | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const [ocupado, setOcupado] = useState(false);
   const { confirmar, elemento: confirmacao } = useConfirmacao();
-
-  const carregar = useCallback(async () => {
-    try {
-      const [dados, primeiraPagina] = await Promise.all([api.grupo(id), api.feedDoGrupo(id)]);
-      setDetalhe(dados);
-      setFeed(primeiraPagina);
-      setErro(null);
-    } catch (falha: unknown) {
-      setErro(mensagemDoErro(falha));
-    }
-  }, [id]);
+  const buscar = useCallback((antes?: string) => api.feedDoGrupo(id, antes), [id]);
+  const feed = useFeed(buscar);
 
   useEffect(() => {
-    void carregar();
-  }, [carregar]);
-
-  async function carregarMais() {
-    if (feed === null || feed.proximo_antes === null) return;
-    setOcupado(true);
-    try {
-      const pagina = await api.feedDoGrupo(id, feed.proximo_antes);
-      setFeed({ posts: [...feed.posts, ...pagina.posts], proximo_antes: pagina.proximo_antes });
-    } catch (falha: unknown) {
-      setErro(mensagemDoErro(falha));
-    } finally {
-      setOcupado(false);
-    }
-  }
+    api
+      .grupo(id)
+      .then(setDetalhe)
+      .catch((falha: unknown) => setErro(mensagemDoErro(falha)));
+  }, [id]);
 
   async function copiarCodigo(codigo: string) {
     try {
       await navigator.clipboard.writeText(codigo);
       setAviso('código copiado');
     } catch {
-      setAviso('não consegui copiar — o código é ' + codigo);
+      setAviso(`não consegui copiar — o código é ${codigo}`);
     }
   }
 
@@ -62,106 +57,91 @@ export default function GrupoPage() {
       rotulo: 'sair',
     });
     if (!ok) return;
-
-    setOcupado(true);
     try {
       await api.sairDoGrupo(id);
-      navegar('/grupos');
+      navegar('/social?aba=grupos');
     } catch (falha: unknown) {
       setErro(mensagemDoErro(falha));
-      setOcupado(false);
     }
   }
 
-  return (
-    <main className="app" style={{ paddingBottom: 32 }}>
-      <header className="topo">
-        <h1>{detalhe === null ? 'grupo' : detalhe.grupo.nome}</h1>
-        <div>
-          <Link className="link-texto" to="/grupos">
-            voltar
-          </Link>
-        </div>
-      </header>
+  const ranking = detalhe === null ? null : textoRanking(detalhe.grupo.minha_posicao_semana);
+  const erroGeral = erro ?? feed.erro;
 
-      {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
+  return (
+    <Box component="main" sx={{ px: '22px', pt: '14px', display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: 480, mx: 'auto' }}>
+      <Box component={Link} to="/social?aba=grupos" sx={{ display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 600, fontSize: 13, color: 'text.secondary', textDecoration: 'none', minHeight: 44 }}>
+        <ChevronLeft size={16} /> grupos
+      </Box>
+
+      {erroGeral !== null && (
+        <Alert severity="error" onClose={() => { setErro(null); feed.limparErro(); }}>
+          {erroGeral}
+        </Alert>
+      )}
       {aviso !== null && (
-        <p className="mudo" role="status">
+        <Alert severity="success" onClose={() => setAviso(null)}>
           {aviso}
-        </p>
+        </Alert>
       )}
 
       {detalhe === null ? (
-        <p className="carregando-pagina">carregando...</p>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>carregando...</Typography>
       ) : (
         <>
-          <section className="cartao">
-            <h2 className="titulo-secao">convite</h2>
-            <div className="linha-form">
-              <span className="codigo-convite num">{detalhe.grupo.codigo_convite}</span>
-              <button
-                type="button"
-                className="botao"
-                onClick={() => void copiarCodigo(detalhe.grupo.codigo_convite)}
-              >
-                copiar
-              </button>
-            </div>
-          </section>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <Typography component="h1" sx={{ fontWeight: 700, fontSize: 22, letterSpacing: '-.02em' }}>
+              {detalhe.grupo.nome}
+            </Typography>
+            <Typography sx={{ fontSize: 12.5, color: 'text.secondary' }}>
+              {membros(detalhe.grupo.quantidade_membros)}
+            </Typography>
+            {ranking !== null && (
+              <Typography sx={{ fontWeight: 600, fontSize: 12.5, color: 'primary.main' }}>{ranking}</Typography>
+            )}
+          </Box>
 
-          <section className="cartao">
-            <h2 className="titulo-secao">membros</h2>
-            {detalhe.membros.length === 0 ? (
-              <p className="mudo estado-vazio">ninguém aqui ainda</p>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Typography sx={{ flex: 1, fontWeight: 700, fontSize: 18, letterSpacing: '.2em', fontVariantNumeric: 'tabular-nums' }}>
+              {detalhe.grupo.codigo_convite}
+            </Typography>
+            <Button variant="outlined" onClick={() => void copiarCodigo(detalhe.grupo.codigo_convite)} sx={{ borderRadius: '11px' }}>
+              copiar código
+            </Button>
+          </Box>
+
+          <Box>
+            <Typography sx={rotuloSecao}>membros</Typography>
+            {detalhe.membros.map((m) => (
+              <LinhaPessoa key={m.perfil.id} perfil={m.perfil} progresso={m.progresso_hoje} />
+            ))}
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Typography sx={rotuloSecao}>feed</Typography>
+            {feed.feed === null ? (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>carregando o feed...</Typography>
+            ) : feed.feed.posts.length === 0 ? (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>nada registrado ainda por aqui</Typography>
             ) : (
-              detalhe.membros.map((membro) => (
-                <ProgressoAmigo
-                  key={membro.perfil.id}
-                  perfil={membro.perfil}
-                  progresso={membro.progresso_hoje}
-                />
+              feed.feed.posts.map((post) => (
+                <CardPost key={post.id} post={post} aoCurtir={feed.curtir} aoComentar={feed.abrirComentarios} />
               ))
             )}
-          </section>
+            {feed.feed !== null && feed.feed.proximo_antes !== null && (
+              <Button variant="outlined" disabled={feed.carregando} onClick={() => void feed.carregarMais()} sx={{ borderRadius: '12px', minHeight: 46 }}>
+                {feed.carregando ? 'carregando...' : 'carregar mais'}
+              </Button>
+            )}
+          </Box>
 
-          <h2 className="titulo-secao">feed</h2>
-          {feed === null ? (
-            <p className="carregando-pagina">carregando o feed...</p>
-          ) : feed.posts.length === 0 ? (
-            <section className="cartao">
-              <p className="mudo estado-vazio">nada registrado ainda por aqui</p>
-            </section>
-          ) : (
-            <>
-              {feed.posts.map((post) => (
-                <CardPost key={post.id} post={post} />
-              ))}
-              {feed.proximo_antes !== null && (
-                <button
-                  type="button"
-                  className="botao"
-                  style={{ width: '100%' }}
-                  disabled={ocupado}
-                  onClick={() => void carregarMais()}
-                >
-                  {ocupado ? 'carregando...' : 'carregar mais'}
-                </button>
-              )}
-            </>
-          )}
-
-          <button
-            type="button"
-            className="botao botao-perigo"
-            style={{ width: '100%', marginTop: 24 }}
-            disabled={ocupado}
-            onClick={() => void sair()}
-          >
+          <ButtonBase onClick={() => void sair()} sx={{ minHeight: 46, fontFamily: 'inherit', fontWeight: 500, fontSize: 14, color: 'error.main', mb: '8px' }}>
             sair do grupo
-          </button>
+          </ButtonBase>
         </>
       )}
+      {feed.folha}
       {confirmacao}
-    </main>
+    </Box>
   );
 }
