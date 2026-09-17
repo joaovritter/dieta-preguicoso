@@ -172,3 +172,12 @@ export function intervaloDoMes(mes: string, timezone: string): { inicio: Date; f
 export function mesLocal(instante: Date, timezone: string): string {
   return dataLocal(instante, timezone).slice(0, 7);
 }
+
+/** "YYYY-MM" do mês anterior. */
+export function mesAnterior(mes: string): string {
+  const m = RE_MES.exec(mes);
+  const numeroMes = m ? Number(m[2]) : 0;
+  if (!m || numeroMes < 1 || numeroMes > 12) throw new Error(`mês inválido: ${mes}`);
+  const d = new Date(Date.UTC(Number(m[1]), numeroMes - 2, 1));
+  return `${String(d.getUTCFullYear()).padStart(4, '0')}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}

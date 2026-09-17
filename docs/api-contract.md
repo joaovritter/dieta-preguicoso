@@ -202,6 +202,30 @@ interface Metrica {
 }
 ```
 
+### `GET /api/resumo/mes?mes=YYYY-MM`
+Default: mês atual no fuso do perfil. `400 VALIDACAO` se o formato for inválido.
+```ts
+200 {
+  mes: string;                    // "2026-09"
+  media_calorias: number;         // soma kcal do mês ÷ dias com ≥1 registro; 0 se nenhum; inteiro
+  por_refeicao: Array<{
+    refeicao_id: string;
+    refeicao_nome: string;
+    media_calorias: number;       // kcal da refeição no mês ÷ dias com ≥1 registro (qualquer refeição); inteiro
+    variacao_percentual: number | null; // vs mês anterior, mesma refeicao_id; null se lá era 0; 1 casa
+  }>;                             // só refeições com kcal > 0 no mês; ordem: media_calorias desc
+  dias: Array<{
+    data: string;                 // YYYY-MM-DD (fuso do perfil), ordem desc
+    calorias: number;
+    refeicoes: Array<{ refeicao_id: string; refeicao_nome: string; calorias: number; descricao: string }>;
+    // descricao = nomes dos alimentos dos registros daquela refeição, juntados com ", "; ordem: inicio da refeição
+  }>;                             // só dias com registro
+}
+```
+A variação compara médias: `(média do mês − média do mês anterior) ÷ média do mês anterior × 100`,
+cada média dividida pelos dias com registro **do próprio mês**. Empate em `media_calorias` segue a
+ordem de `inicio` da refeição.
+
 ## Detecção automática de refeição
 
 O horário do registro (`criado_em`, convertido para o `timezone` do perfil) cai na refeição do

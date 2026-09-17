@@ -4,6 +4,7 @@ import {
   diasDoMes,
   intervaloDoDia,
   intervaloDoMes,
+  mesAnterior,
   mesLocal,
   somarDias,
   timezoneValida,
@@ -95,5 +96,19 @@ describe('mesLocal', () => {
     const instante = new Date('2026-06-01T01:00:00Z');
     expect(mesLocal(instante, 'America/Sao_Paulo')).toBe('2026-05');
     expect(mesLocal(instante, 'UTC')).toBe('2026-06');
+  });
+});
+
+describe('mesAnterior', () => {
+  it('volta um mês dentro do ano', () => {
+    expect(mesAnterior('2026-09')).toBe('2026-08');
+  });
+
+  it('atravessa a virada de ano', () => {
+    expect(mesAnterior('2026-01')).toBe('2025-12');
+  });
+
+  it('recusa formato inválido', () => {
+    expect(() => mesAnterior('2026-13')).toThrow('mês inválido');
   });
 });
