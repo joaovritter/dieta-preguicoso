@@ -5,6 +5,7 @@ import { ia } from '../ai/index.js';
 import { alimentoEntradaSchema } from '../ai/parse.js';
 import { somarTotais } from '../domain/nutricao.js';
 import { detectarRefeicao } from '../domain/refeicao.js';
+import { criadoEmValido } from '../domain/retroativo.js';
 import { intervaloDoDia, dataLocal } from '../domain/tempo.js';
 import {
   TIPOS_ENTRADA,
@@ -54,9 +55,9 @@ async function montarInterpretacao(
     midia_url: string | null;
     alimentos: Alimento[];
   },
+  criadoEm: Date,
 ): Promise<Interpretacao> {
-  const agora = new Date();
-  const refeicao = detectarRefeicao(agora, perfil.timezone, await listarRefeicoes(perfil.id));
+  const refeicao = detectarRefeicao(criadoEm, perfil.timezone, await listarRefeicoes(perfil.id));
 
   const interpretacao: Interpretacao = {
     tipo_entrada: dados.tipo_entrada,
@@ -77,11 +78,27 @@ async function montarInterpretacao(
       descricao_bruta: dados.descricao_bruta,
       midia_url: dados.midia_url,
       alimentos: dados.alimentos,
-      criado_em: agora,
+      criado_em: criadoEm,
     });
   }
 
   return interpretacao;
+}
+
+const criadoEmSchema = z.object({ criado_em: z.iso.datetime().optional() });
+
+/**
+ * Registro retroativo (lançar num dia passado pelo calendário). Validado antes de
+ * chamar a IA: data inválida não deve gastar crédito.
+ */
+function lerCriadoEm(corpo: unknown): Date {
+  const { criado_em } = criadoEmSchema.parse(corpo ?? {});
+  const agora = new Date();
+  if (criado_em === undefined) return agora;
+  if (!criadoEmValido(criado_em, agora)) {
+    throw new AppError('VALIDACAO', 'não dá para registrar uma refeição no futuro');
+  }
+  return new Date(criado_em);
 }
 
 const textoSchema = z.object({
@@ -92,14 +109,14 @@ rotasRegistros.post('/texto', limiteIA, async (req, res, next) => {
   try {
     const perfil = perfilDe(req);
     const { texto } = textoSchema.parse(req.body);
+    const criadoEm = lerCriadoEm(req.body);
     const alimentos = await ia.interpretarTexto(texto);
     res.json(
-      await montarInterpretacao(perfil, {
-        tipo_entrada: 'texto',
-        descricao_bruta: texto,
-        midia_url: null,
-        alimentos,
-      }),
+      await montarInterpretacao(
+        perfil,
+        { tipo_entrada: 'texto', descricao_bruta: texto, midia_url: null, alimentos },
+        criadoEm,
+      ),
     );
   } catch (e) {
     next(e);
@@ -111,17 +128,23 @@ rotasRegistros.post('/foto', limiteIA, comUpload(uploadImagem), async (req, res,
   try {
     const perfil = perfilDe(req);
     if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'a foto não chegou no envio. tente de novo');
+    // No multipart os campos de texto chegam em req.body depois do multer.
+    const criadoEm = lerCriadoEm(req.body);
 
     const base64 = (await readFile(arquivo.path)).toString('base64');
     const { alimentos, descricao } = await ia.interpretarImagem(base64, arquivo.mimetype);
 
     res.json(
-      await montarInterpretacao(perfil, {
-        tipo_entrada: 'foto',
-        descricao_bruta: descricao,
-        midia_url: urlDaMidia(arquivo.filename),
-        alimentos,
-      }),
+      await montarInterpretacao(
+        perfil,
+        {
+          tipo_entrada: 'foto',
+          descricao_bruta: descricao,
+          midia_url: urlDaMidia(arquivo.filename),
+          alimentos,
+        },
+        criadoEm,
+      ),
     );
   } catch (e) {
     // Falhou antes de virar registro: não deixa o arquivo órfão no disco.
@@ -135,6 +158,7 @@ rotasRegistros.post('/audio', limiteIA, comUpload(uploadAudio), async (req, res,
   try {
     const perfil = perfilDe(req);
     if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'o áudio não chegou no envio. tente de novo');
+    const criadoEm = lerCriadoEm(req.body);
 
     const { transcricao, alimentos } = await ia.interpretarAudio(arquivo.path, arquivo.mimetype);
     if (transcricao.trim() === '') {
@@ -142,12 +166,16 @@ rotasRegistros.post('/audio', limiteIA, comUpload(uploadAudio), async (req, res,
     }
 
     res.json(
-      await montarInterpretacao(perfil, {
-        tipo_entrada: 'audio',
-        descricao_bruta: transcricao,
-        midia_url: urlDaMidia(arquivo.filename),
-        alimentos,
-      }),
+      await montarInterpretacao(
+        perfil,
+        {
+          tipo_entrada: 'audio',
+          descricao_bruta: transcricao,
+          midia_url: urlDaMidia(arquivo.filename),
+          alimentos,
+        },
+        criadoEm,
+      ),
     );
   } catch (e) {
     if (arquivo) await unlink(arquivo.path).catch(() => undefined);

@@ -114,9 +114,10 @@ async function requisitar<T>(caminho: string, opcoes: Opcoes = {}): Promise<T> {
   return corpo as T;
 }
 
-function arquivoForm(arquivo: Blob, nome: string): FormData {
+function arquivoForm(arquivo: Blob, nome: string, criado_em?: string): FormData {
   const form = new FormData();
   form.append('arquivo', arquivo, nome);
+  if (criado_em !== undefined) form.append('criado_em', criado_em);
   return form;
 }
 
@@ -135,19 +136,22 @@ export const api = {
 
   salvarPerfil: (dados: EntradaPerfil) => requisitar<Perfil>('/me', { method: 'PUT', corpo: dados }),
 
-  registroTexto: (texto: string) =>
-    requisitar<Interpretacao>('/registros/texto', { method: 'POST', corpo: { texto } }),
-
-  registroFoto: (arquivo: File) =>
-    requisitar<Interpretacao>('/registros/foto', {
+  registroTexto: (texto: string, criado_em?: string) =>
+    requisitar<Interpretacao>('/registros/texto', {
       method: 'POST',
-      formData: arquivoForm(arquivo, arquivo.name),
+      corpo: criado_em === undefined ? { texto } : { texto, criado_em },
     }),
 
-  registroAudio: (audio: Blob) =>
+  registroFoto: (arquivo: File, criado_em?: string) =>
+    requisitar<Interpretacao>('/registros/foto', {
+      method: 'POST',
+      formData: arquivoForm(arquivo, arquivo.name, criado_em),
+    }),
+
+  registroAudio: (audio: Blob, criado_em?: string) =>
     requisitar<Interpretacao>('/registros/audio', {
       method: 'POST',
-      formData: arquivoForm(audio, 'gravacao.webm'),
+      formData: arquivoForm(audio, 'gravacao.webm', criado_em),
     }),
 
   confirmar: (entrada: EntradaConfirmacao) =>

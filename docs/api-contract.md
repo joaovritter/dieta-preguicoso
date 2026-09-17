@@ -124,13 +124,18 @@ para nenhum minuto do dia ficar sem dono. `404 NAO_ENCONTRADO` ·
 `400 VALIDACAO` (é a única refeição da conta)
 
 ### `POST /api/registros/texto`
-Body: `{ texto: string }` → `200 Interpretacao`
+Body: `{ texto: string, criado_em?: string }` → `200 Interpretacao`
 
 ### `POST /api/registros/foto`
-`multipart/form-data`, campo `arquivo` (jpeg/png/webp, ≤ 10 MB) → `200 Interpretacao`
+`multipart/form-data`, campo `arquivo` (jpeg/png/webp, ≤ 10 MB) e campo opcional `criado_em` → `200 Interpretacao`
 
 ### `POST /api/registros/audio`
-`multipart/form-data`, campo `arquivo` (webm/mp3/m4a/wav/ogg, ≤ 25 MB) → `200 Interpretacao`
+`multipart/form-data`, campo `arquivo` (webm/mp3/m4a/wav/ogg, ≤ 25 MB) e campo opcional `criado_em` → `200 Interpretacao`
+
+`criado_em` (ISO 8601) serve para registrar num dia passado: a `refeicao_sugerida` é detectada
+por ele e, no modo preguiçoso, o registro já nasce com essa data. Omitido = agora. No futuro
+(mais de 5 min à frente do servidor) → `400 VALIDACAO`, sem chamar a IA. No fluxo com
+confirmação, o cliente repassa o mesmo `criado_em` ao `POST /api/registros/confirmar`.
 
 ### `POST /api/registros/confirmar`
 Body: `{ tipo_entrada, descricao_bruta, midia_url?, refeicao_id?, alimentos: Alimento[], criado_em? }`

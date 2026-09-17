@@ -19,7 +19,7 @@ const botaoMes = { minWidth: 28, minHeight: 32, fontFamily: 'inherit', fontSize:
 
 export default function CalendarioPage() {
   const { perfil } = useAuth();
-  const { versao } = useCaptura();
+  const { versao, abrirMenu } = useCaptura();
   const [params, setParams] = useSearchParams();
   const hoje = hojeISO();
   const mesAtual = hoje.slice(0, 7);
@@ -77,7 +77,7 @@ export default function CalendarioPage() {
             aoSelecionar={(data) => setEscolha({ mes, data })}
           />
           <Box sx={{ pt: '10px', borderTop: '1px solid', borderColor: 'neutro.linha' }}>
-            {dia !== null && <PainelDia dia={dia} hoje={hoje} />}
+            {dia !== null && <PainelDia dia={dia} hoje={hoje} aoAdicionar={abrirMenu} />}
           </Box>
         </>
       )}

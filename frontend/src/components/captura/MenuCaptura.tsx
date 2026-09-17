@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Camera, Mic, Type } from 'lucide-react';
 import { useCaptura } from '../../captura/CapturaContext';
+import { dataCurta } from '../../lib/format';
 import { IconeMais } from '../tabbar/icones';
 import { estiloVidro } from '../tabbar/vidro';
 import { useRolagemCompacta } from '../tabbar/useRolagemCompacta';
@@ -41,7 +43,9 @@ const Popover = styled(motion.div)(({ theme }) => ({
   bottom: 'calc(100% + 14px)',
   left: '50%',
   display: 'flex',
-  gap: 4,
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 2,
   padding: 6,
   borderRadius: 22,
 }));
@@ -68,20 +72,20 @@ const Opcao = styled('button')(({ theme }) => ({
 }));
 
 export default function MenuCaptura() {
-  const { enviarFoto, abrirAudio, abrirTexto, ocupado } = useCaptura();
-  const [aberto, setAberto] = useState(false);
+  const { enviarFoto, abrirAudio, abrirTexto, ocupado, menuAberto, dataAlvo, abrirMenu, fecharMenu } =
+    useCaptura();
   const compacta = useRolagemCompacta();
   const reduzir = useReducedMotion() ?? false;
   const raiz = useRef<HTMLDivElement>(null);
   const seletorFoto = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!aberto) return;
+    if (!menuAberto) return;
     const aoTocarFora = (evento: PointerEvent) => {
-      if (raiz.current !== null && !raiz.current.contains(evento.target as Node)) setAberto(false);
+      if (raiz.current !== null && !raiz.current.contains(evento.target as Node)) fecharMenu();
     };
     const aoTeclar = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') setAberto(false);
+      if (evento.key === 'Escape') fecharMenu();
     };
     document.addEventListener('pointerdown', aoTocarFora);
     document.addEventListener('keydown', aoTeclar);
@@ -89,10 +93,10 @@ export default function MenuCaptura() {
       document.removeEventListener('pointerdown', aoTocarFora);
       document.removeEventListener('keydown', aoTeclar);
     };
-  }, [aberto]);
+  }, [menuAberto, fecharMenu]);
 
   function escolher(acao: () => void) {
-    setAberto(false);
+    fecharMenu(true);
     acao();
   }
 
@@ -101,28 +105,38 @@ export default function MenuCaptura() {
   return (
     <Box ref={raiz} sx={{ position: 'relative', display: 'flex' }}>
       <AnimatePresence>
-        {aberto && (
+        {menuAberto && (
           <Popover
             role="menu"
-            aria-label="registrar por"
+            aria-label={dataAlvo === null ? 'registrar por' : `registrar em ${dataCurta(dataAlvo)} por`}
             style={{ x: '-50%' }}
             initial={reduzir ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduzir ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.9 }}
             transition={reduzir ? { duration: 0.15 } : { type: 'spring', stiffness: 420, damping: 30 }}
           >
-            <Opcao type="button" role="menuitem" onClick={() => escolher(() => seletorFoto.current?.click())}>
-              <Camera size={20} aria-hidden="true" />
-              foto
-            </Opcao>
-            <Opcao type="button" role="menuitem" onClick={() => escolher(abrirAudio)}>
-              <Mic size={20} aria-hidden="true" />
-              áudio
-            </Opcao>
-            <Opcao type="button" role="menuitem" onClick={() => escolher(abrirTexto)}>
-              <Type size={20} aria-hidden="true" />
-              texto
-            </Opcao>
+            {dataAlvo !== null && (
+              <Typography
+                component="span"
+                sx={{ pt: '4px', fontSize: 10.5, fontWeight: 600, color: 'text.secondary', whiteSpace: 'nowrap' }}
+              >
+                registrando em {dataCurta(dataAlvo)}
+              </Typography>
+            )}
+            <Box sx={{ display: 'flex', gap: '4px' }}>
+              <Opcao type="button" role="menuitem" onClick={() => escolher(() => seletorFoto.current?.click())}>
+                <Camera size={20} aria-hidden="true" />
+                foto
+              </Opcao>
+              <Opcao type="button" role="menuitem" onClick={() => escolher(abrirAudio)}>
+                <Mic size={20} aria-hidden="true" />
+                áudio
+              </Opcao>
+              <Opcao type="button" role="menuitem" onClick={() => escolher(abrirTexto)}>
+                <Type size={20} aria-hidden="true" />
+                texto
+              </Opcao>
+            </Box>
           </Popover>
         )}
       </AnimatePresence>
@@ -131,11 +145,11 @@ export default function MenuCaptura() {
         type="button"
         aria-label="registrar refeição"
         aria-haspopup="menu"
-        aria-expanded={aberto}
+        aria-expanded={menuAberto}
         disabled={ocupado}
-        onClick={() => setAberto((atual) => !atual)}
+        onClick={() => (menuAberto ? fecharMenu() : abrirMenu())}
         initial={false}
-        animate={{ width: tamanho, height: tamanho, rotate: aberto ? 45 : 0 }}
+        animate={{ width: tamanho, height: tamanho, rotate: menuAberto ? 45 : 0 }}
         transition={reduzir ? { duration: 0.15 } : MOLA}
         whileTap={reduzir ? undefined : { scale: 0.86 }}
       >
