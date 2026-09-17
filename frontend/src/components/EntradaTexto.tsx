@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
 import Overlay from './Overlay';
+import BotaoCta from './ui/BotaoCta';
 
 interface Props {
   aoEnviar: (texto: string) => void;
@@ -12,31 +15,34 @@ export default function EntradaTexto({ aoEnviar, aoFechar }: Props) {
 
   return (
     <Overlay titulo="o que você comeu?" aoFechar={aoFechar}>
-      <form
-        onSubmit={(evento) => {
+      <Box
+        component="form"
+        sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+        onSubmit={(evento: React.FormEvent) => {
           evento.preventDefault();
           if (!vazio) aoEnviar(texto.trim());
         }}
       >
-        <label className="campo">
-          <span className="campo-rotulo">descreva do seu jeito</span>
-          <textarea
-            className="campo-entrada"
-            autoFocus
-            value={texto}
-            placeholder="dois ovos mexidos e um pão francês"
-            onChange={(evento) => setTexto(evento.target.value)}
-          />
-        </label>
-        <div className="acoes-rodape">
-          <button type="button" className="botao" onClick={aoFechar}>
+        <TextField
+          label="descreva do seu jeito"
+          autoFocus
+          multiline
+          minRows={3}
+          value={texto}
+          placeholder="dois ovos mexidos e um pão francês"
+          onChange={(evento) => setTexto(evento.target.value)}
+          slotProps={{ inputLabel: { shrink: true } }}
+          sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: 'neutro.cartao' } }}
+        />
+        <Box sx={{ display: 'flex', gap: '9px' }}>
+          <BotaoCta type="button" variante="contorno" onClick={aoFechar} sx={{ flex: '0 0 38%' }}>
             cancelar
-          </button>
-          <button type="submit" className="botao botao-primario" disabled={vazio}>
+          </BotaoCta>
+          <BotaoCta type="submit" variante="primario" disabled={vazio} sx={{ flex: 1 }}>
             interpretar
-          </button>
-        </div>
-      </form>
+          </BotaoCta>
+        </Box>
+      </Box>
     </Overlay>
   );
 }

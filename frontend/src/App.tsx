@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import type { ReactElement } from 'react';
+import Typography from '@mui/material/Typography';
 import { AuthProvider } from './auth/AuthContext';
 import { useAuth } from './auth/useAuth';
 import { RefeicoesProvider } from './lib/RefeicoesContext';
@@ -20,7 +21,8 @@ import RefeicoesPage from './pages/perfil/RefeicoesPage';
 
 function Protegida({ children }: { children: ReactElement }) {
   const { perfil, carregando } = useAuth();
-  if (carregando) return <p className="carregando-pagina">carregando...</p>;
+  if (carregando)
+    return <Typography sx={{ p: '48px 22px', textAlign: 'center', color: 'text.secondary' }}>carregando...</Typography>;
   if (perfil === null) return <Navigate to="/login" replace />;
   return children;
 }

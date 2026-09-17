@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import { motion, useReducedMotion } from 'motion/react';
 import Overlay from './Overlay';
 import Erro from './Erro';
+import BotaoCta from './ui/BotaoCta';
 import { duracao } from '../lib/format';
 
 interface Props {
@@ -24,6 +28,7 @@ function mensagemDePermissao(erro: unknown): string {
 }
 
 export default function GravadorAudio({ aoEnviar, aoFechar }: Props) {
+  const reduzir = useReducedMotion();
   const [gravando, setGravando] = useState(false);
   const [segundos, setSegundos] = useState(0);
   const [erro, setErro] = useState<string | null>(
@@ -87,35 +92,52 @@ export default function GravadorAudio({ aoEnviar, aoFechar }: Props) {
     <Overlay titulo="gravar áudio" aoFechar={aoFechar}>
       {erro !== null && <Erro mensagem={erro} />}
 
-      <div className="gravador">
-        <span className="gravador-tempo num">
-          {gravando && <span className="gravador-ponto" aria-hidden="true" />}
-          {duracao(segundos)}
-        </span>
-        <p className="mudo" style={{ margin: 0, fontSize: 13 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', py: '12px' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {gravando && (
+            <Box
+              component={motion.span}
+              aria-hidden="true"
+              animate={reduzir ? undefined : { opacity: [1, 0.25, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+              sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: 'error.main', display: 'block' }}
+            />
+          )}
+          <Typography
+            sx={{
+              font: "800 44px/1 'Plus Jakarta Sans Variable', system-ui, sans-serif",
+              letterSpacing: '-.03em',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {duracao(segundos)}
+          </Typography>
+        </Box>
+        <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center' }}>
           {gravando ? 'gravando... fale o que você comeu' : 'toque em gravar e descreva a refeição'}
-        </p>
-      </div>
+        </Typography>
+      </Box>
 
-      <div className="acoes-rodape">
-        <button type="button" className="botao" onClick={aoFechar}>
+      <Box sx={{ display: 'flex', gap: '9px' }}>
+        <BotaoCta type="button" variante="contorno" onClick={aoFechar} sx={{ flex: '0 0 38%' }}>
           cancelar
-        </button>
+        </BotaoCta>
         {gravando ? (
-          <button type="button" className="botao botao-primario" onClick={parar}>
+          <BotaoCta type="button" variante="primario" onClick={parar} sx={{ flex: 1 }}>
             parar e enviar
-          </button>
+          </BotaoCta>
         ) : (
-          <button
+          <BotaoCta
             type="button"
-            className="botao botao-primario"
+            variante="primario"
             disabled={!suportado()}
             onClick={() => void iniciar()}
+            sx={{ flex: 1 }}
           >
             gravar
-          </button>
+          </BotaoCta>
         )}
-      </div>
+      </Box>
     </Overlay>
   );
 }

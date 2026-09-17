@@ -5,10 +5,6 @@ import { ThemeProvider } from '@mui/material/styles';
 import '@fontsource-variable/plus-jakarta-sans/index.css';
 import App from './App';
 import { tema } from './theme/tema';
-import './styles/tokens.css';
-import './styles/base.css';
-import './styles/forms.css';
-import './styles/overlay.css';
 
 const raiz = document.getElementById('root');
 if (raiz === null) throw new Error('elemento #root não encontrado');
