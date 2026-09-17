@@ -1,7 +1,15 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { arredondar, metrica } from '../domain/nutricao.js';
-import { dataLocal, intervaloDoDia, somarDias } from '../domain/tempo.js';
+import { montarRelatorioMes } from '../domain/relatorio.js';
+import {
+  dataLocal,
+  intervaloDoDia,
+  intervaloDoMes,
+  mesAnterior,
+  mesLocal,
+  somarDias,
+} from '../domain/tempo.js';
 import { perfilDe } from '../middleware/autenticar.js';
 import { totalAguaNoIntervalo } from '../repos/agua.js';
 import { listarNoIntervalo } from '../repos/registros.js';
@@ -81,6 +89,34 @@ rotasResumo.get('/semana', async (req, res, next) => {
     );
 
     res.json({ dias });
+  } catch (e) {
+    next(e);
+  }
+});
+
+const mesOpcional = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'mês deve estar no formato YYYY-MM')
+  .optional();
+
+rotasResumo.get('/mes', async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    const { mes } = z.object({ mes: mesOpcional }).parse(req.query);
+    const alvo = mes ?? mesLocal(new Date(), perfil.timezone);
+    const atual = intervaloDoMes(alvo, perfil.timezone);
+    const anterior = intervaloDoMes(mesAnterior(alvo), perfil.timezone);
+
+    const [registrosMes, registrosAnterior, refeicoes] = await Promise.all([
+      listarNoIntervalo(perfil.id, atual.inicio, atual.fim),
+      listarNoIntervalo(perfil.id, anterior.inicio, anterior.fim),
+      listarRefeicoes(perfil.id),
+    ]);
+
+    res.json({
+      mes: alvo,
+      ...montarRelatorioMes(registrosMes, registrosAnterior, refeicoes, perfil.timezone),
+    });
   } catch (e) {
     next(e);
   }
