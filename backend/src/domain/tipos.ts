@@ -139,6 +139,14 @@ export interface Feed {
   proximo_antes: string | null;
 }
 
+export interface Comentario {
+  id: string;
+  autor: PerfilPublico;
+  texto: string;
+  criado_em: string;
+  posso_apagar: boolean;
+}
+
 export interface Grupo {
   id: string;
   nome: string;

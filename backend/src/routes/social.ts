@@ -3,10 +3,18 @@ import { z } from 'zod';
 import { mesLocal } from '../domain/tempo.js';
 import { AppError } from '../lib/erros.js';
 import { perfilDe } from '../middleware/autenticar.js';
+import { limiteTaxa, porUsuario } from '../middleware/limiteTaxa.js';
+import {
+  apagarComentario,
+  criarComentario,
+  curtir,
+  descurtir,
+  listarComentarios,
+} from '../repos/interacoes.js';
 import { progressoNoDia, progressoNoMes } from '../repos/progresso.js';
 import { paraPerfilPublico } from '../domain/social.js';
 import { buscarUsuarioSocial, idsVisiveis } from '../repos/social.js';
-import { garantirAcesso, idSchema, montarFeed } from './socialComum.js';
+import { garantirAcesso, idSchema, montarFeed, postVisivel } from './socialComum.js';
 
 export const rotasSocial: Router = Router();
 
@@ -63,6 +71,69 @@ rotasSocial.get('/usuarios/:id/refeicoes', async (req, res, next) => {
   try {
     const alvo = await alvoVisivel(req);
     res.json(await montarFeed(req, [alvo.id]));
+  } catch (e) {
+    next(e);
+  }
+});
+
+const comentarioSchema = z.object({
+  texto: z.string().trim().min(1, 'escreva alguma coisa').max(500, 'no máximo 500 caracteres'),
+});
+
+// Comentário é texto livre visível para outras pessoas: limita para não virar spam.
+const limiteComentarios = limiteTaxa({
+  janelaMs: 60 * 60 * 1000,
+  maximo: 30,
+  chave: porUsuario,
+  mensagem: 'muitos comentários em pouco tempo, aguarde um pouco',
+});
+
+rotasSocial.put('/posts/:id/curtida', async (req, res, next) => {
+  try {
+    const registroId = await postVisivel(req);
+    await curtir(registroId, perfilDe(req).id);
+    res.status(204).end();
+  } catch (e) {
+    next(e);
+  }
+});
+
+rotasSocial.delete('/posts/:id/curtida', async (req, res, next) => {
+  try {
+    const registroId = await postVisivel(req);
+    await descurtir(registroId, perfilDe(req).id);
+    res.status(204).end();
+  } catch (e) {
+    next(e);
+  }
+});
+
+rotasSocial.get('/posts/:id/comentarios', async (req, res, next) => {
+  try {
+    const registroId = await postVisivel(req);
+    res.json({ comentarios: await listarComentarios(registroId, perfilDe(req).id) });
+  } catch (e) {
+    next(e);
+  }
+});
+
+rotasSocial.post('/posts/:id/comentarios', limiteComentarios, async (req, res, next) => {
+  try {
+    const registroId = await postVisivel(req);
+    const { texto } = comentarioSchema.parse(req.body);
+    res.status(201).json(await criarComentario(registroId, perfilDe(req).id, texto));
+  } catch (e) {
+    next(e);
+  }
+});
+
+rotasSocial.delete('/comentarios/:id', async (req, res, next) => {
+  try {
+    const { id } = idSchema.parse(req.params);
+    if (!(await apagarComentario(id, perfilDe(req).id))) {
+      throw new AppError('NAO_ENCONTRADO', 'comentário não encontrado');
+    }
+    res.status(204).end();
   } catch (e) {
     next(e);
   }

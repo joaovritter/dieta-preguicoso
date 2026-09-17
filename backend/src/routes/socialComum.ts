@@ -6,6 +6,7 @@ import { perfilDe } from '../middleware/autenticar.js';
 import { progressoNoDia } from '../repos/progresso.js';
 import { feedDeUsuarios } from '../repos/registros.js';
 import { paraPerfilPublico } from '../domain/social.js';
+import { donoDoRegistro } from '../repos/interacoes.js';
 import { podeVer, type UsuarioSocial } from '../repos/social.js';
 
 export const idSchema = z.object({ id: z.uuid('id inválido') });
@@ -39,4 +40,13 @@ export async function garantirAcesso(observadorId: string, alvoId: string): Prom
   if (!(await podeVer(observadorId, alvoId))) {
     throw new AppError('SEM_ACESSO', 'você não acompanha essa pessoa');
   }
+}
+
+/** Confere que o post existe e que quem pede enxerga o dono dele. Devolve o id do registro. */
+export async function postVisivel(req: Request): Promise<string> {
+  const { id } = idSchema.parse(req.params);
+  const dono = await donoDoRegistro(id);
+  if (!dono) throw new AppError('NAO_ENCONTRADO', 'essa refeição não existe');
+  await garantirAcesso(perfilDe(req).id, dono);
+  return id;
 }
