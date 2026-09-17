@@ -3,8 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0d0f12" />
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0f12" media="(prefers-color-scheme: dark)" />
     <title>dieta preguiçoso</title>
+    <script>
+      // Aplica o esquema salvo pelo MUI (useColorScheme) antes da primeira pintura.
+      (function () {
+        try {
+          var modo = localStorage.getItem('dieta.tema') || 'system';
+          if (modo === 'system') {
+            modo = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-esquema', modo);
+        } catch (e) {
+          document.documentElement.setAttribute('data-esquema', 'dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
