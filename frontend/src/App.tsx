@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import Relatorio from './pages/Relatorio';
 import CalendarioPage from './pages/CalendarioPage';
 import PerfilPage from './pages/Perfil';
+import ConfiguracoesPage from './pages/Configuracoes';
 import GrupoPage from './pages/Grupo';
 import PerfilPublico from './pages/PerfilPublico';
 import Social from './pages/Social';
@@ -64,6 +65,7 @@ function Rotas() {
         }
       />
 
+      <Route path="/configuracoes" element={<Protegida><ConfiguracoesPage /></Protegida>} />
       <Route path="/perfil/metas" element={<Protegida><MetasPage /></Protegida>} />
       <Route path="/perfil/dados" element={<Protegida><DadosPage /></Protegida>} />
       <Route path="/perfil/refeicoes" element={<Protegida><RefeicoesPage /></Protegida>} />

@@ -7,7 +7,7 @@ import Erro from '../../components/Erro';
 export default function RefeicoesPage() {
   const [erro, setErro] = useState<string | null>(null);
   return (
-    <SubTela titulo="refeições" voltarPara="/perfil">
+    <SubTela titulo="refeições" voltarPara="/configuracoes">
       {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
       <SecaoRefeicoes aoFalhar={(falha: unknown) => setErro(mensagemDoErro(falha))} />
     </SubTela>

@@ -30,7 +30,7 @@ export default function SenhaPage() {
     setErro(null);
     try {
       await api.trocarSenha(atual, nova);
-      navigate('/perfil', { replace: true });
+      navigate('/configuracoes', { replace: true });
     } catch (falha: unknown) {
       setErro(mensagemDoErro(falha));
       setSalvando(false);
@@ -40,7 +40,7 @@ export default function SenhaPage() {
   return (
     <SubTela
       titulo="trocar senha"
-      voltarPara="/perfil"
+      voltarPara="/configuracoes"
       rodape={
         <BotaoCta type="submit" form={ID_FORM} disabled={salvando}>
           {salvando ? 'salvando...' : 'salvar senha'}
