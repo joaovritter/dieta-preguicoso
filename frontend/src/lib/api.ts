@@ -139,6 +139,12 @@ export const api = {
 
   salvarPerfil: (dados: EntradaPerfil) => requisitar<Perfil>('/me', { method: 'PUT', corpo: dados }),
 
+  trocarSenha: (senha_atual: string, senha_nova: string) =>
+    requisitar<void>('/me/senha', { method: 'PUT', corpo: { senha_atual, senha_nova } }),
+
+  desativarConta: (senha: string) =>
+    requisitar<void>('/me/desativar', { method: 'POST', corpo: { senha } }),
+
   registroTexto: (texto: string, criado_em?: string) =>
     requisitar<Interpretacao>('/registros/texto', {
       method: 'POST',
