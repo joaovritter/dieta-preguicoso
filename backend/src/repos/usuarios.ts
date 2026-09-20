@@ -209,3 +209,7 @@ export async function atualizarUsuario(
   if (!linha) throw new Error('usuário não encontrado');
   return linha;
 }
+
+export async function atualizarSenha(id: string, passwordHash: string): Promise<void> {
+  await consultar('UPDATE users SET password_hash = $2 WHERE id = $1', [id, passwordHash]);
+}

@@ -1,10 +1,19 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { perfilDe } from '../middleware/autenticar.js';
+import { limiteTaxa, porUsuario } from '../middleware/limiteTaxa.js';
 import { calcularMetas } from '../domain/nutricao.js';
 import { timezoneValida } from '../domain/tempo.js';
 import { OBJETIVOS, SEXOS } from '../domain/tipos.js';
-import { atualizarUsuario, paraPerfil, type CamposAtualizaveis } from '../repos/usuarios.js';
+import { conferirSenha, hashSenha } from '../lib/auth.js';
+import { AppError } from '../lib/erros.js';
+import {
+  atualizarSenha,
+  atualizarUsuario,
+  buscarPorId,
+  paraPerfil,
+  type CamposAtualizaveis,
+} from '../repos/usuarios.js';
 
 export const rotasMe: Router = Router();
 
@@ -52,6 +61,40 @@ rotasMe.put('/', async (req, res, next) => {
 
     const linha = await atualizarUsuario(atual.id, campos);
     res.json(paraPerfil(linha));
+  } catch (e) {
+    next(e);
+  }
+});
+
+// Com um token vazado dá para chutar a senha atual por aqui: limita por usuário.
+const limiteConta = limiteTaxa({
+  janelaMs: 15 * 60 * 1000,
+  maximo: 10,
+  chave: porUsuario,
+  mensagem: 'muitas tentativas com a senha, aguarde alguns minutos',
+});
+
+async function exigirSenha(userId: string, senha: string): Promise<void> {
+  const linha = await buscarPorId(userId);
+  const ok = linha ? await conferirSenha(senha, linha.password_hash) : false;
+  if (!ok) throw new AppError('SENHA_INCORRETA', 'senha atual incorreta');
+}
+
+const trocaSenhaSchema = z.object({
+  senha_atual: z.string().min(1, 'informe a senha atual').max(200),
+  senha_nova: z
+    .string()
+    .min(8, 'a senha nova precisa de pelo menos 8 caracteres')
+    .max(200, 'a senha nova pode ter no máximo 200 caracteres'),
+});
+
+rotasMe.put('/senha', limiteConta, async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    const { senha_atual, senha_nova } = trocaSenhaSchema.parse(req.body);
+    await exigirSenha(perfil.id, senha_atual);
+    await atualizarSenha(perfil.id, await hashSenha(senha_nova));
+    res.status(204).end();
   } catch (e) {
     next(e);
   }
