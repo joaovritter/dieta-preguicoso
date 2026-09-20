@@ -108,6 +108,12 @@ Body: qualquer subconjunto de
    timezone }`
 → `200 Perfil` (já com metas recalculadas se `metas_automaticas`).
 
+`meta_calorias` nunca é gravado com o valor que veio no body: com `metas_automaticas: true` o
+servidor recalcula todas as metas pelo TMB (ver "Cálculo automático de metas"); com
+`metas_automaticas: false` o servidor recalcula só `meta_calorias`, a partir de
+`4×meta_carboidrato_g + 4×meta_proteina_g + 9×meta_gordura_g` (mesclando o que veio no body com
+o que já estava salvo para os macros que não vierem).
+
 ### `PUT /api/me/senha`
 Body: `{ senha_atual: string, senha_nova: string }` (`senha_nova` com 8–200 chars) → `204`
 `400 SENHA_INCORRETA` (senha atual não confere) · `400 VALIDACAO` ·
@@ -279,6 +285,12 @@ Macros: proteína `2 g/kg`, gordura `25%` das kcal ÷ 9, carboidrato = kcal rest
 Água: `35 ml/kg`.
 
 Se faltar peso/altura/idade/sexo, mantém as metas atuais (não zera).
+
+## Metas manuais (`metas_automaticas: false`)
+
+`meta_calorias` deixa de ser um campo independente: é sempre derivado dos macros de meta,
+`4×meta_carboidrato_g + 4×meta_proteina_g + 9×meta_gordura_g`, calculado no servidor a cada
+`PUT /api/me`. O que o cliente mandar em `meta_calorias` é ignorado.
 
 ## Rede social
 

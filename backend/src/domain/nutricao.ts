@@ -26,6 +26,25 @@ export function recalcularCaloriasDosAlimentos(alimentos: Alimento[]): Alimento[
   }));
 }
 
+/**
+ * Recalcula `meta_calorias` a partir dos macros de meta quando `metas_automaticas` é
+ * falso, mesclando o que veio no `PUT /api/me` com o que já estava salvo (mesmo padrão
+ * de merge usado no branch de metas automáticas).
+ */
+export function recalcularMetaCaloriasManual(
+  atual: { meta_carboidrato_g: number; meta_proteina_g: number; meta_gordura_g: number },
+  campos: Partial<{
+    meta_carboidrato_g: number;
+    meta_proteina_g: number;
+    meta_gordura_g: number;
+  }>,
+): number {
+  const carboidrato_g = campos.meta_carboidrato_g ?? atual.meta_carboidrato_g;
+  const proteina_g = campos.meta_proteina_g ?? atual.meta_proteina_g;
+  const gordura_g = campos.meta_gordura_g ?? atual.meta_gordura_g;
+  return calorasDeMacros(carboidrato_g, proteina_g, gordura_g);
+}
+
 export function somarTotais(alimentos: Alimento[]): Totais {
   const t = alimentos.reduce<Totais>(
     (acc, a) => ({

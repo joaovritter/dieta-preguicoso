@@ -4,6 +4,7 @@ import {
   calorasDeMacros,
   metrica,
   recalcularCaloriasDosAlimentos,
+  recalcularMetaCaloriasManual,
   somarTotais,
 } from './nutricao.js';
 import type { Alimento } from './tipos.js';
@@ -113,6 +114,30 @@ describe('recalcularCaloriasDosAlimentos', () => {
 
   it('devolve lista vazia para lista vazia', () => {
     expect(recalcularCaloriasDosAlimentos([])).toEqual([]);
+  });
+});
+
+describe('recalcularMetaCaloriasManual', () => {
+  const atual = { meta_carboidrato_g: 200, meta_proteina_g: 150, meta_gordura_g: 60 };
+
+  it('recalcula meta_calorias a partir dos macros mesclados com o que já estava salvo', () => {
+    // editando só a proteína: 200*4 + 180*4 + 60*9 = 800 + 720 + 540 = 2060
+    expect(recalcularMetaCaloriasManual(atual, { meta_proteina_g: 180 })).toBe(2060);
+  });
+
+  it('usa só o que está salvo quando nada de macro vem no body', () => {
+    // 200*4 + 150*4 + 60*9 = 800 + 600 + 540 = 1940
+    expect(recalcularMetaCaloriasManual(atual, {})).toBe(1940);
+  });
+
+  it('usa todos os macros novos quando vêm no body', () => {
+    expect(
+      recalcularMetaCaloriasManual(atual, {
+        meta_carboidrato_g: 100,
+        meta_proteina_g: 100,
+        meta_gordura_g: 30,
+      }),
+    ).toBe(1070); // 400 + 400 + 270
   });
 });
 

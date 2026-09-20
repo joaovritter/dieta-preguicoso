@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { perfilDe } from '../middleware/autenticar.js';
 import { limiteTaxa, porUsuario } from '../middleware/limiteTaxa.js';
-import { calcularMetas } from '../domain/nutricao.js';
+import { calcularMetas, recalcularMetaCaloriasManual } from '../domain/nutricao.js';
 import { timezoneValida } from '../domain/tempo.js';
 import { OBJETIVOS, SEXOS } from '../domain/tipos.js';
 import { conferirSenha, hashSenha } from '../lib/auth.js';
@@ -58,6 +58,10 @@ rotasMe.put('/', async (req, res, next) => {
       });
       // Sem dados corporais suficientes, mantém as metas atuais em vez de zerar o perfil.
       if (metas) Object.assign(campos, metas);
+    } else {
+      // Metas automáticas desligadas: meta_calorias nunca é um campo independente, é sempre
+      // derivado dos macros (mesclados com o que já está salvo) — ignora o que veio no body.
+      campos.meta_calorias = recalcularMetaCaloriasManual(atual, campos);
     }
 
     const linha = await atualizarUsuario(atual.id, campos);

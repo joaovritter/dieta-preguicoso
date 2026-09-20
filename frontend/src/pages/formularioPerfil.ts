@@ -1,3 +1,4 @@
+import { calorasDeMacros } from '../lib/nutricao';
 import type { EntradaPerfil, Objetivo, Perfil, Sexo } from '../lib/types';
 
 export interface Formulario {
@@ -59,10 +60,14 @@ export function paraEntrada(form: Formulario): EntradaPerfil {
   if (timezone) entrada.timezone = timezone;
   // Com metas automáticas o backend recalcula; não faz sentido mandar valores manuais.
   if (!form.metas_automaticas) {
-    entrada.meta_calorias = numeroOuNulo(form.meta_calorias) ?? 0;
-    entrada.meta_carboidrato_g = numeroOuNulo(form.meta_carboidrato_g) ?? 0;
-    entrada.meta_proteina_g = numeroOuNulo(form.meta_proteina_g) ?? 0;
-    entrada.meta_gordura_g = numeroOuNulo(form.meta_gordura_g) ?? 0;
+    const carboidrato_g = numeroOuNulo(form.meta_carboidrato_g) ?? 0;
+    const proteina_g = numeroOuNulo(form.meta_proteina_g) ?? 0;
+    const gordura_g = numeroOuNulo(form.meta_gordura_g) ?? 0;
+    // meta_calorias não é digitável: mesma regra do backend, sempre derivado dos macros.
+    entrada.meta_calorias = calorasDeMacros(carboidrato_g, proteina_g, gordura_g);
+    entrada.meta_carboidrato_g = carboidrato_g;
+    entrada.meta_proteina_g = proteina_g;
+    entrada.meta_gordura_g = gordura_g;
     entrada.meta_agua_ml = numeroOuNulo(form.meta_agua_ml) ?? 0;
   }
   return entrada;
