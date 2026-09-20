@@ -12,6 +12,8 @@
     "start": "node dist/index.js",
     "migrate": "tsx src/db/migrate.ts",
     "migrate:prod": "node dist/db/migrate.js",
+    "conta:reativar": "tsx src/scripts/reativarConta.ts",
+    "conta:reativar:prod": "node dist/scripts/reativarConta.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },

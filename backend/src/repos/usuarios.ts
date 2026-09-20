@@ -222,3 +222,16 @@ export async function desativarUsuario(id: string): Promise<void> {
     id,
   ]);
 }
+
+export async function reativarPorEmail(
+  email: string,
+): Promise<'reativada' | 'ja_ativa' | 'nao_encontrada'> {
+  const linha = await consultarUm<{ desativada_em: Date | null }>(
+    'SELECT desativada_em FROM users WHERE lower(email) = lower($1)',
+    [email],
+  );
+  if (!linha) return 'nao_encontrada';
+  if (linha.desativada_em === null) return 'ja_ativa';
+  await consultar('UPDATE users SET desativada_em = NULL WHERE lower(email) = lower($1)', [email]);
+  return 'reativada';
+}

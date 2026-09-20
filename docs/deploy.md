@@ -65,6 +65,25 @@ suficiente para um servidor entre amigos, não para um cadastro público de verd
 Para trancar depois (só quem já tem conta continua entrando), é o mesmo comando com `false`;
 aí `POST /api/auth/register` passa a responder `403 CADASTRO_DESABILITADO`.
 
+## Contas desativadas
+
+`perfil › desativar conta` não apaga nada: a conta para de entrar e some da rede social. Só você,
+na VPS, reativa:
+
+```bash
+docker compose exec backend npm run conta:reativar:prod -- joao@ufn.edu.br
+```
+
+Saída `conta reativada` (a pessoa já entra com a mesma senha de antes), `essa conta já está ativa`
+ou `nenhuma conta com esse e-mail` (sai com código 1). Em desenvolvimento, dentro de `backend/`:
+`npm run conta:reativar -- joao@ufn.edu.br`.
+
+Para ver quem está desativado:
+
+```bash
+docker compose exec -T postgres psql -U dieta dieta -c "select email, desativada_em from users where desativada_em is not null"
+```
+
 ## Firewall
 
 Com o cadastro aberto e amigos usando de casa, a porta do app precisa ficar aberta —
