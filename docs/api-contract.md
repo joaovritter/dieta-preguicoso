@@ -54,6 +54,8 @@ interface Perfil {
   metas_automaticas: boolean;    // true = recalcula metas a partir de peso/altura/idade/sexo/objetivo
   modo_preguicoso: boolean;      // true = grava sem tela de confirmação
   timezone: string;              // ex: "America/Sao_Paulo"
+  foto_url: string | null;       // foto de perfil; null = sem foto (cai no avatar de iniciais)
+  esconder_comentarios_perfil: boolean; // true = a aba "Comentários" some do próprio perfil
   criado_em: string;
 }
 
@@ -308,6 +310,11 @@ Não existe passo extra para publicar: toda refeição registrada já aparece pa
 (e `/calendario`, `/refeicoes`) dá `404 NAO_ENCONTRADO`; curtir/comentar um post dela dá `404`.
 Os grupos criados por ela continuam existindo. Curtidas antigas dela continuam contando no total.
 
+**Não existe follow assimétrico.** O app só tem amizade mútua (pedido aceito dos dois lados). No
+perfil (próprio ou de outra pessoa), "seguidores" e "seguindo" são o mesmo número —
+`PerfilPublico.total_amigos` — repetido nos dois contadores. Não há endpoint, tabela nem conceito
+de seguir uma pessoa sem reciprocidade.
+
 ### Tipos
 
 ```ts
@@ -317,6 +324,9 @@ interface PerfilPublico {
   tag: string;
   nome_tag: string;              // "joao#0427"
   objetivo: Objetivo;
+  foto_url: string | null;       // foto de perfil; null = sem foto (cai no avatar de iniciais)
+  total_posts: number;           // quantidade de registros (refeições) da pessoa
+  total_amigos: number;          // quantidade de amigos (amizade mútua aceita)
 }
 
 /** Como o dia fechou em relação à meta de calorias. `na_meta` = entre 90% e 110%. */

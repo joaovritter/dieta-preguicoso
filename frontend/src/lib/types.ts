@@ -37,6 +37,8 @@ export interface Perfil {
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;
+  foto_url: string | null;
+  esconder_comentarios_perfil: boolean;
   criado_em: string;
 }
 
@@ -163,6 +165,10 @@ export interface PerfilPublico {
   /** "joao#0427" */
   nome_tag: string;
   objetivo: Objetivo;
+  foto_url: string | null;
+  total_posts: number;
+  /** Mesmo valor usado como "seguidores" e "seguindo" no perfil — não existe follow assimétrico. */
+  total_amigos: number;
 }
 
 /** Como o dia fechou em relação à meta de calorias. `na_meta` = entre 90% e 110%. */

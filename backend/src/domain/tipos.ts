@@ -57,6 +57,8 @@ export interface Perfil {
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;
+  foto_url: string | null;
+  esconder_comentarios_perfil: boolean;
   criado_em: string;
 }
 
@@ -107,6 +109,9 @@ export interface PerfilPublico {
   tag: string;
   nome_tag: string;
   objetivo: Objetivo;
+  foto_url: string | null;
+  total_posts: number;
+  total_amigos: number;
 }
 
 export const STATUS_DIA = ['sem_registro', 'abaixo', 'na_meta', 'acima'] as const;
