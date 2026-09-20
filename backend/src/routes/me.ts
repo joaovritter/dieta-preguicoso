@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { unlink } from 'node:fs/promises';
+import { Router, type RequestHandler } from 'express';
 import { z } from 'zod';
 import { perfilDe } from '../middleware/autenticar.js';
 import { limiteTaxa, porUsuario } from '../middleware/limiteTaxa.js';
@@ -7,7 +8,9 @@ import { timezoneValida } from '../domain/tempo.js';
 import { OBJETIVOS, SEXOS } from '../domain/tipos.js';
 import { conferirSenha, hashSenha } from '../lib/auth.js';
 import { AppError } from '../lib/erros.js';
+import { uploadImagem, urlDaMidia, caminhoDaMidia } from '../lib/uploads.js';
 import {
+  atualizarFotoPerfil,
   atualizarSenha,
   atualizarUsuario,
   buscarPorId,
@@ -65,6 +68,53 @@ rotasMe.put('/', async (req, res, next) => {
     }
 
     const linha = await atualizarUsuario(atual.id, campos);
+    res.json(paraPerfil(linha));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Envolve o middleware do multer para que o erro caia no `next` em vez de estourar. */
+function comUpload(middleware: RequestHandler): RequestHandler {
+  return (req, res, next) => {
+    middleware(req, res, (err: unknown) => {
+      if (err) next(err);
+      else next();
+    });
+  };
+}
+
+rotasMe.post('/foto', comUpload(uploadImagem), async (req, res, next) => {
+  const arquivo = req.file;
+  try {
+    if (!arquivo) throw new AppError('ARQUIVO_INVALIDO', 'a foto não chegou no envio. tente de novo');
+    const perfil = perfilDe(req);
+
+    const linha = await atualizarFotoPerfil(perfil.id, urlDaMidia(arquivo.filename));
+
+    // Troca por cima de uma foto antiga: apaga o arquivo anterior do disco.
+    if (perfil.foto_url) {
+      const caminho = caminhoDaMidia(perfil.foto_url);
+      if (caminho) await unlink(caminho).catch(() => undefined);
+    }
+
+    res.json(paraPerfil(linha));
+  } catch (e) {
+    if (arquivo) await unlink(arquivo.path).catch(() => undefined);
+    next(e);
+  }
+});
+
+rotasMe.delete('/foto', async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    const linha = await atualizarFotoPerfil(perfil.id, null);
+
+    if (perfil.foto_url) {
+      const caminho = caminhoDaMidia(perfil.foto_url);
+      if (caminho) await unlink(caminho).catch(() => undefined);
+    }
+
     res.json(paraPerfil(linha));
   } catch (e) {
     next(e);

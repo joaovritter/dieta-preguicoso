@@ -23,13 +23,16 @@ interface LinhaUsuario {
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;
+  foto_url: string | null;
+  esconder_comentarios_perfil: boolean;
   created_at: Date;
   desativada_em: Date | null;
 }
 
 const COLUNAS = `id, email, password_hash, nome, tag, sexo, idade, peso_kg, altura_cm, objetivo,
   meta_calorias, meta_carboidrato_g, meta_proteina_g, meta_gordura_g, meta_agua_ml,
-  metas_automaticas, modo_preguicoso, timezone, created_at, desativada_em`;
+  metas_automaticas, modo_preguicoso, timezone, foto_url, esconder_comentarios_perfil,
+  created_at, desativada_em`;
 
 export function paraPerfil(l: LinhaUsuario): Perfil {
   return {
@@ -50,6 +53,8 @@ export function paraPerfil(l: LinhaUsuario): Perfil {
     metas_automaticas: l.metas_automaticas,
     modo_preguicoso: l.modo_preguicoso,
     timezone: l.timezone,
+    foto_url: l.foto_url,
+    esconder_comentarios_perfil: l.esconder_comentarios_perfil,
     criado_em: l.created_at.toISOString(),
   };
 }
@@ -208,6 +213,19 @@ export async function atualizarUsuario(
   const linha = await consultarUm<LinhaUsuario>(
     `UPDATE users SET ${atribuicoes} WHERE id = $1 RETURNING ${COLUNAS}`,
     [id, ...valores],
+  );
+  if (!linha) throw new Error('usuário não encontrado');
+  return linha;
+}
+
+/** `fotoUrl: null` remove a foto (o cliente cai no avatar de iniciais). */
+export async function atualizarFotoPerfil(
+  id: string,
+  fotoUrl: string | null,
+): Promise<LinhaUsuario> {
+  const linha = await consultarUm<LinhaUsuario>(
+    `UPDATE users SET foto_url = $2 WHERE id = $1 RETURNING ${COLUNAS}`,
+    [id, fotoUrl],
   );
   if (!linha) throw new Error('usuário não encontrado');
   return linha;

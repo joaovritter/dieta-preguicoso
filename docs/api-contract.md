@@ -116,6 +116,14 @@ servidor recalcula todas as metas pelo TMB (ver "Cálculo automático de metas")
 `4×meta_carboidrato_g + 4×meta_proteina_g + 9×meta_gordura_g` (mesclando o que veio no body com
 o que já estava salvo para os macros que não vierem).
 
+### `POST /api/me/foto`
+`multipart/form-data`, campo `arquivo` (jpeg/png/webp/heic, ≤ 10 MB) → `200 Perfil` com `foto_url`
+atualizado. Trocar uma foto por outra apaga o arquivo antigo do disco.
+`400 ARQUIVO_INVALIDO` (formato não suportado ou arquivo ausente).
+
+### `DELETE /api/me/foto` → `200 Perfil` com `foto_url: null`
+Apaga o arquivo do disco, se havia um. Sem foto salva, responde `200` normalmente (idempotente).
+
 ### `PUT /api/me/senha`
 Body: `{ senha_atual: string, senha_nova: string }` (`senha_nova` com 8–200 chars) → `204`
 `400 SENHA_INCORRETA` (senha atual não confere) · `400 VALIDACAO` ·
