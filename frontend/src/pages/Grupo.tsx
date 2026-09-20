@@ -117,7 +117,7 @@ export default function GrupoPage() {
             ))}
           </Box>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
             <Typography sx={rotuloSecao}>feed</Typography>
             {feed.feed === null ? (
               <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>carregando o feed...</Typography>

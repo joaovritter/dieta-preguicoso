@@ -36,10 +36,10 @@ export default function CardPost({ post, aoCurtir, aoComentar }: Props) {
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
-        pb: '16px',
+        gap: '12px',
+        pb: '20px',
         borderBottom: 1,
-        borderColor: 'neutro.linha',
+        borderColor: 'neutro.borda',
       }}
     >
       <Box
@@ -47,9 +47,9 @@ export default function CardPost({ post, aoCurtir, aoComentar }: Props) {
         to={`/u/${post.autor.id}`}
         sx={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'inherit', textDecoration: 'none' }}
       >
-        <Avatar nome={post.autor.nome} tamanho={34} />
+        <Avatar nome={post.autor.nome} fotoUrl={post.autor.foto_url} tamanho={38} />
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{post.autor.nome}</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{post.autor.nome}</Typography>
           <Typography sx={{ fontSize: 10.5, color: 'text.secondary' }}>
             {post.refeicao_nome} · {tempoRelativo(post.criado_em, new Date())}
           </Typography>
@@ -68,7 +68,7 @@ export default function CardPost({ post, aoCurtir, aoComentar }: Props) {
 
       <Typography sx={{ fontSize: 13, lineHeight: 1.4 }}>{post.descricao_bruta}</Typography>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '18px', mt: '2px' }}>
         <Box
           sx={[
             {

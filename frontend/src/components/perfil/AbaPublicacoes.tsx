@@ -13,7 +13,7 @@ export default function AbaPublicacoes({ userId }: { userId: string }) {
   const feed = useFeed(buscar);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {feed.erro !== null && (
         <Alert severity="error" onClose={feed.limparErro}>
           {feed.erro}

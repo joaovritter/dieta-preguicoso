@@ -12,7 +12,7 @@ export default function AbaFeed() {
   const { feed, erro, limparErro, carregando, carregarMais, curtir, abrirComentarios, folha } = useFeed(buscar);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {erro !== null && (
         <Alert severity="error" onClose={limparErro}>
           {erro}
