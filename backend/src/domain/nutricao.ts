@@ -5,6 +5,15 @@ export function arredondar(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+/** Calorias derivadas dos macros: 4 kcal/g de carboidrato e proteína, 9 kcal/g de gordura. */
+export function calorasDeMacros(
+  carboidrato_g: number,
+  proteina_g: number,
+  gordura_g: number,
+): number {
+  return arredondar(4 * carboidrato_g + 4 * proteina_g + 9 * gordura_g);
+}
+
 export function somarTotais(alimentos: Alimento[]): Totais {
   const t = alimentos.reduce<Totais>(
     (acc, a) => ({
