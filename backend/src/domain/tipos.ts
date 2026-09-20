@@ -152,6 +152,23 @@ export interface Comentario {
   posso_apagar: boolean;
 }
 
+/** Um comentário feito pelo próprio usuário, com o mínimo do post pra linkar de volta. */
+export interface ComentarioComPost {
+  id: string;
+  texto: string;
+  criado_em: string;
+  post: {
+    id: string;
+    autor: PerfilPublico;
+    descricao_bruta: string;
+  };
+}
+
+export interface FeedComentarios {
+  comentarios: ComentarioComPost[];
+  proximo_antes: string | null;
+}
+
 export interface Grupo {
   id: string;
   nome: string;

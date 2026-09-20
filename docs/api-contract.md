@@ -124,6 +124,12 @@ atualizado. Trocar uma foto por outra apaga o arquivo antigo do disco.
 ### `DELETE /api/me/foto` → `200 Perfil` com `foto_url: null`
 Apaga o arquivo do disco, se havia um. Sem foto salva, responde `200` normalmente (idempotente).
 
+### `GET /api/me/comentarios?antes=<ISO>&limite=<1..50>`
+Comentários feitos pelo usuário logado, em posts de qualquer pessoa (inclusive próprios), mais
+recentes primeiro. `limite` padrão 20. Pagina como `GET /api/social/feed`: passe o `proximo_antes`
+da página anterior em `antes` para a próxima.
+`200 FeedComentarios`
+
 ### `PUT /api/me/senha`
 Body: `{ senha_atual: string, senha_nova: string }` (`senha_nova` com 8–200 chars) → `204`
 `400 SENHA_INCORRETA` (senha atual não confere) · `400 VALIDACAO` ·
@@ -397,6 +403,24 @@ interface Comentario {
   criado_em: string;
   /** Quem pede é o autor do comentário ou o dono do post. */
   posso_apagar: boolean;
+}
+
+/** Um comentário feito pelo próprio usuário, com o mínimo do post pra linkar de volta. */
+interface ComentarioComPost {
+  id: string;
+  texto: string;
+  criado_em: string;
+  post: {
+    id: string;
+    autor: PerfilPublico;
+    descricao_bruta: string;
+  };
+}
+
+interface FeedComentarios {
+  comentarios: ComentarioComPost[];
+  /** `criado_em` do último comentário; passe em `?antes=` para pedir a próxima página. `null` = acabou. */
+  proximo_antes: string | null;
 }
 ```
 

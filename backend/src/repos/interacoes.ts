@@ -1,7 +1,7 @@
 import { consultar, consultarUm } from '../db/index.js';
 import { paraPerfilPublico } from '../domain/social.js';
 import { SQL_TOTAL_AMIGOS, SQL_TOTAL_POSTS } from './social.js';
-import type { Comentario, Objetivo } from '../domain/tipos.js';
+import type { Comentario, ComentarioComPost, Objetivo } from '../domain/tipos.js';
 
 export async function donoDoRegistro(registroId: string): Promise<string | null> {
   const linha = await consultarUm<{ user_id: string }>(
@@ -95,6 +95,66 @@ export async function criarComentario(
   ]);
   if (!linha) throw new Error(`comentário ${criado.id} sumiu logo após ser gravado`);
   return paraComentario(linha, userId);
+}
+
+interface LinhaComentarioComPost {
+  id: string;
+  texto: string;
+  criado_em: Date;
+  post_id: string;
+  post_descricao: string;
+  autor_id: string;
+  autor_nome: string;
+  autor_tag: string;
+  autor_objetivo: Objetivo;
+  autor_foto_url: string | null;
+  autor_total_posts: number;
+  autor_total_amigos: number;
+}
+
+/**
+ * Comentários feitos pelo usuário logado (em posts de qualquer pessoa), mais recentes primeiro.
+ * `antes` pagina: passe o `criado_em` do último comentário da página anterior.
+ */
+export async function listarComentariosDoUsuario(
+  userId: string,
+  antes: Date | null,
+  limite: number,
+): Promise<ComentarioComPost[]> {
+  const linhas = await consultar<LinhaComentarioComPost>(
+    `SELECT cm.id, cm.texto, cm.criado_em,
+        r.id AS post_id, r.descricao_bruta AS post_descricao,
+        u.id AS autor_id, u.nome AS autor_nome, u.tag AS autor_tag, u.objetivo AS autor_objetivo,
+        u.foto_url AS autor_foto_url,
+        ${SQL_TOTAL_POSTS} AS autor_total_posts, ${SQL_TOTAL_AMIGOS} AS autor_total_amigos
+      FROM comentarios cm
+      JOIN registros_alimentares r ON r.id = cm.registro_id
+      JOIN users u ON u.id = r.user_id
+      WHERE cm.user_id = $1
+        AND u.desativada_em IS NULL
+        AND ($2::timestamptz IS NULL OR cm.criado_em < $2)
+      ORDER BY cm.criado_em DESC
+      LIMIT $3`,
+    [userId, antes, limite],
+  );
+  return linhas.map((l) => ({
+    id: l.id,
+    texto: l.texto,
+    criado_em: l.criado_em.toISOString(),
+    post: {
+      id: l.post_id,
+      descricao_bruta: l.post_descricao,
+      autor: paraPerfilPublico({
+        id: l.autor_id,
+        nome: l.autor_nome,
+        tag: l.autor_tag,
+        objetivo: l.autor_objetivo,
+        foto_url: l.autor_foto_url,
+        total_posts: l.autor_total_posts,
+        total_amigos: l.autor_total_amigos,
+      }),
+    },
+  }));
 }
 
 /** Apaga se quem pede é o autor do comentário ou o dono do post. `false` = nada apagado. */

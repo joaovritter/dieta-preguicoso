@@ -9,6 +9,7 @@ import { OBJETIVOS, SEXOS } from '../domain/tipos.js';
 import { conferirSenha, hashSenha } from '../lib/auth.js';
 import { AppError } from '../lib/erros.js';
 import { uploadImagem, urlDaMidia, caminhoDaMidia } from '../lib/uploads.js';
+import { listarComentariosDoUsuario } from '../repos/interacoes.js';
 import {
   atualizarFotoPerfil,
   atualizarSenha,
@@ -116,6 +117,29 @@ rotasMe.delete('/foto', async (req, res, next) => {
     }
 
     res.json(paraPerfil(linha));
+  } catch (e) {
+    next(e);
+  }
+});
+
+const feedComentariosSchema = z.object({
+  antes: z.iso.datetime({ offset: true }).optional(),
+  limite: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+rotasMe.get('/comentarios', async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    const { antes, limite } = feedComentariosSchema.parse(req.query);
+    const comentarios = await listarComentariosDoUsuario(
+      perfil.id,
+      antes ? new Date(antes) : null,
+      limite,
+    );
+
+    // Só oferece a próxima página quando a atual veio cheia; menos que isso é o fim da lista.
+    const ultimo = comentarios.length === limite ? comentarios[comentarios.length - 1] : undefined;
+    res.json({ comentarios, proximo_antes: ultimo?.criado_em ?? null });
   } catch (e) {
     next(e);
   }
