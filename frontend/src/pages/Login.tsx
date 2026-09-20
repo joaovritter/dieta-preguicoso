@@ -9,6 +9,7 @@ import Erro from '../components/Erro';
 import BotaoCta from '../components/ui/BotaoCta';
 import RotuloSecao from '../components/ui/RotuloSecao';
 import Segmentado from '../components/ui/Segmentado';
+import FundoLogin from '../components/fundo/FundoLogin';
 
 type Aba = 'entrar' | 'cadastrar';
 
@@ -124,77 +125,88 @@ export default function Login() {
         mx: 'auto',
         minHeight: '100dvh',
         p: '44px 26px 26px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        gap: '32px',
         position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
-        <RotuloSecao sx={{ fontSize: 10 }}>dieta preguiçoso</RotuloSecao>
-        <Typography
-          component="h1"
-          sx={{ m: 0, fontWeight: 800, fontSize: 50, lineHeight: 0.94, letterSpacing: '-.035em' }}
-        >
-          Foto,
-          <br />
-          áudio ou
-          <br />
-          texto.
-          <br />
-          <Box component="span" sx={{ color: 'primary.vivo' }}>
-            O resto é
-            <br />
-            com a gente.
-          </Box>
-        </Typography>
-      </Box>
-
+      <FundoLogin />
       <Box
-        component="form"
-        onSubmit={(evento: React.FormEvent) => void enviar(evento)}
-        sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          gap: '32px',
+          flex: 1,
+          minHeight: '100%',
+        }}
       >
-        {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
+          <RotuloSecao sx={{ fontSize: 10 }}>dieta preguiçoso</RotuloSecao>
+          <Typography
+            component="h1"
+            sx={{ m: 0, fontWeight: 800, fontSize: 50, lineHeight: 0.94, letterSpacing: '-.035em' }}
+          >
+            Foto,
+            <br />
+            áudio ou
+            <br />
+            texto.
+            <br />
+            <Box component="span" sx={{ color: 'primary.vivo' }}>
+              O resto é
+              <br />
+              com a gente.
+            </Box>
+          </Typography>
+        </Box>
 
-        {cadastrando && (
-          <CampoSublinhado rotulo="nome" valor={nome} aoMudar={setNome} autoComplete="name" />
-        )}
-        <CampoSublinhado rotulo="e-mail" tipo="email" valor={email} aoMudar={setEmail} autoComplete="email" />
-        <CampoSublinhado
-          rotulo="senha"
-          tipo="password"
-          valor={senha}
-          aoMudar={setSenha}
-          autoComplete={cadastrando ? 'new-password' : 'current-password'}
-          aviso={senhaCurta ? 'mínimo de 8 caracteres' : undefined}
-        />
-        {cadastrando && (
+        <Box
+          component="form"
+          onSubmit={(evento: React.FormEvent) => void enviar(evento)}
+          sx={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+        >
+          {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
+
+          {cadastrando && (
+            <CampoSublinhado rotulo="nome" valor={nome} aoMudar={setNome} autoComplete="name" />
+          )}
+          <CampoSublinhado rotulo="e-mail" tipo="email" valor={email} aoMudar={setEmail} autoComplete="email" />
           <CampoSublinhado
-            rotulo="confirmar senha"
+            rotulo="senha"
             tipo="password"
-            valor={repetida}
-            aoMudar={setRepetida}
-            autoComplete="new-password"
-            aviso={senhasDiferentes ? 'as senhas não são iguais' : undefined}
+            valor={senha}
+            aoMudar={setSenha}
+            autoComplete={cadastrando ? 'new-password' : 'current-password'}
+            aviso={senhaCurta ? 'mínimo de 8 caracteres' : undefined}
           />
-        )}
+          {cadastrando && (
+            <CampoSublinhado
+              rotulo="confirmar senha"
+              tipo="password"
+              valor={repetida}
+              aoMudar={setRepetida}
+              autoComplete="new-password"
+              aviso={senhasDiferentes ? 'as senhas não são iguais' : undefined}
+            />
+          )}
 
-        <Segmentado<Aba>
-          rotulo="entrar ou cadastrar"
-          estilo="login"
-          valor={aba}
-          aoMudar={trocarAba}
-          opcoes={[
-            { valor: 'entrar', rotulo: 'entrar' },
-            { valor: 'cadastrar', rotulo: 'cadastrar' },
-          ]}
-        />
+          <Segmentado<Aba>
+            rotulo="entrar ou cadastrar"
+            estilo="login"
+            valor={aba}
+            aoMudar={trocarAba}
+            opcoes={[
+              { valor: 'entrar', rotulo: 'entrar' },
+              { valor: 'cadastrar', rotulo: 'cadastrar' },
+            ]}
+          />
 
-        <BotaoCta type="submit" disabled={!podeEnviar}>
-          {enviando ? 'aguarde...' : cadastrando ? 'criar conta' : 'entrar'}
-        </BotaoCta>
+          <BotaoCta type="submit" disabled={!podeEnviar}>
+            {enviando ? 'aguarde...' : cadastrando ? 'criar conta' : 'entrar'}
+          </BotaoCta>
+        </Box>
       </Box>
     </Box>
   );
