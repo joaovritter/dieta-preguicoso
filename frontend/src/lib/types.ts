@@ -210,6 +210,24 @@ export interface Comentario {
   posso_apagar: boolean;
 }
 
+/** Um comentário feito pelo próprio usuário, com o mínimo do post pra linkar de volta. */
+export interface ComentarioComPost {
+  id: string;
+  texto: string;
+  criado_em: string;
+  post: {
+    id: string;
+    autor: PerfilPublico;
+    descricao_bruta: string;
+  };
+}
+
+export interface FeedComentarios {
+  comentarios: ComentarioComPost[];
+  /** `criado_em` do último comentário; passe em `?antes=` para pedir a próxima página. `null` = acabou. */
+  proximo_antes: string | null;
+}
+
 export interface Feed {
   posts: Post[];
   /** `criado_em` do último post; passe em `?antes=` para a próxima página. `null` = acabou. */

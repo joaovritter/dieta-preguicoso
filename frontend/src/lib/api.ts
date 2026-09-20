@@ -7,6 +7,7 @@ import type {
   EntradaConfirmacao,
   EntradaPerfil,
   Feed,
+  FeedComentarios,
   Grupo,
   Interpretacao,
   MembroComProgresso,
@@ -166,6 +167,9 @@ export const api = {
     requisitar<Perfil>('/me/foto', { method: 'POST', formData: arquivoForm(arquivo, arquivo.name) }),
 
   removerFotoPerfil: () => requisitar<Perfil>('/me/foto', { method: 'DELETE' }),
+
+  meComentarios: (antes?: string) =>
+    requisitar<FeedComentarios>(`/me/comentarios${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`),
 
   registroTexto: (texto: string, criado_em?: string) =>
     requisitar<Interpretacao>('/registros/texto', {
