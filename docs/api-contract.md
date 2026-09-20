@@ -13,7 +13,10 @@ Autenticação: header `Authorization: Bearer <jwt>` em tudo, exceto `/auth/*` e
 - Erro: `{ "error": { "code": "STRING_CODE", "message": "texto humano" } }` com status HTTP adequado.
   Códigos: `VALIDACAO`, `NAO_AUTORIZADO`, `CREDENCIAIS_INVALIDAS`, `EMAIL_EM_USO`,
   `NAO_ENCONTRADO`, `IA_INDISPONIVEL`, `IA_RESPOSTA_INVALIDA`, `ARQUIVO_INVALIDO`, `ERRO_INTERNO`,
-  `SEM_ACESSO`, `PEDIDO_DUPLICADO`, `REFEICAO_EM_USO`.
+  `SEM_ACESSO`, `PEDIDO_DUPLICADO`, `REFEICAO_EM_USO`, `SENHA_INCORRETA`, `LIMITE_EXCEDIDO`,
+  `CONTA_DESATIVADA`.
+- Conta desativada: **qualquer** rota autenticada responde `403 CONTA_DESATIVADA`; o cliente trata
+  como fim de sessão (igual a 401) e mostra a mensagem no login.
 
 ## Tipos compartilhados
 
@@ -92,7 +95,9 @@ Body: `{ email, senha, nome }` (senha mínimo 8 chars).
 `201 { token, perfil }` · `409 EMAIL_EM_USO`
 
 ### `POST /api/auth/login`
-Body: `{ email, senha }` → `200 { token, perfil }` · `401 CREDENCIAIS_INVALIDAS`
+Body: `{ email, senha }` → `200 { token, perfil }` · `401 CREDENCIAIS_INVALIDAS` ·
+`403 CONTA_DESATIVADA` ("conta desativada — fale com o administrador"). O 403 só aparece para
+quem acertou a senha: senha errada numa conta desativada continua `401`.
 
 ### `GET /api/me` → `200 Perfil`
 
@@ -102,6 +107,19 @@ Body: qualquer subconjunto de
    meta_proteina_g, meta_gordura_g, meta_agua_ml, metas_automaticas, modo_preguicoso,
    timezone }`
 → `200 Perfil` (já com metas recalculadas se `metas_automaticas`).
+
+### `PUT /api/me/senha`
+Body: `{ senha_atual: string, senha_nova: string }` (`senha_nova` com 8–200 chars) → `204`
+`400 SENHA_INCORRETA` (senha atual não confere) · `400 VALIDACAO` ·
+`429 LIMITE_EXCEDIDO` (10 tentativas por 15 min por usuário, somando este endpoint e `POST /api/me/desativar`).
+Não é 401 de propósito: 401 derruba a sessão no cliente. O token atual continua valendo.
+
+### `POST /api/me/desativar`
+Body: `{ senha: string }` → `204` · `400 SENHA_INCORRETA` · `400 VALIDACAO` · `429 LIMITE_EXCEDIDO`
+Desativa a conta. **Nada é apagado**: registros, água, refeições, mídias, amizades e grupos ficam
+no banco. A partir daí o login responde `403 CONTA_DESATIVADA`, o token atual também, e a pessoa
+some do social (ver "Quem vê o quê"). Só o administrador do servidor reativa, pela linha de
+comando (`docs/deploy.md`, "Contas desativadas").
 
 ### `GET /api/refeicoes` → `200 { refeicoes: Refeicao[] }`
 Ordenadas por `inicio`.
@@ -266,6 +284,12 @@ tag quando ela ainda estiver livre para o nome novo; se não estiver, o servidor
 **Quem vê o quê:** você enxerga o progresso e as refeições de alguém se for você mesmo,
 se forem amigos (pedido aceito) ou se dividirem pelo menos um grupo. Fora isso, `403 SEM_ACESSO`.
 Não existe passo extra para publicar: toda refeição registrada já aparece para quem pode ver.
+
+**Conta desativada some da rede:** não aparece em `GET /api/amigos`, nos pedidos, nos membros e na
+`quantidade_membros` de grupos, no ranking, em nenhum feed nem nos comentários; `POST
+/api/amigos/pedidos` para o `nome#tag` dela dá `404 NAO_ENCONTRADO`; `GET /api/social/usuarios/:id`
+(e `/calendario`, `/refeicoes`) dá `404 NAO_ENCONTRADO`; curtir/comentar um post dela dá `404`.
+Os grupos criados por ela continuam existindo. Curtidas antigas dela continuam contando no total.
 
 ### Tipos
 
