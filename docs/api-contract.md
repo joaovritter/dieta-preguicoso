@@ -164,6 +164,11 @@ sua. → `201 Registro`
 Body: `{ refeicao_id?, alimentos? }` → `200 Registro` (totais recalculados)
 `404 NAO_ENCONTRADO` se `refeicao_id` não for sua.
 
+Ao enviar `alimentos`, o `calorias` de cada item é sempre recalculado no servidor a partir
+de `4×carboidrato_g + 4×proteina_g + 9×gordura_g` — o valor de `calorias` vindo no body é
+ignorado. Isso vale só para essa edição manual; a estimativa inicial da IA (`POST
+/registros/foto|audio|texto`) continua livre para estimar `calorias` do seu jeito.
+
 ### `DELETE /api/registros/:id` → `204`
 
 ### `GET /api/registros/dia?data=YYYY-MM-DD`

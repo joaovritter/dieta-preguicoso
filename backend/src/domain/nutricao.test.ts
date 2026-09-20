@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { calcularMetas, calorasDeMacros, metrica, somarTotais } from './nutricao.js';
+import {
+  calcularMetas,
+  calorasDeMacros,
+  metrica,
+  recalcularCaloriasDosAlimentos,
+  somarTotais,
+} from './nutricao.js';
 import type { Alimento } from './tipos.js';
 
 const alimento = (p: Partial<Alimento>): Alimento => ({
@@ -69,6 +75,44 @@ describe('calorasDeMacros', () => {
 
   it('arredonda a 1 casa decimal', () => {
     expect(calorasDeMacros(10.5375, 0, 0)).toBe(42.2); // 4*10.5375 = 42.15 -> 42.2
+  });
+});
+
+describe('recalcularCaloriasDosAlimentos', () => {
+  it('ignora o valor de calorias recebido e recalcula a partir dos macros', () => {
+    const alimentos = [
+      alimento({ nome: 'arroz', calorias: 9999, carboidrato_g: 50, proteina_g: 20, gordura_g: 10 }),
+    ];
+    expect(recalcularCaloriasDosAlimentos(alimentos)).toEqual([
+      alimento({ nome: 'arroz', calorias: 370, carboidrato_g: 50, proteina_g: 20, gordura_g: 10 }),
+    ]);
+  });
+
+  it('mantém os demais campos do alimento intactos', () => {
+    const alimentos = [
+      alimento({
+        nome: 'feijão',
+        quantidade_estimada: '150g',
+        calorias: 0,
+        carboidrato_g: 10,
+        proteina_g: 5,
+        gordura_g: 1,
+      }),
+    ];
+    expect(recalcularCaloriasDosAlimentos(alimentos)).toEqual([
+      alimento({
+        nome: 'feijão',
+        quantidade_estimada: '150g',
+        calorias: 69,
+        carboidrato_g: 10,
+        proteina_g: 5,
+        gordura_g: 1,
+      }),
+    ]);
+  });
+
+  it('devolve lista vazia para lista vazia', () => {
+    expect(recalcularCaloriasDosAlimentos([])).toEqual([]);
   });
 });
 

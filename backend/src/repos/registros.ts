@@ -1,5 +1,5 @@
 import { consultar, consultarUm } from '../db/index.js';
-import { somarTotais } from '../domain/nutricao.js';
+import { recalcularCaloriasDosAlimentos, somarTotais } from '../domain/nutricao.js';
 import { paraPerfilPublico } from '../domain/social.js';
 import type {
   Alimento,
@@ -123,7 +123,11 @@ export async function atualizarRegistro(
   const atual = await buscarRegistro(userId, id);
   if (!atual) return null;
 
-  const alimentos = campos.alimentos ?? atual.alimentos_detectados;
+  // `calorias` de cada alimento é sempre recalculado a partir dos macros ao editar —
+  // a IA continua livre para estimar na primeira vez (criarRegistro não passa por aqui).
+  const alimentos = campos.alimentos
+    ? recalcularCaloriasDosAlimentos(campos.alimentos)
+    : atual.alimentos_detectados;
   const refeicaoId = campos.refeicao_id ?? atual.refeicao_id;
   const t = somarTotais(alimentos);
 

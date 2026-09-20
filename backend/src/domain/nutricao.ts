@@ -14,6 +14,18 @@ export function calorasDeMacros(
   return arredondar(4 * carboidrato_g + 4 * proteina_g + 9 * gordura_g);
 }
 
+/**
+ * Recalcula `calorias` de cada alimento a partir dos próprios macros, ignorando o
+ * valor recebido. Defesa em profundidade ao editar um registro: o cliente pode mandar
+ * qualquer coisa em `calorias`, o servidor nunca confia nele.
+ */
+export function recalcularCaloriasDosAlimentos(alimentos: Alimento[]): Alimento[] {
+  return alimentos.map((a) => ({
+    ...a,
+    calorias: calorasDeMacros(a.carboidrato_g, a.proteina_g, a.gordura_g),
+  }));
+}
+
 export function somarTotais(alimentos: Alimento[]): Totais {
   const t = alimentos.reduce<Totais>(
     (acc, a) => ({
