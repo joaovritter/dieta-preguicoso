@@ -11,10 +11,19 @@ import CardPost from '../components/CardPost';
 import Avatar from '../components/social/Avatar';
 import { useFeed } from '../components/social/useFeed';
 import { api, mensagemDoErro } from '../lib/api';
-import { hojeISO, numero } from '../lib/format';
+import { hojeISO, milhar, numero } from '../lib/format';
 import { textoDoDia } from '../lib/social';
 import { deslocarMes, mesLongo } from '../lib/visual';
 import type { CalendarioMes, MembroComProgresso } from '../lib/types';
+
+function Estatistica({ valor, rotulo }: { valor: number; rotulo: string }) {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', minWidth: 56 }}>
+      <Typography sx={{ fontWeight: 700, fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{milhar(valor)}</Typography>
+      <Typography sx={{ fontSize: 10.5, color: 'text.secondary' }}>{rotulo}</Typography>
+    </Box>
+  );
+}
 
 export default function PerfilPublico() {
   const { id = '' } = useParams();
@@ -60,17 +69,23 @@ export default function PerfilPublico() {
         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>carregando...</Typography>
       ) : (
         <>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <Avatar nome={pessoa.perfil.nome} tamanho={58} />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography noWrap sx={{ fontWeight: 700, fontSize: 17 }}>
-                {pessoa.perfil.nome_tag}
-              </Typography>
-              <Typography sx={{ fontSize: 12.5, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
-                {textoDoDia(pessoa.progresso_hoje)} · {numero(pessoa.progresso_hoje.calorias)} /{' '}
-                {numero(pessoa.progresso_hoje.meta_calorias)} kcal
-              </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+            <Avatar nome={pessoa.perfil.nome} fotoUrl={pessoa.perfil.foto_url} tamanho={72} />
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'space-around' }}>
+              <Estatistica valor={pessoa.perfil.total_posts} rotulo="posts" />
+              <Estatistica valor={pessoa.perfil.total_amigos} rotulo="seguidores" />
+              <Estatistica valor={pessoa.perfil.total_amigos} rotulo="seguindo" />
             </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <Typography noWrap sx={{ fontWeight: 700, fontSize: 17 }}>
+              {pessoa.perfil.nome_tag}
+            </Typography>
+            <Typography sx={{ fontSize: 12.5, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+              {textoDoDia(pessoa.progresso_hoje)} · {numero(pessoa.progresso_hoje.calorias)} /{' '}
+              {numero(pessoa.progresso_hoje.meta_calorias)} kcal
+            </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
