@@ -4,7 +4,9 @@ import type { Comentario, Objetivo } from '../domain/tipos.js';
 
 export async function donoDoRegistro(registroId: string): Promise<string | null> {
   const linha = await consultarUm<{ user_id: string }>(
-    'SELECT user_id FROM registros_alimentares WHERE id = $1',
+    `SELECT r.user_id FROM registros_alimentares r
+     JOIN users u ON u.id = r.user_id
+     WHERE r.id = $1 AND u.desativada_em IS NULL`,
     [registroId],
   );
   return linha?.user_id ?? null;
@@ -63,7 +65,7 @@ export async function listarComentarios(
   observadorId: string,
 ): Promise<Comentario[]> {
   const linhas = await consultar<LinhaComentario>(
-    `${SELECT_COMENTARIO} WHERE cm.registro_id = $1 ORDER BY cm.criado_em ASC`,
+    `${SELECT_COMENTARIO} WHERE cm.registro_id = $1 AND u.desativada_em IS NULL ORDER BY cm.criado_em ASC`,
     [registroId],
   );
   return linhas.map((l) => paraComentario(l, observadorId));

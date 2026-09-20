@@ -94,9 +94,11 @@ export async function tagLivrePara(nome: string, preferida?: string): Promise<st
   }
 }
 
+/** Só contas ativas: pedido de amizade para uma conta desativada dá 404, como se não existisse. */
 export async function buscarPorNomeTag(nome: string, tag: string): Promise<LinhaUsuario | null> {
   return consultarUm<LinhaUsuario>(
-    `SELECT ${COLUNAS} FROM users WHERE lower(nome) = lower($1) AND tag = $2`,
+    `SELECT ${COLUNAS} FROM users
+     WHERE lower(nome) = lower($1) AND tag = $2 AND desativada_em IS NULL`,
     [nome, tag],
   );
 }

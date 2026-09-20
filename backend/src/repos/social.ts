@@ -16,7 +16,7 @@ const COLUNAS_SOCIAIS = 'u.id, u.nome, u.tag, u.objetivo, u.meta_calorias, u.tim
 
 export async function buscarUsuarioSocial(id: string): Promise<UsuarioSocial | null> {
   return consultarUm<UsuarioSocial>(
-    `SELECT ${COLUNAS_SOCIAIS} FROM users u WHERE u.id = $1`,
+    `SELECT ${COLUNAS_SOCIAIS} FROM users u WHERE u.id = $1 AND u.desativada_em IS NULL`,
     [id],
   );
 }
@@ -52,6 +52,7 @@ export async function listarAmigos(userId: string): Promise<UsuarioSocial[]> {
      JOIN users u ON u.id = CASE WHEN a.solicitante_id = $1 THEN a.destinatario_id
                                  ELSE a.solicitante_id END
      WHERE a.status = 'aceita' AND $1 IN (a.solicitante_id, a.destinatario_id)
+       AND u.desativada_em IS NULL
      ORDER BY lower(u.nome), u.tag`,
     [userId],
   );
@@ -70,14 +71,14 @@ export async function listarPedidos(
     consultar<PedidoComPerfil>(
       `SELECT ${COLUNAS_SOCIAIS}, a.id AS pedido_id, a.criado_em AS pedido_criado_em
        FROM amizades a JOIN users u ON u.id = a.solicitante_id
-       WHERE a.destinatario_id = $1 AND a.status = 'pendente'
+       WHERE a.destinatario_id = $1 AND a.status = 'pendente' AND u.desativada_em IS NULL
        ORDER BY a.criado_em DESC`,
       [userId],
     ),
     consultar<PedidoComPerfil>(
       `SELECT ${COLUNAS_SOCIAIS}, a.id AS pedido_id, a.criado_em AS pedido_criado_em
        FROM amizades a JOIN users u ON u.id = a.destinatario_id
-       WHERE a.solicitante_id = $1 AND a.status = 'pendente'
+       WHERE a.solicitante_id = $1 AND a.status = 'pendente' AND u.desativada_em IS NULL
        ORDER BY a.criado_em DESC`,
       [userId],
     ),
@@ -141,7 +142,9 @@ export interface LinhaGrupo {
 }
 
 const SELECT_GRUPO = `SELECT g.id, g.nome, g.codigo_convite, g.criador_id, g.criado_em,
-    (SELECT count(*)::int FROM grupo_membros m WHERE m.grupo_id = g.id) AS quantidade_membros
+    (SELECT count(*)::int FROM grupo_membros m
+       JOIN users mu ON mu.id = m.user_id
+      WHERE m.grupo_id = g.id AND mu.desativada_em IS NULL) AS quantidade_membros
   FROM grupos g`;
 
 export function paraGrupo(l: LinhaGrupo, userId: string, minhaPosicao: number | null): Grupo {
@@ -239,7 +242,7 @@ export async function membrosDoGrupo(grupoId: string): Promise<UsuarioSocial[]> 
   return consultar<UsuarioSocial>(
     `SELECT ${COLUNAS_SOCIAIS} FROM grupo_membros m
      JOIN users u ON u.id = m.user_id
-     WHERE m.grupo_id = $1
+     WHERE m.grupo_id = $1 AND u.desativada_em IS NULL
      ORDER BY lower(u.nome), u.tag`,
     [grupoId],
   );
@@ -256,20 +259,32 @@ export async function dividemGrupo(a: string, b: string): Promise<boolean> {
   return linha !== null;
 }
 
-/** Todo mundo cujo progresso a pessoa enxerga, menos ela mesma: amigos aceitos e colegas de grupo. */
+/** Todo mundo cujo progresso a pessoa enxerga, menos ela mesma: amigos aceitos e colegas de grupo ativos. */
 export async function idsVisiveis(userId: string): Promise<string[]> {
   const linhas = await consultar<{ id: string }>(
-    `SELECT CASE WHEN a.solicitante_id = $1 THEN a.destinatario_id ELSE a.solicitante_id END AS id
-     FROM amizades a
-     WHERE a.status = 'aceita' AND $1 IN (a.solicitante_id, a.destinatario_id)
-     UNION
-     SELECT outro.user_id AS id
-     FROM grupo_membros meu
-     JOIN grupo_membros outro ON outro.grupo_id = meu.grupo_id AND outro.user_id <> $1
-     WHERE meu.user_id = $1`,
+    `SELECT v.id FROM (
+       SELECT CASE WHEN a.solicitante_id = $1 THEN a.destinatario_id ELSE a.solicitante_id END AS id
+       FROM amizades a
+       WHERE a.status = 'aceita' AND $1 IN (a.solicitante_id, a.destinatario_id)
+       UNION
+       SELECT outro.user_id AS id
+       FROM grupo_membros meu
+       JOIN grupo_membros outro ON outro.grupo_id = meu.grupo_id AND outro.user_id <> $1
+       WHERE meu.user_id = $1
+     ) v
+     JOIN users u ON u.id = v.id
+     WHERE u.desativada_em IS NULL`,
     [userId],
   );
   return linhas.map((l) => l.id);
+}
+
+async function estaAtiva(userId: string): Promise<boolean> {
+  const linha = await consultarUm<{ id: string }>(
+    'SELECT id FROM users WHERE id = $1 AND desativada_em IS NULL',
+    [userId],
+  );
+  return linha !== null;
 }
 
 /**
@@ -278,6 +293,7 @@ export async function idsVisiveis(userId: string): Promise<string[]> {
  */
 export async function podeVer(observadorId: string, alvoId: string): Promise<boolean> {
   if (observadorId === alvoId) return true;
+  if (!(await estaAtiva(alvoId))) return false;
   if (await saoAmigos(observadorId, alvoId)) return true;
   return dividemGrupo(observadorId, alvoId);
 }

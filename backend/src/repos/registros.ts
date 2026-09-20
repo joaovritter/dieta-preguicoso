@@ -196,6 +196,7 @@ export async function feedDeUsuarios(
      ${DE}
      JOIN users u ON u.id = r.user_id
      WHERE r.user_id = ANY($1::uuid[])
+       AND u.desativada_em IS NULL
        AND ($2::timestamptz IS NULL OR r.criado_em < $2)
      ORDER BY r.criado_em DESC
      LIMIT $3`,
