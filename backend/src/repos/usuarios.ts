@@ -24,11 +24,12 @@ interface LinhaUsuario {
   modo_preguicoso: boolean;
   timezone: string;
   created_at: Date;
+  desativada_em: Date | null;
 }
 
 const COLUNAS = `id, email, password_hash, nome, tag, sexo, idade, peso_kg, altura_cm, objetivo,
   meta_calorias, meta_carboidrato_g, meta_proteina_g, meta_gordura_g, meta_agua_ml,
-  metas_automaticas, modo_preguicoso, timezone, created_at`;
+  metas_automaticas, modo_preguicoso, timezone, created_at, desativada_em`;
 
 export function paraPerfil(l: LinhaUsuario): Perfil {
   return {
@@ -212,4 +213,10 @@ export async function atualizarUsuario(
 
 export async function atualizarSenha(id: string, passwordHash: string): Promise<void> {
   await consultar('UPDATE users SET password_hash = $2 WHERE id = $1', [id, passwordHash]);
+}
+
+export async function desativarUsuario(id: string): Promise<void> {
+  await consultar('UPDATE users SET desativada_em = now() WHERE id = $1 AND desativada_em IS NULL', [
+    id,
+  ]);
 }

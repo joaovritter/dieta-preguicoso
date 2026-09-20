@@ -11,6 +11,7 @@ import {
   atualizarSenha,
   atualizarUsuario,
   buscarPorId,
+  desativarUsuario,
   paraPerfil,
   type CamposAtualizaveis,
 } from '../repos/usuarios.js';
@@ -94,6 +95,22 @@ rotasMe.put('/senha', limiteConta, async (req, res, next) => {
     const { senha_atual, senha_nova } = trocaSenhaSchema.parse(req.body);
     await exigirSenha(perfil.id, senha_atual);
     await atualizarSenha(perfil.id, await hashSenha(senha_nova));
+    res.status(204).end();
+  } catch (e) {
+    next(e);
+  }
+});
+
+const desativarSchema = z.object({
+  senha: z.string().min(1, 'informe a senha').max(200),
+});
+
+rotasMe.post('/desativar', limiteConta, async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    const { senha } = desativarSchema.parse(req.body);
+    await exigirSenha(perfil.id, senha);
+    await desativarUsuario(perfil.id);
     res.status(204).end();
   } catch (e) {
     next(e);

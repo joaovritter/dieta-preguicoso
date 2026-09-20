@@ -36,6 +36,8 @@ const STATUS_PADRAO: Record<CodigoErro, number> = {
   ERRO_INTERNO: 500,
 };
 
+export const MENSAGEM_CONTA_DESATIVADA = 'conta desativada — fale com o administrador';
+
 export class AppError extends Error {
   readonly codigo: CodigoErro;
   readonly status: number;
