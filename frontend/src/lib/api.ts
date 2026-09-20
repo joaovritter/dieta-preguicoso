@@ -162,6 +162,11 @@ export const api = {
   desativarConta: (senha: string) =>
     requisitar<void>('/me/desativar', { method: 'POST', corpo: { senha } }),
 
+  enviarFotoPerfil: (arquivo: File) =>
+    requisitar<Perfil>('/me/foto', { method: 'POST', formData: arquivoForm(arquivo, arquivo.name) }),
+
+  removerFotoPerfil: () => requisitar<Perfil>('/me/foto', { method: 'DELETE' }),
+
   registroTexto: (texto: string, criado_em?: string) =>
     requisitar<Interpretacao>('/registros/texto', {
       method: 'POST',

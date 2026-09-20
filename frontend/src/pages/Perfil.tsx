@@ -11,6 +11,7 @@ import { useRefeicoes } from '../lib/RefeicoesContext';
 import { litros } from '../lib/visual';
 import Erro from '../components/Erro';
 import DialogoDesativarConta from '../components/perfil/DialogoDesativarConta';
+import EditorFotoPerfil from '../components/perfil/EditorFotoPerfil';
 import SecaoConta from '../components/perfil/SecaoConta';
 import Interruptor from '../components/ui/Interruptor';
 import LinhaLista from '../components/ui/LinhaLista';
@@ -71,12 +72,7 @@ export default function PerfilPage() {
   return (
     <Tela gap={26}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '14px', pt: '4px' }}>
-        <Box
-          aria-hidden="true"
-          sx={{ width: 58, height: 58, borderRadius: '50%', flex: 'none', bgcolor: 'primary.main', color: 'primary.contrastText', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 22 }}
-        >
-          {perfil.nome.trim().charAt(0).toUpperCase()}
-        </Box>
+        <EditorFotoPerfil tamanho={58} aoFalhar={setErro} />
         <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <Typography component="h1" sx={{ m: 0, fontWeight: 700, fontSize: 17, overflowWrap: 'anywhere' }}>{perfil.nome}</Typography>
           <Typography sx={{ fontSize: 12.5, color: 'text.secondary', overflowWrap: 'anywhere' }}>{perfil.email}</Typography>
