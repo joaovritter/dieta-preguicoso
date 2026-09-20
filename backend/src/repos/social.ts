@@ -10,9 +10,21 @@ export interface UsuarioSocial {
   objetivo: Objetivo;
   meta_calorias: number;
   timezone: string;
+  foto_url: string | null;
+  total_posts: number;
+  total_amigos: number;
 }
 
-const COLUNAS_SOCIAIS = 'u.id, u.nome, u.tag, u.objetivo, u.meta_calorias, u.timezone';
+/** Subquery reaproveitável: quantidade de posts (registros) de quem está aliasado como `u`. */
+export const SQL_TOTAL_POSTS =
+  '(SELECT count(*)::int FROM registros_alimentares reg WHERE reg.user_id = u.id)';
+
+/** Subquery reaproveitável: quantidade de amigos aceitos de quem está aliasado como `u`. */
+export const SQL_TOTAL_AMIGOS = `(SELECT count(*)::int FROM amizades am
+   WHERE am.status = 'aceita' AND u.id IN (am.solicitante_id, am.destinatario_id))`;
+
+const COLUNAS_SOCIAIS = `u.id, u.nome, u.tag, u.objetivo, u.meta_calorias, u.timezone, u.foto_url,
+  ${SQL_TOTAL_POSTS} AS total_posts, ${SQL_TOTAL_AMIGOS} AS total_amigos`;
 
 export async function buscarUsuarioSocial(id: string): Promise<UsuarioSocial | null> {
   return consultarUm<UsuarioSocial>(

@@ -77,9 +77,13 @@ rotasAmigos.post('/pedidos', limitePedidos, async (req, res, next) => {
     }
 
     const pedido = await criarPedido(perfil.id, alvo.id);
+    // `buscarPorNomeTag` não traz total_posts/total_amigos (são específicos de UsuarioSocial);
+    // busca de novo pelo id para montar o PerfilPublico completo.
+    const alvoSocial = await buscarUsuarioSocial(alvo.id);
+    if (!alvoSocial) throw new AppError('NAO_ENCONTRADO', 'essa conta não existe mais');
     res.status(201).json({
       id: pedido.id,
-      perfil: paraPerfilPublico(alvo),
+      perfil: paraPerfilPublico(alvoSocial),
       criado_em: pedido.criado_em.toISOString(),
     });
   } catch (e) {

@@ -1,6 +1,7 @@
 import { consultar, consultarUm } from '../db/index.js';
 import { recalcularCaloriasDosAlimentos, somarTotais } from '../domain/nutricao.js';
 import { paraPerfilPublico } from '../domain/social.js';
+import { SQL_TOTAL_AMIGOS, SQL_TOTAL_POSTS } from './social.js';
 import type {
   Alimento,
   Objetivo,
@@ -172,6 +173,9 @@ interface LinhaPost extends LinhaRegistro {
   autor_nome: string;
   autor_tag: string;
   autor_objetivo: Objetivo;
+  autor_foto_url: string | null;
+  autor_total_posts: number;
+  autor_total_amigos: number;
   curtidas: number;
   curti: boolean;
   comentarios: number;
@@ -193,7 +197,8 @@ export async function feedDeUsuarios(
   const linhas = await consultar<LinhaPost>(
     `SELECT ${COLUNAS},
             u.id AS autor_id, u.nome AS autor_nome, u.tag AS autor_tag,
-            u.objetivo AS autor_objetivo,
+            u.objetivo AS autor_objetivo, u.foto_url AS autor_foto_url,
+            ${SQL_TOTAL_POSTS} AS autor_total_posts, ${SQL_TOTAL_AMIGOS} AS autor_total_amigos,
             (SELECT count(*)::int FROM curtidas c WHERE c.registro_id = r.id) AS curtidas,
             EXISTS (SELECT 1 FROM curtidas c WHERE c.registro_id = r.id AND c.user_id = $4) AS curti,
             (SELECT count(*)::int FROM comentarios cm WHERE cm.registro_id = r.id) AS comentarios
@@ -214,6 +219,9 @@ export async function feedDeUsuarios(
       nome: l.autor_nome,
       tag: l.autor_tag,
       objetivo: l.autor_objetivo,
+      foto_url: l.autor_foto_url,
+      total_posts: l.autor_total_posts,
+      total_amigos: l.autor_total_amigos,
     }),
     curtidas: l.curtidas,
     curti: l.curti,

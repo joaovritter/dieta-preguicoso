@@ -56,6 +56,9 @@ export function paraPerfilPublico(u: {
   nome: string;
   tag: string;
   objetivo: PerfilPublico['objetivo'];
+  foto_url: string | null;
+  total_posts: number;
+  total_amigos: number;
 }): PerfilPublico {
   return {
     id: u.id,
@@ -63,5 +66,8 @@ export function paraPerfilPublico(u: {
     tag: u.tag,
     nome_tag: montarNomeTag(u.nome, u.tag),
     objetivo: u.objetivo,
+    foto_url: u.foto_url,
+    total_posts: u.total_posts,
+    total_amigos: u.total_amigos,
   };
 }

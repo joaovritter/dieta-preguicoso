@@ -1,5 +1,6 @@
 import { consultar, consultarUm } from '../db/index.js';
 import { paraPerfilPublico } from '../domain/social.js';
+import { SQL_TOTAL_AMIGOS, SQL_TOTAL_POSTS } from './social.js';
 import type { Comentario, Objetivo } from '../domain/tipos.js';
 
 export async function donoDoRegistro(registroId: string): Promise<string | null> {
@@ -35,11 +36,16 @@ interface LinhaComentario {
   autor_nome: string;
   autor_tag: string;
   autor_objetivo: Objetivo;
+  autor_foto_url: string | null;
+  autor_total_posts: number;
+  autor_total_amigos: number;
   dono_post_id: string;
 }
 
 const SELECT_COMENTARIO = `SELECT cm.id, cm.texto, cm.criado_em,
     u.id AS autor_id, u.nome AS autor_nome, u.tag AS autor_tag, u.objetivo AS autor_objetivo,
+    u.foto_url AS autor_foto_url,
+    ${SQL_TOTAL_POSTS} AS autor_total_posts, ${SQL_TOTAL_AMIGOS} AS autor_total_amigos,
     r.user_id AS dono_post_id
   FROM comentarios cm
   JOIN users u ON u.id = cm.user_id
@@ -53,6 +59,9 @@ function paraComentario(l: LinhaComentario, observadorId: string): Comentario {
       nome: l.autor_nome,
       tag: l.autor_tag,
       objetivo: l.autor_objetivo,
+      foto_url: l.autor_foto_url,
+      total_posts: l.autor_total_posts,
+      total_amigos: l.autor_total_amigos,
     }),
     texto: l.texto,
     criado_em: l.criado_em.toISOString(),
