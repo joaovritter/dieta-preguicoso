@@ -10,6 +10,7 @@ import { milhar } from '../lib/format';
 import { useRefeicoes } from '../lib/RefeicoesContext';
 import { litros } from '../lib/visual';
 import Erro from '../components/Erro';
+import DialogoDesativarConta from '../components/perfil/DialogoDesativarConta';
 import SecaoConta from '../components/perfil/SecaoConta';
 import Interruptor from '../components/ui/Interruptor';
 import LinhaLista from '../components/ui/LinhaLista';
@@ -40,6 +41,7 @@ export default function PerfilPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [salvandoModo, setSalvandoModo] = useState(false);
+  const [desativandoConta, setDesativandoConta] = useState(false);
 
   if (perfil === null) return null;
   const nomeTag = `${perfil.nome}#${perfil.tag}`;
@@ -145,7 +147,13 @@ export default function PerfilPage() {
         </Box>
       </Secao>
 
-      <SecaoConta />
+      <SecaoConta
+        antesDeSair={<LinhaLista rotulo="trocar senha" chevron onClick={() => navigate('/perfil/senha')} />}
+        depoisDeSair={
+          <LinhaLista rotulo="desativar conta" cor="perigo" ultima onClick={() => setDesativandoConta(true)} />
+        }
+      />
+      <DialogoDesativarConta aberto={desativandoConta} aoFechar={() => setDesativandoConta(false)} />
     </Tela>
   );
 }

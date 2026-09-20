@@ -22,6 +22,7 @@ import type {
   ResumoDia,
   ResumoSemana,
 } from './types';
+import { encerraSessao } from './sessao';
 
 const BASE = '/api';
 const CHAVE_TOKEN = 'dieta.token';
@@ -52,6 +53,19 @@ let aoDeslogar: () => void = () => {};
 /** A AuthContext registra aqui o logout, para qualquer 401 derrubar a sessão. */
 export function registrarLogout(fn: () => void): void {
   aoDeslogar = fn;
+}
+
+let motivoSaida: string | null = null;
+
+/** Guarda por que a sessão acabou, para o login mostrar uma vez. */
+export function definirMotivoSaida(mensagem: string): void {
+  motivoSaida = mensagem;
+}
+
+export function consumirMotivoSaida(): string | null {
+  const motivo = motivoSaida;
+  motivoSaida = null;
+  return motivo;
 }
 
 function extrairErro(corpo: unknown, status: number): ErroApi {
@@ -110,7 +124,10 @@ async function requisitar<T>(caminho: string, opcoes: Opcoes = {}): Promise<T> {
 
   if (!resposta.ok) {
     const erro = extrairErro(corpo, resposta.status);
-    if (resposta.status === 401 && opcoes.semAuth !== true) aoDeslogar();
+    if (encerraSessao(resposta.status, erro.code, opcoes.semAuth === true)) {
+      if (erro.code === 'CONTA_DESATIVADA') definirMotivoSaida(erro.message);
+      aoDeslogar();
+    }
     throw erro;
   }
 

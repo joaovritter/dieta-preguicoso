@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
 import InputBase from '@mui/material/InputBase';
 import Typography from '@mui/material/Typography';
 import { useAuth } from '../auth/useAuth';
-import { mensagemDoErro } from '../lib/api';
+import { consumirMotivoSaida, mensagemDoErro } from '../lib/api';
 import Erro from '../components/Erro';
 import BotaoCta from '../components/ui/BotaoCta';
 import RotuloSecao from '../components/ui/RotuloSecao';
@@ -71,7 +71,7 @@ function CampoSublinhado({ rotulo, valor, aoMudar, tipo = 'text', autoComplete, 
 }
 
 export default function Login() {
-  const { entrar, cadastrar } = useAuth();
+  const { entrar, cadastrar, carregando } = useAuth();
   const [aba, setAba] = useState<Aba>('entrar');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -79,6 +79,12 @@ export default function Login() {
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    if (carregando) return;
+    const motivo = consumirMotivoSaida();
+    if (motivo !== null) setErro(motivo);
+  }, [carregando]);
 
   const cadastrando = aba === 'cadastrar';
   const senhaCurta = cadastrando && senha.length > 0 && senha.length < 8;
