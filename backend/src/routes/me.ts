@@ -37,6 +37,7 @@ const perfilSchema = z
     meta_agua_ml: z.number().int().min(200).max(20000),
     metas_automaticas: z.boolean(),
     modo_preguicoso: z.boolean(),
+    esconder_comentarios_perfil: z.boolean(),
     timezone: z.string().refine(timezoneValida, 'fuso horário desconhecido'),
   })
   .partial();

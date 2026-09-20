@@ -107,7 +107,7 @@ quem acertou a senha: senha errada numa conta desativada continua `401`.
 Body: qualquer subconjunto de
 `{ nome, sexo, idade, peso_kg, altura_cm, objetivo, meta_calorias, meta_carboidrato_g,
    meta_proteina_g, meta_gordura_g, meta_agua_ml, metas_automaticas, modo_preguicoso,
-   timezone }`
+   esconder_comentarios_perfil, timezone }`
 → `200 Perfil` (já com metas recalculadas se `metas_automaticas`).
 
 `meta_calorias` nunca é gravado com o valor que veio no body: com `metas_automaticas: true` o

@@ -157,6 +157,7 @@ export type CamposAtualizaveis = Partial<{
   meta_agua_ml: number;
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
+  esconder_comentarios_perfil: boolean;
   timezone: string;
 }>;
 
@@ -178,6 +179,7 @@ const COLUNAS_ATUALIZAVEIS = [
   'meta_agua_ml',
   'metas_automaticas',
   'modo_preguicoso',
+  'esconder_comentarios_perfil',
   'timezone',
 ] as const;
 

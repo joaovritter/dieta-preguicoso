@@ -41,6 +41,7 @@ export default function ConfiguracoesPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [salvandoModo, setSalvandoModo] = useState(false);
+  const [salvandoComentarios, setSalvandoComentarios] = useState(false);
   const [desativandoConta, setDesativandoConta] = useState(false);
 
   if (perfil === null) return null;
@@ -56,6 +57,19 @@ export default function ConfiguracoesPage() {
       setErro(mensagemDoErro(falha));
     } finally {
       setSalvandoModo(false);
+    }
+  }
+
+  async function trocarEsconderComentarios(ligado: boolean) {
+    if (perfil === null) return;
+    setSalvandoComentarios(true);
+    setErro(null);
+    try {
+      definirPerfil(await api.salvarPerfil({ esconder_comentarios_perfil: ligado }));
+    } catch (falha: unknown) {
+      setErro(mensagemDoErro(falha));
+    } finally {
+      setSalvandoComentarios(false);
     }
   }
 
@@ -91,6 +105,14 @@ export default function ConfiguracoesPage() {
         <Typography role="status" sx={{ fontSize: 12, color: 'text.secondary', minHeight: 16 }}>
           {aviso ?? 'é assim que teus amigos te encontram'}
         </Typography>
+        <LinhaLista rotulo="esconder comentários no meu perfil" ultima>
+          <Interruptor
+            rotulo="esconder comentários no meu perfil"
+            ligado={perfil.esconder_comentarios_perfil}
+            disabled={salvandoComentarios}
+            aoMudar={(v) => void trocarEsconderComentarios(v)}
+          />
+        </LinhaLista>
       </Secao>
 
       <Secao rotulo="metas">

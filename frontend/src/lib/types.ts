@@ -143,6 +143,7 @@ export interface EntradaPerfil {
   meta_agua_ml?: number;
   metas_automaticas?: boolean;
   modo_preguicoso?: boolean;
+  esconder_comentarios_perfil?: boolean;
   /** Nunca editado na tela — sincronizado automaticamente com o fuso do aparelho. */
   timezone?: string;
 }
