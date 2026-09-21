@@ -9,7 +9,8 @@ import { OBJETIVOS, SEXOS } from '../domain/tipos.js';
 import { conferirSenha, hashSenha } from '../lib/auth.js';
 import { AppError } from '../lib/erros.js';
 import { uploadImagem, urlDaMidia, caminhoDaMidia } from '../lib/uploads.js';
-import { listarComentariosDoUsuario } from '../repos/interacoes.js';
+import { donoDoRegistro, listarComentariosDoUsuario } from '../repos/interacoes.js';
+import { apagarSalvo, listarSalvos, salvarRegistro } from '../repos/refeicoesSalvas.js';
 import {
   atualizarFotoPerfil,
   atualizarSenha,
@@ -19,6 +20,7 @@ import {
   paraPerfil,
   type CamposAtualizaveis,
 } from '../repos/usuarios.js';
+import { garantirAcesso, idSchema } from './socialComum.js';
 
 export const rotasMe: Router = Router();
 
@@ -141,6 +143,50 @@ rotasMe.get('/comentarios', async (req, res, next) => {
     // Só oferece a próxima página quando a atual veio cheia; menos que isso é o fim da lista.
     const ultimo = comentarios.length === limite ? comentarios[comentarios.length - 1] : undefined;
     res.json({ comentarios, proximo_antes: ultimo?.criado_em ?? null });
+  } catch (e) {
+    next(e);
+  }
+});
+
+const salvarSchema = z.object({ registro_id: z.uuid('id inválido') });
+
+rotasMe.post('/salvos', async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    const { registro_id } = salvarSchema.parse(req.body);
+    // Mesma regra de curtir/comentar: o registro existe e quem pede enxerga o dono.
+    const dono = await donoDoRegistro(registro_id);
+    if (!dono) throw new AppError('NAO_ENCONTRADO', 'essa refeição não existe');
+    await garantirAcesso(perfil.id, dono);
+    const salvo = await salvarRegistro(registro_id, perfil.id);
+    if (!salvo) throw new AppError('NAO_ENCONTRADO', 'essa refeição não existe');
+    res.status(201).json(salvo);
+  } catch (e) {
+    next(e);
+  }
+});
+
+rotasMe.get('/salvos', async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    const { antes, limite } = feedComentariosSchema.parse(req.query);
+    const salvos = await listarSalvos(perfil.id, antes ? new Date(antes) : null, limite);
+
+    // Só oferece a próxima página quando a atual veio cheia; menos que isso é o fim da lista.
+    const ultimo = salvos.length === limite ? salvos[salvos.length - 1] : undefined;
+    res.json({ salvos, proximo_antes: ultimo?.criado_em ?? null });
+  } catch (e) {
+    next(e);
+  }
+});
+
+rotasMe.delete('/salvos/:id', async (req, res, next) => {
+  try {
+    const { id } = idSchema.parse(req.params);
+    if (!(await apagarSalvo(id, perfilDe(req).id))) {
+      throw new AppError('NAO_ENCONTRADO', 'refeição salva não encontrada');
+    }
+    res.status(204).end();
   } catch (e) {
     next(e);
   }
