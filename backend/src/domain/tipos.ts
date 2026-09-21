@@ -136,6 +136,7 @@ export interface Post extends Registro {
   autor: PerfilPublico;
   curtidas: number;
   curti: boolean;
+  salvo: boolean;
   comentarios: number;
 }
 

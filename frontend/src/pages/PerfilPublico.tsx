@@ -118,7 +118,7 @@ export default function PerfilPublico() {
               <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>nada registrado ainda</Typography>
             ) : (
               feed.feed.posts.map((post) => (
-                <CardPost key={post.id} post={post} aoCurtir={feed.curtir} aoComentar={feed.abrirComentarios} />
+                <CardPost key={post.id} post={post} aoCurtir={feed.curtir} aoComentar={feed.abrirComentarios} aoSalvar={feed.salvar} />
               ))
             )}
             {feed.feed !== null && feed.feed.proximo_antes !== null && (

@@ -3,6 +3,7 @@ import {
   alternarCurtida,
   corDoAvatar,
   corDoPonto,
+  definirSalvo,
   inicial,
   membros,
   tempoRelativo,
@@ -74,6 +75,14 @@ describe('alternarCurtida', () => {
   });
   it('não deixa a contagem negativa', () => {
     expect(alternarCurtida({ ...base, curti: true, curtidas: 0 }).curtidas).toBe(0);
+  });
+});
+
+describe('definirSalvo', () => {
+  it('marca e desmarca sem mexer no resto', () => {
+    const base = { id: 'p', curtidas: 8, salvo: false } as Post;
+    expect(definirSalvo(base, true)).toMatchObject({ id: 'p', curtidas: 8, salvo: true });
+    expect(definirSalvo({ ...base, salvo: true }, false).salvo).toBe(false);
   });
 });
 

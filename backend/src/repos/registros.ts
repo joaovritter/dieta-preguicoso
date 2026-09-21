@@ -178,13 +178,14 @@ interface LinhaPost extends LinhaRegistro {
   autor_total_amigos: number;
   curtidas: number;
   curti: boolean;
+  salvo: boolean;
   comentarios: number;
 }
 
 /**
  * Refeições de um conjunto de pessoas, mais recentes primeiro — é o feed.
  * `antes` pagina: passe o `criado_em` do último post da página anterior.
- * `observadorId` é quem está vendo: decide o `curti`.
+ * `observadorId` é quem está vendo: decide `curti` e `salvo`.
  */
 export async function feedDeUsuarios(
   observadorId: string,
@@ -201,6 +202,7 @@ export async function feedDeUsuarios(
             ${SQL_TOTAL_POSTS} AS autor_total_posts, ${SQL_TOTAL_AMIGOS} AS autor_total_amigos,
             (SELECT count(*)::int FROM curtidas c WHERE c.registro_id = r.id) AS curtidas,
             EXISTS (SELECT 1 FROM curtidas c WHERE c.registro_id = r.id AND c.user_id = $4) AS curti,
+            EXISTS (SELECT 1 FROM refeicoes_salvas s WHERE s.origem_registro_id = r.id AND s.user_id = $4) AS salvo,
             (SELECT count(*)::int FROM comentarios cm WHERE cm.registro_id = r.id) AS comentarios
      ${DE}
      JOIN users u ON u.id = r.user_id
@@ -225,6 +227,7 @@ export async function feedDeUsuarios(
     }),
     curtidas: l.curtidas,
     curti: l.curti,
+    salvo: l.salvo,
     comentarios: l.comentarios,
   }));
 }

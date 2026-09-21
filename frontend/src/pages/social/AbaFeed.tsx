@@ -9,7 +9,7 @@ import { api } from '../../lib/api';
 
 export default function AbaFeed() {
   const buscar = useCallback((antes?: string) => api.feedGeral(antes), []);
-  const { feed, erro, limparErro, carregando, carregarMais, curtir, abrirComentarios, folha } = useFeed(buscar);
+  const { feed, erro, limparErro, carregando, carregarMais, curtir, salvar, abrirComentarios, folha } = useFeed(buscar);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
@@ -27,7 +27,7 @@ export default function AbaFeed() {
       ) : (
         <>
           {feed.posts.map((post) => (
-            <CardPost key={post.id} post={post} aoCurtir={curtir} aoComentar={abrirComentarios} />
+            <CardPost key={post.id} post={post} aoCurtir={curtir} aoComentar={abrirComentarios} aoSalvar={salvar} />
           ))}
           {feed.proximo_antes !== null && (
             <Button variant="outlined" disabled={carregando} onClick={() => void carregarMais()} sx={{ borderRadius: '12px', minHeight: 46 }}>

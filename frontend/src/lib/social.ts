@@ -80,6 +80,11 @@ export function alternarCurtida(post: Post): Post {
     : { ...post, curti: true, curtidas: post.curtidas + 1 };
 }
 
+/** Marca (ou desmarca, ao reverter uma falha) o post como salvo. */
+export function definirSalvo(post: Post, salvo: boolean): Post {
+  return { ...post, salvo };
+}
+
 export function textoRanking(posicao: number | null): string | null {
   return posicao === null ? null : `você é #${posicao} esta semana`;
 }

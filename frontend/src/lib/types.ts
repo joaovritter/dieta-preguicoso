@@ -201,6 +201,8 @@ export interface Post {
   curtidas: number;
   curti: boolean;
   comentarios: number;
+  /** O usuário logado já salvou este registro. */
+  salvo: boolean;
 }
 
 export interface Comentario {
