@@ -2,6 +2,8 @@ export type CodigoErro =
   | 'VALIDACAO'
   | 'NAO_AUTORIZADO'
   | 'CREDENCIAIS_INVALIDAS'
+  | 'SENHA_INCORRETA'
+  | 'CONTA_DESATIVADA'
   | 'EMAIL_EM_USO'
   | 'CADASTRO_DESABILITADO'
   | 'NAO_ENCONTRADO'
@@ -18,6 +20,9 @@ const STATUS_PADRAO: Record<CodigoErro, number> = {
   VALIDACAO: 400,
   NAO_AUTORIZADO: 401,
   CREDENCIAIS_INVALIDAS: 401,
+  // 400, não 401: quem erra a senha atual continua logado.
+  SENHA_INCORRETA: 400,
+  CONTA_DESATIVADA: 403,
   EMAIL_EM_USO: 409,
   CADASTRO_DESABILITADO: 403,
   NAO_ENCONTRADO: 404,
@@ -30,6 +35,8 @@ const STATUS_PADRAO: Record<CodigoErro, number> = {
   REFEICAO_EM_USO: 409,
   ERRO_INTERNO: 500,
 };
+
+export const MENSAGEM_CONTA_DESATIVADA = 'conta desativada — fale com o administrador';
 
 export class AppError extends Error {
   readonly codigo: CodigoErro;

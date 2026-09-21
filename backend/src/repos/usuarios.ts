@@ -23,12 +23,16 @@ interface LinhaUsuario {
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;
+  foto_url: string | null;
+  esconder_comentarios_perfil: boolean;
   created_at: Date;
+  desativada_em: Date | null;
 }
 
 const COLUNAS = `id, email, password_hash, nome, tag, sexo, idade, peso_kg, altura_cm, objetivo,
   meta_calorias, meta_carboidrato_g, meta_proteina_g, meta_gordura_g, meta_agua_ml,
-  metas_automaticas, modo_preguicoso, timezone, created_at`;
+  metas_automaticas, modo_preguicoso, timezone, foto_url, esconder_comentarios_perfil,
+  created_at, desativada_em`;
 
 export function paraPerfil(l: LinhaUsuario): Perfil {
   return {
@@ -49,6 +53,8 @@ export function paraPerfil(l: LinhaUsuario): Perfil {
     metas_automaticas: l.metas_automaticas,
     modo_preguicoso: l.modo_preguicoso,
     timezone: l.timezone,
+    foto_url: l.foto_url,
+    esconder_comentarios_perfil: l.esconder_comentarios_perfil,
     criado_em: l.created_at.toISOString(),
   };
 }
@@ -93,9 +99,11 @@ export async function tagLivrePara(nome: string, preferida?: string): Promise<st
   }
 }
 
+/** Só contas ativas: pedido de amizade para uma conta desativada dá 404, como se não existisse. */
 export async function buscarPorNomeTag(nome: string, tag: string): Promise<LinhaUsuario | null> {
   return consultarUm<LinhaUsuario>(
-    `SELECT ${COLUNAS} FROM users WHERE lower(nome) = lower($1) AND tag = $2`,
+    `SELECT ${COLUNAS} FROM users
+     WHERE lower(nome) = lower($1) AND tag = $2 AND desativada_em IS NULL`,
     [nome, tag],
   );
 }
@@ -149,6 +157,7 @@ export type CamposAtualizaveis = Partial<{
   meta_agua_ml: number;
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
+  esconder_comentarios_perfil: boolean;
   timezone: string;
 }>;
 
@@ -170,6 +179,7 @@ const COLUNAS_ATUALIZAVEIS = [
   'meta_agua_ml',
   'metas_automaticas',
   'modo_preguicoso',
+  'esconder_comentarios_perfil',
   'timezone',
 ] as const;
 
@@ -208,4 +218,40 @@ export async function atualizarUsuario(
   );
   if (!linha) throw new Error('usuário não encontrado');
   return linha;
+}
+
+/** `fotoUrl: null` remove a foto (o cliente cai no avatar de iniciais). */
+export async function atualizarFotoPerfil(
+  id: string,
+  fotoUrl: string | null,
+): Promise<LinhaUsuario> {
+  const linha = await consultarUm<LinhaUsuario>(
+    `UPDATE users SET foto_url = $2 WHERE id = $1 RETURNING ${COLUNAS}`,
+    [id, fotoUrl],
+  );
+  if (!linha) throw new Error('usuário não encontrado');
+  return linha;
+}
+
+export async function atualizarSenha(id: string, passwordHash: string): Promise<void> {
+  await consultar('UPDATE users SET password_hash = $2 WHERE id = $1', [id, passwordHash]);
+}
+
+export async function desativarUsuario(id: string): Promise<void> {
+  await consultar('UPDATE users SET desativada_em = now() WHERE id = $1 AND desativada_em IS NULL', [
+    id,
+  ]);
+}
+
+export async function reativarPorEmail(
+  email: string,
+): Promise<'reativada' | 'ja_ativa' | 'nao_encontrada'> {
+  const linha = await consultarUm<{ desativada_em: Date | null }>(
+    'SELECT desativada_em FROM users WHERE lower(email) = lower($1)',
+    [email],
+  );
+  if (!linha) return 'nao_encontrada';
+  if (linha.desativada_em === null) return 'ja_ativa';
+  await consultar('UPDATE users SET desativada_em = NULL WHERE lower(email) = lower($1)', [email]);
+  return 'reativada';
 }

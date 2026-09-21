@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-function Icone({ tamanho = 19, traco = 1.8, children }: { tamanho?: number; traco?: number; children: ReactNode }) {
+function Icone({ tamanho = 23, traco = 1.8, children }: { tamanho?: number; traco?: number; children: ReactNode }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -60,7 +60,7 @@ export function IconePerfil() {
 
 export function IconeMais() {
   return (
-    <Icone tamanho={22} traco={2.1}>
+    <Icone tamanho={26} traco={2.1}>
       <path d="M12 5v14M5 12h14" />
     </Icone>
   );

@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { dataCurta, dataValida, hojeISO } from '../lib/format';
 import { useAuth } from '../auth/useAuth';
@@ -16,8 +15,6 @@ import ListaRefeicoes from '../components/ListaRefeicoes';
 import Erro from '../components/Erro';
 import Tela from '../components/ui/Tela';
 import TituloTela from '../components/ui/TituloTela';
-
-const estiloLink = { color: 'inherit', textDecoration: 'none' } as const;
 
 export default function Home() {
   const { perfil } = useAuth();
@@ -58,16 +55,7 @@ export default function Home() {
 
   return (
     <Tela gap={13}>
-      <TituloTela
-        direita={
-          <Box sx={{ display: 'flex', gap: '14px', fontWeight: 500, fontSize: 12.5, color: 'text.secondary' }}>
-            <Box component={Link} to="/relatorio" sx={estiloLink}>relatório</Box>
-            <Box component={Link} to="/social" sx={estiloLink}>amigos</Box>
-          </Box>
-        }
-      >
-        {data === hoje ? 'hoje' : dataCurta(data)}
-      </TituloTela>
+      <TituloTela>{data === hoje ? 'hoje' : dataCurta(data)}</TituloTela>
 
       {erro !== null && <Erro mensagem={erro} aoFechar={dados.limparErro} />}
       {refeicoesCtx.erro !== null && <Erro mensagem={refeicoesCtx.erro} aoFechar={refeicoesCtx.limparErro} />}

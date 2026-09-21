@@ -37,6 +37,8 @@ export interface Perfil {
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;
+  foto_url: string | null;
+  esconder_comentarios_perfil: boolean;
   criado_em: string;
 }
 
@@ -141,6 +143,7 @@ export interface EntradaPerfil {
   meta_agua_ml?: number;
   metas_automaticas?: boolean;
   modo_preguicoso?: boolean;
+  esconder_comentarios_perfil?: boolean;
   /** Nunca editado na tela — sincronizado automaticamente com o fuso do aparelho. */
   timezone?: string;
 }
@@ -163,6 +166,10 @@ export interface PerfilPublico {
   /** "joao#0427" */
   nome_tag: string;
   objetivo: Objetivo;
+  foto_url: string | null;
+  total_posts: number;
+  /** Mesmo valor usado como "seguidores" e "seguindo" no perfil — não existe follow assimétrico. */
+  total_amigos: number;
 }
 
 /** Como o dia fechou em relação à meta de calorias. `na_meta` = entre 90% e 110%. */
@@ -202,6 +209,24 @@ export interface Comentario {
   texto: string;
   criado_em: string;
   posso_apagar: boolean;
+}
+
+/** Um comentário feito pelo próprio usuário, com o mínimo do post pra linkar de volta. */
+export interface ComentarioComPost {
+  id: string;
+  texto: string;
+  criado_em: string;
+  post: {
+    id: string;
+    autor: PerfilPublico;
+    descricao_bruta: string;
+  };
+}
+
+export interface FeedComentarios {
+  comentarios: ComentarioComPost[];
+  /** `criado_em` do último comentário; passe em `?antes=` para pedir a próxima página. `null` = acabou. */
+  proximo_antes: string | null;
 }
 
 export interface Feed {

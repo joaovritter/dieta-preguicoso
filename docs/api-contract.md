@@ -13,7 +13,10 @@ Autenticação: header `Authorization: Bearer <jwt>` em tudo, exceto `/auth/*` e
 - Erro: `{ "error": { "code": "STRING_CODE", "message": "texto humano" } }` com status HTTP adequado.
   Códigos: `VALIDACAO`, `NAO_AUTORIZADO`, `CREDENCIAIS_INVALIDAS`, `EMAIL_EM_USO`,
   `NAO_ENCONTRADO`, `IA_INDISPONIVEL`, `IA_RESPOSTA_INVALIDA`, `ARQUIVO_INVALIDO`, `ERRO_INTERNO`,
-  `SEM_ACESSO`, `PEDIDO_DUPLICADO`, `REFEICAO_EM_USO`.
+  `SEM_ACESSO`, `PEDIDO_DUPLICADO`, `REFEICAO_EM_USO`, `SENHA_INCORRETA`, `LIMITE_EXCEDIDO`,
+  `CONTA_DESATIVADA`.
+- Conta desativada: **qualquer** rota autenticada responde `403 CONTA_DESATIVADA`; o cliente trata
+  como fim de sessão (igual a 401) e mostra a mensagem no login.
 
 ## Tipos compartilhados
 
@@ -51,6 +54,8 @@ interface Perfil {
   metas_automaticas: boolean;    // true = recalcula metas a partir de peso/altura/idade/sexo/objetivo
   modo_preguicoso: boolean;      // true = grava sem tela de confirmação
   timezone: string;              // ex: "America/Sao_Paulo"
+  foto_url: string | null;       // foto de perfil; null = sem foto (cai no avatar de iniciais)
+  esconder_comentarios_perfil: boolean; // true = a aba "Comentários" some do próprio perfil
   criado_em: string;
 }
 
@@ -92,7 +97,9 @@ Body: `{ email, senha, nome }` (senha mínimo 8 chars).
 `201 { token, perfil }` · `409 EMAIL_EM_USO`
 
 ### `POST /api/auth/login`
-Body: `{ email, senha }` → `200 { token, perfil }` · `401 CREDENCIAIS_INVALIDAS`
+Body: `{ email, senha }` → `200 { token, perfil }` · `401 CREDENCIAIS_INVALIDAS` ·
+`403 CONTA_DESATIVADA` ("conta desativada — fale com o administrador"). O 403 só aparece para
+quem acertou a senha: senha errada numa conta desativada continua `401`.
 
 ### `GET /api/me` → `200 Perfil`
 
@@ -100,8 +107,41 @@ Body: `{ email, senha }` → `200 { token, perfil }` · `401 CREDENCIAIS_INVALID
 Body: qualquer subconjunto de
 `{ nome, sexo, idade, peso_kg, altura_cm, objetivo, meta_calorias, meta_carboidrato_g,
    meta_proteina_g, meta_gordura_g, meta_agua_ml, metas_automaticas, modo_preguicoso,
-   timezone }`
+   esconder_comentarios_perfil, timezone }`
 → `200 Perfil` (já com metas recalculadas se `metas_automaticas`).
+
+`meta_calorias` nunca é gravado com o valor que veio no body: com `metas_automaticas: true` o
+servidor recalcula todas as metas pelo TMB (ver "Cálculo automático de metas"); com
+`metas_automaticas: false` o servidor recalcula só `meta_calorias`, a partir de
+`4×meta_carboidrato_g + 4×meta_proteina_g + 9×meta_gordura_g` (mesclando o que veio no body com
+o que já estava salvo para os macros que não vierem).
+
+### `POST /api/me/foto`
+`multipart/form-data`, campo `arquivo` (jpeg/png/webp/heic, ≤ 10 MB) → `200 Perfil` com `foto_url`
+atualizado. Trocar uma foto por outra apaga o arquivo antigo do disco.
+`400 ARQUIVO_INVALIDO` (formato não suportado ou arquivo ausente).
+
+### `DELETE /api/me/foto` → `200 Perfil` com `foto_url: null`
+Apaga o arquivo do disco, se havia um. Sem foto salva, responde `200` normalmente (idempotente).
+
+### `GET /api/me/comentarios?antes=<ISO>&limite=<1..50>`
+Comentários feitos pelo usuário logado, em posts de qualquer pessoa (inclusive próprios), mais
+recentes primeiro. `limite` padrão 20. Pagina como `GET /api/social/feed`: passe o `proximo_antes`
+da página anterior em `antes` para a próxima.
+`200 FeedComentarios`
+
+### `PUT /api/me/senha`
+Body: `{ senha_atual: string, senha_nova: string }` (`senha_nova` com 8–200 chars) → `204`
+`400 SENHA_INCORRETA` (senha atual não confere) · `400 VALIDACAO` ·
+`429 LIMITE_EXCEDIDO` (10 tentativas por 15 min por usuário, somando este endpoint e `POST /api/me/desativar`).
+Não é 401 de propósito: 401 derruba a sessão no cliente. O token atual continua valendo.
+
+### `POST /api/me/desativar`
+Body: `{ senha: string }` → `204` · `400 SENHA_INCORRETA` · `400 VALIDACAO` · `429 LIMITE_EXCEDIDO`
+Desativa a conta. **Nada é apagado**: registros, água, refeições, mídias, amizades e grupos ficam
+no banco. A partir daí o login responde `403 CONTA_DESATIVADA`, o token atual também, e a pessoa
+some do social (ver "Quem vê o quê"). Só o administrador do servidor reativa, pela linha de
+comando (`docs/deploy.md`, "Contas desativadas").
 
 ### `GET /api/refeicoes` → `200 { refeicoes: Refeicao[] }`
 Ordenadas por `inicio`.
@@ -145,6 +185,11 @@ sua. → `201 Registro`
 ### `PATCH /api/registros/:id`
 Body: `{ refeicao_id?, alimentos? }` → `200 Registro` (totais recalculados)
 `404 NAO_ENCONTRADO` se `refeicao_id` não for sua.
+
+Ao enviar `alimentos`, o `calorias` de cada item é sempre recalculado no servidor a partir
+de `4×carboidrato_g + 4×proteina_g + 9×gordura_g` — o valor de `calorias` vindo no body é
+ignorado. Isso vale só para essa edição manual; a estimativa inicial da IA (`POST
+/registros/foto|audio|texto`) continua livre para estimar `calorias` do seu jeito.
 
 ### `DELETE /api/registros/:id` → `204`
 
@@ -257,6 +302,12 @@ Macros: proteína `2 g/kg`, gordura `25%` das kcal ÷ 9, carboidrato = kcal rest
 
 Se faltar peso/altura/idade/sexo, mantém as metas atuais (não zera).
 
+## Metas manuais (`metas_automaticas: false`)
+
+`meta_calorias` deixa de ser um campo independente: é sempre derivado dos macros de meta,
+`4×meta_carboidrato_g + 4×meta_proteina_g + 9×meta_gordura_g`, calculado no servidor a cada
+`PUT /api/me`. O que o cliente mandar em `meta_calorias` é ignorado.
+
 ## Rede social
 
 Identidade pública: `nome#tag` (ex: `joao#0427`). A tag é sorteada no cadastro e é única
@@ -267,6 +318,17 @@ tag quando ela ainda estiver livre para o nome novo; se não estiver, o servidor
 se forem amigos (pedido aceito) ou se dividirem pelo menos um grupo. Fora isso, `403 SEM_ACESSO`.
 Não existe passo extra para publicar: toda refeição registrada já aparece para quem pode ver.
 
+**Conta desativada some da rede:** não aparece em `GET /api/amigos`, nos pedidos, nos membros e na
+`quantidade_membros` de grupos, no ranking, em nenhum feed nem nos comentários; `POST
+/api/amigos/pedidos` para o `nome#tag` dela dá `404 NAO_ENCONTRADO`; `GET /api/social/usuarios/:id`
+(e `/calendario`, `/refeicoes`) dá `404 NAO_ENCONTRADO`; curtir/comentar um post dela dá `404`.
+Os grupos criados por ela continuam existindo. Curtidas antigas dela continuam contando no total.
+
+**Não existe follow assimétrico.** O app só tem amizade mútua (pedido aceito dos dois lados). No
+perfil (próprio ou de outra pessoa), "seguidores" e "seguindo" são o mesmo número —
+`PerfilPublico.total_amigos` — repetido nos dois contadores. Não há endpoint, tabela nem conceito
+de seguir uma pessoa sem reciprocidade.
+
 ### Tipos
 
 ```ts
@@ -276,6 +338,9 @@ interface PerfilPublico {
   tag: string;
   nome_tag: string;              // "joao#0427"
   objetivo: Objetivo;
+  foto_url: string | null;       // foto de perfil; null = sem foto (cai no avatar de iniciais)
+  total_posts: number;           // quantidade de registros (refeições) da pessoa
+  total_amigos: number;          // quantidade de amigos (amizade mútua aceita)
 }
 
 /** Como o dia fechou em relação à meta de calorias. `na_meta` = entre 90% e 110%. */
@@ -338,6 +403,24 @@ interface Comentario {
   criado_em: string;
   /** Quem pede é o autor do comentário ou o dono do post. */
   posso_apagar: boolean;
+}
+
+/** Um comentário feito pelo próprio usuário, com o mínimo do post pra linkar de volta. */
+interface ComentarioComPost {
+  id: string;
+  texto: string;
+  criado_em: string;
+  post: {
+    id: string;
+    autor: PerfilPublico;
+    descricao_bruta: string;
+  };
+}
+
+interface FeedComentarios {
+  comentarios: ComentarioComPost[];
+  /** `criado_em` do último comentário; passe em `?antes=` para pedir a próxima página. `null` = acabou. */
+  proximo_antes: string | null;
 }
 ```
 

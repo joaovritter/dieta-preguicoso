@@ -9,7 +9,7 @@ const MOLA = { type: 'spring', stiffness: 300, damping: 28 } as const;
 
 const Botao = styled(motion.button)(({ theme }) => ({
   position: 'relative',
-  width: 50,
+  width: 66,
   padding: 0,
   margin: 0,
   border: 'none',
@@ -50,7 +50,7 @@ export default function TabBarItem({ item, ativo, compacta, esticar, aoSeleciona
       aria-current={ativo ? 'page' : undefined}
       aria-label={temBadge ? `${item.rotulo}, ${item.badge} novidades` : item.rotulo}
       initial={false}
-      animate={{ height: compacta ? 36 : 46 }}
+      animate={{ height: compacta ? 42 : 54 }}
       transition={transicao}
       whileTap={reduzir ? undefined : { scale: 0.86 }}
     >
@@ -87,14 +87,14 @@ export default function TabBarItem({ item, ativo, compacta, esticar, aoSeleciona
       <motion.span
         aria-hidden="true"
         initial={false}
-        animate={{ opacity: compacta ? 0 : 1, height: compacta ? 0 : 8 }}
+        animate={{ opacity: compacta ? 0 : 1, height: compacta ? 0 : 11 }}
         transition={transicao}
         style={{
           position: 'relative',
           zIndex: 1,
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          fontSize: 8,
+          fontSize: 9.5,
           lineHeight: 1,
           fontWeight: ativo ? 600 : 500,
         }}

@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { verificarToken } from '../lib/auth.js';
-import { AppError } from '../lib/erros.js';
+import { AppError, MENSAGEM_CONTA_DESATIVADA } from '../lib/erros.js';
 import { buscarPorId, paraPerfil } from '../repos/usuarios.js';
 import type { Perfil } from '../domain/tipos.js';
 
@@ -34,6 +34,9 @@ export async function autenticar(
     const userId = verificarToken(token);
     const linha = await buscarPorId(userId);
     if (!linha) throw new AppError('NAO_AUTORIZADO', 'essa conta não existe mais');
+    if (linha.desativada_em !== null) {
+      throw new AppError('CONTA_DESATIVADA', MENSAGEM_CONTA_DESATIVADA);
+    }
 
     req.perfil = paraPerfil(linha);
     next();

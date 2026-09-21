@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { env } from '../env.js';
 import { conferirSenha, gerarToken, hashSenha } from '../lib/auth.js';
-import { AppError } from '../lib/erros.js';
+import { AppError, MENSAGEM_CONTA_DESATIVADA } from '../lib/erros.js';
 import { buscarPorEmail, contarUsuarios, criarUsuario, paraPerfil } from '../repos/usuarios.js';
 
 export const rotasAuth: Router = Router();
@@ -47,6 +47,11 @@ rotasAuth.post('/login', async (req, res, next) => {
     const ok = linha ? await conferirSenha(senha, linha.password_hash) : false;
     if (!linha || !ok) {
       throw new AppError('CREDENCIAIS_INVALIDAS', 'e-mail ou senha incorretos');
+    }
+
+    // Só quem acertou a senha descobre que a conta está desativada.
+    if (linha.desativada_em !== null) {
+      throw new AppError('CONTA_DESATIVADA', MENSAGEM_CONTA_DESATIVADA);
     }
 
     res.json({ token: gerarToken(linha.id), perfil: paraPerfil(linha) });

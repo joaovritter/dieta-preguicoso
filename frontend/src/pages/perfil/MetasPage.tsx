@@ -13,9 +13,9 @@ function Formulario({ inicial }: { inicial: Perfil }) {
   return (
     <SubTela
       titulo="metas"
-      voltarPara="/perfil"
+      voltarPara="/configuracoes"
       rodape={
-        <BotaoCta disabled={salvando} onClick={() => void salvar().then((ok) => ok && navigate('/perfil'))}>
+        <BotaoCta disabled={salvando} onClick={() => void salvar().then((ok) => ok && navigate('/configuracoes'))}>
           {salvando ? 'salvando...' : 'salvar'}
         </BotaoCta>
       }

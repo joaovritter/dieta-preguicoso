@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import Relatorio from './pages/Relatorio';
 import CalendarioPage from './pages/CalendarioPage';
 import PerfilPage from './pages/Perfil';
+import ConfiguracoesPage from './pages/Configuracoes';
 import GrupoPage from './pages/Grupo';
 import PerfilPublico from './pages/PerfilPublico';
 import Social from './pages/Social';
@@ -18,6 +19,7 @@ import DetalheItemPage from './pages/DetalheItemPage';
 import MetasPage from './pages/perfil/MetasPage';
 import DadosPage from './pages/perfil/DadosPage';
 import RefeicoesPage from './pages/perfil/RefeicoesPage';
+import SenhaPage from './pages/perfil/SenhaPage';
 
 function Protegida({ children }: { children: ReactElement }) {
   const { perfil, carregando } = useAuth();
@@ -63,9 +65,11 @@ function Rotas() {
         }
       />
 
+      <Route path="/configuracoes" element={<Protegida><ConfiguracoesPage /></Protegida>} />
       <Route path="/perfil/metas" element={<Protegida><MetasPage /></Protegida>} />
       <Route path="/perfil/dados" element={<Protegida><DadosPage /></Protegida>} />
       <Route path="/perfil/refeicoes" element={<Protegida><RefeicoesPage /></Protegida>} />
+      <Route path="/perfil/senha" element={<Protegida><SenhaPage /></Protegida>} />
 
       <Route path="/amigos" element={<Navigate to="/social?aba=amigos" replace />} />
       <Route path="/grupos" element={<Navigate to="/social?aba=grupos" replace />} />

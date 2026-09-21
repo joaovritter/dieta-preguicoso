@@ -6,10 +6,12 @@ import ButtonBase from '@mui/material/ButtonBase';
 import InputBase from '@mui/material/InputBase';
 import Typography from '@mui/material/Typography';
 import Avatar from '../../components/social/Avatar';
+import BarraBuscaAmigos from '../../components/social/BarraBuscaAmigos';
 import BotaoTracejado from '../../components/social/BotaoTracejado';
 import LinhaPessoa from '../../components/social/LinhaPessoa';
 import { useConfirmacao } from '../../components/useConfirmacao';
 import { api, mensagemDoErro } from '../../lib/api';
+import { filtrarAmigos } from '../../lib/social';
 import type { MembroComProgresso, PedidosAmizade } from '../../lib/types';
 
 const rotuloSecao = {
@@ -38,7 +40,9 @@ export default function AbaAmigos() {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [busca, setBusca] = useState('');
   const { confirmar, elemento: confirmacao } = useConfirmacao();
+  const amigosFiltrados = filtrarAmigos(busca, amigos ?? []);
 
   const carregar = useCallback(async () => {
     try {
@@ -97,6 +101,8 @@ export default function AbaAmigos() {
         </Alert>
       )}
 
+      <BarraBuscaAmigos valor={busca} aoMudar={setBusca} />
+
       {amigos === null || pedidos === null ? (
         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>carregando...</Typography>
       ) : (
@@ -142,7 +148,10 @@ export default function AbaAmigos() {
             {amigos.length === 0 && (
               <Typography sx={{ fontSize: 13, color: 'text.secondary', py: '9px' }}>nenhum amigo ainda</Typography>
             )}
-            {amigos.map((amigo) => (
+            {amigos.length > 0 && amigosFiltrados.length === 0 && (
+              <Typography sx={{ fontSize: 13, color: 'text.secondary', py: '9px' }}>nenhum amigo com esse nome</Typography>
+            )}
+            {amigosFiltrados.map((amigo) => (
               <LinhaPessoa
                 key={amigo.perfil.id}
                 perfil={amigo.perfil}

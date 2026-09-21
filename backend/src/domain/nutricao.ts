@@ -5,6 +5,46 @@ export function arredondar(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+/** Calorias derivadas dos macros: 4 kcal/g de carboidrato e proteína, 9 kcal/g de gordura. */
+export function calorasDeMacros(
+  carboidrato_g: number,
+  proteina_g: number,
+  gordura_g: number,
+): number {
+  return arredondar(4 * carboidrato_g + 4 * proteina_g + 9 * gordura_g);
+}
+
+/**
+ * Recalcula `calorias` de cada alimento a partir dos próprios macros, ignorando o
+ * valor recebido. Defesa em profundidade ao editar um registro: o cliente pode mandar
+ * qualquer coisa em `calorias`, o servidor nunca confia nele.
+ */
+export function recalcularCaloriasDosAlimentos(alimentos: Alimento[]): Alimento[] {
+  return alimentos.map((a) => ({
+    ...a,
+    calorias: calorasDeMacros(a.carboidrato_g, a.proteina_g, a.gordura_g),
+  }));
+}
+
+/**
+ * Recalcula `meta_calorias` a partir dos macros de meta quando `metas_automaticas` é
+ * falso, mesclando o que veio no `PUT /api/me` com o que já estava salvo (mesmo padrão
+ * de merge usado no branch de metas automáticas).
+ */
+export function recalcularMetaCaloriasManual(
+  atual: { meta_carboidrato_g: number; meta_proteina_g: number; meta_gordura_g: number },
+  campos: Partial<{
+    meta_carboidrato_g: number;
+    meta_proteina_g: number;
+    meta_gordura_g: number;
+  }>,
+): number {
+  const carboidrato_g = campos.meta_carboidrato_g ?? atual.meta_carboidrato_g;
+  const proteina_g = campos.meta_proteina_g ?? atual.meta_proteina_g;
+  const gordura_g = campos.meta_gordura_g ?? atual.meta_gordura_g;
+  return calorasDeMacros(carboidrato_g, proteina_g, gordura_g);
+}
+
 export function somarTotais(alimentos: Alimento[]): Totais {
   const t = alimentos.reduce<Totais>(
     (acc, a) => ({

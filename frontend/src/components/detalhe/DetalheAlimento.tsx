@@ -7,6 +7,7 @@ import BotaoCta from '../ui/BotaoCta';
 import BotaoPasso from '../ui/BotaoPasso';
 import RotuloSecao from '../ui/RotuloSecao';
 import { numero } from '../../lib/format';
+import { calorasDeMacros } from '../../lib/nutricao';
 import { escalarAlimento, lerPorcao, passoDaPorcao } from '../../lib/porcao';
 import type { CorRefeicao } from '../../lib/visual';
 import type { Alimento } from '../../lib/types';
@@ -22,9 +23,9 @@ export interface PropsDetalhe {
   aoRemover: () => void;
 }
 
-type CampoNumerico = 'calorias' | 'carboidrato_g' | 'proteina_g' | 'gordura_g';
+type CampoNumerico = 'carboidrato_g' | 'proteina_g' | 'gordura_g';
 
-const MACROS: Array<{ campo: Exclude<CampoNumerico, 'calorias'>; rotulo: string; cor: string }> = [
+const MACROS: Array<{ campo: CampoNumerico; rotulo: string; cor: string }> = [
   { campo: 'carboidrato_g', rotulo: 'carboidrato', cor: 'macro.carbo' },
   { campo: 'proteina_g', rotulo: 'proteína', cor: 'macro.proteina' },
   { campo: 'gordura_g', rotulo: 'gordura', cor: 'macro.gordura' },
@@ -50,16 +51,34 @@ export default function DetalheAlimento({
   const original = lerPorcao(base.quantidade_estimada);
   const passo = passoDaPorcao(original);
   const [quantidade, setQuantidade] = useState(original.quantidade);
+  const [textoQuantidade, setTextoQuantidade] = useState(String(original.quantidade));
   const atual = escalarAlimento(base, quantidade);
+
+  function ajustarQuantidade(nova: number) {
+    setQuantidade(nova);
+    setTextoQuantidade(String(nova));
+  }
+
+  function mudarTextoQuantidade(texto: string) {
+    setTextoQuantidade(texto);
+    const valor = Number(texto.replace(',', '.'));
+    if (Number.isFinite(valor) && valor > 0 && valor <= 999) setQuantidade(valor);
+  }
 
   function mudarCampo(campo: 'nome' | 'quantidade_estimada', valor: string) {
     const novo = { ...atual, [campo]: valor };
     setBase(novo);
-    if (campo === 'quantidade_estimada') setQuantidade(lerPorcao(valor).quantidade);
+    if (campo === 'quantidade_estimada') {
+      const nova = lerPorcao(valor).quantidade;
+      setQuantidade(nova);
+      setTextoQuantidade(String(nova));
+    }
   }
 
   function mudarNumero(campo: CampoNumerico, texto: string) {
-    setBase({ ...atual, [campo]: paraNumero(texto) });
+    const parcial = { ...atual, [campo]: paraNumero(texto) };
+    const calorias = calorasDeMacros(parcial.carboidrato_g, parcial.proteina_g, parcial.gordura_g);
+    setBase({ ...parcial, calorias });
     setQuantidade(lerPorcao(atual.quantidade_estimada).quantidade);
   }
 
@@ -109,7 +128,7 @@ export default function DetalheAlimento({
         {editando ? (
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <TextField label="quantidade" value={atual.quantidade_estimada} onChange={(e) => mudarCampo('quantidade_estimada', e.target.value)} sx={{ gridColumn: '1 / -1' }} />
-            <TextField label="kcal" type="number" slotProps={{ htmlInput: { inputMode: 'decimal', min: 0, step: 0.1 } }} value={String(atual.calorias)} onChange={(e) => mudarNumero('calorias', e.target.value)} />
+            <TextField label="kcal" type="number" slotProps={{ htmlInput: { readOnly: true } }} value={String(atual.calorias)} />
             {MACROS.map((m) => (
               <TextField key={m.campo} label={`${m.rotulo} (g)`} type="number" slotProps={{ htmlInput: { inputMode: 'decimal', min: 0, step: 0.1 } }} value={String(atual[m.campo])} onChange={(e) => mudarNumero(m.campo, e.target.value)} />
             ))}
@@ -119,11 +138,17 @@ export default function DetalheAlimento({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <RotuloSecao sx={{ letterSpacing: '.14em' }}>porção</RotuloSecao>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <BotaoPasso simbolo="−" tamanho={44} rotulo="diminuir porção" disabled={quantidade - passo < passo} onClick={() => setQuantidade((q) => q - passo)} />
-                <Typography sx={{ flex: 1, textAlign: 'center', fontWeight: 700, fontSize: 17, fontVariantNumeric: 'tabular-nums' }}>
-                  {atual.quantidade_estimada === '' ? `${quantidade} porção` : atual.quantidade_estimada}
-                </Typography>
-                <BotaoPasso simbolo="+" tamanho={44} rotulo="aumentar porção" disabled={quantidade + passo > 999} onClick={() => setQuantidade((q) => q + passo)} />
+                <BotaoPasso simbolo="−" tamanho={44} rotulo="diminuir porção" disabled={quantidade - passo < passo} onClick={() => ajustarQuantidade(quantidade - passo)} />
+                <TextField
+                  type="number"
+                  aria-label="quantidade da porção"
+                  value={textoQuantidade}
+                  onChange={(e) => mudarTextoQuantidade(e.target.value)}
+                  slotProps={{ htmlInput: { inputMode: 'decimal', min: passo, max: 999, step: passo, style: { textAlign: 'center' } } }}
+                  sx={{ flex: 1 }}
+                />
+                <Typography sx={{ fontWeight: 500, fontSize: 13, color: 'text.secondary' }}>{original.unidade}</Typography>
+                <BotaoPasso simbolo="+" tamanho={44} rotulo="aumentar porção" disabled={quantidade + passo > 999} onClick={() => ajustarQuantidade(quantidade + passo)} />
               </Box>
             </Box>
             <Box>
@@ -142,7 +167,16 @@ export default function DetalheAlimento({
         <BotaoCta variante="perigo" disabled={salvando} onClick={aoRemover} sx={{ flex: '0 0 38%' }}>
           remover
         </BotaoCta>
-        <BotaoCta disabled={!podeSalvar} onClick={() => aoSalvar(atual)} sx={{ flex: 1 }}>
+        <BotaoCta
+          disabled={!podeSalvar}
+          onClick={() =>
+            aoSalvar({
+              ...atual,
+              calorias: calorasDeMacros(atual.carboidrato_g, atual.proteina_g, atual.gordura_g),
+            })
+          }
+          sx={{ flex: 1 }}
+        >
           {salvando ? 'salvando...' : 'salvar'}
         </BotaoCta>
       </Box>

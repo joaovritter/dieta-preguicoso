@@ -57,6 +57,8 @@ export interface Perfil {
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;
+  foto_url: string | null;
+  esconder_comentarios_perfil: boolean;
   criado_em: string;
 }
 
@@ -107,6 +109,9 @@ export interface PerfilPublico {
   tag: string;
   nome_tag: string;
   objetivo: Objetivo;
+  foto_url: string | null;
+  total_posts: number;
+  total_amigos: number;
 }
 
 export const STATUS_DIA = ['sem_registro', 'abaixo', 'na_meta', 'acima'] as const;
@@ -145,6 +150,23 @@ export interface Comentario {
   texto: string;
   criado_em: string;
   posso_apagar: boolean;
+}
+
+/** Um comentário feito pelo próprio usuário, com o mínimo do post pra linkar de volta. */
+export interface ComentarioComPost {
+  id: string;
+  texto: string;
+  criado_em: string;
+  post: {
+    id: string;
+    autor: PerfilPublico;
+    descricao_bruta: string;
+  };
+}
+
+export interface FeedComentarios {
+  comentarios: ComentarioComPost[];
+  proximo_antes: string | null;
 }
 
 export interface Grupo {

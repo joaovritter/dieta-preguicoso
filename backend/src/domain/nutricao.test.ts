@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { calcularMetas, metrica, somarTotais } from './nutricao.js';
+import {
+  calcularMetas,
+  calorasDeMacros,
+  metrica,
+  recalcularCaloriasDosAlimentos,
+  recalcularMetaCaloriasManual,
+  somarTotais,
+} from './nutricao.js';
 import type { Alimento } from './tipos.js';
 
 const alimento = (p: Partial<Alimento>): Alimento => ({
@@ -55,6 +62,82 @@ describe('metrica', () => {
 
   it('não divide por zero quando a meta não foi configurada', () => {
     expect(metrica(300, 0)).toMatchObject({ percentual: 0, restante: 0, excedido: 300 });
+  });
+});
+
+describe('calorasDeMacros', () => {
+  it('calcula 4/4/9 a partir dos macros', () => {
+    expect(calorasDeMacros(50, 20, 10)).toBe(370); // 200 + 80 + 90
+  });
+
+  it('devolve zero quando todos os macros são zero', () => {
+    expect(calorasDeMacros(0, 0, 0)).toBe(0);
+  });
+
+  it('arredonda a 1 casa decimal', () => {
+    expect(calorasDeMacros(10.5375, 0, 0)).toBe(42.2); // 4*10.5375 = 42.15 -> 42.2
+  });
+});
+
+describe('recalcularCaloriasDosAlimentos', () => {
+  it('ignora o valor de calorias recebido e recalcula a partir dos macros', () => {
+    const alimentos = [
+      alimento({ nome: 'arroz', calorias: 9999, carboidrato_g: 50, proteina_g: 20, gordura_g: 10 }),
+    ];
+    expect(recalcularCaloriasDosAlimentos(alimentos)).toEqual([
+      alimento({ nome: 'arroz', calorias: 370, carboidrato_g: 50, proteina_g: 20, gordura_g: 10 }),
+    ]);
+  });
+
+  it('mantém os demais campos do alimento intactos', () => {
+    const alimentos = [
+      alimento({
+        nome: 'feijão',
+        quantidade_estimada: '150g',
+        calorias: 0,
+        carboidrato_g: 10,
+        proteina_g: 5,
+        gordura_g: 1,
+      }),
+    ];
+    expect(recalcularCaloriasDosAlimentos(alimentos)).toEqual([
+      alimento({
+        nome: 'feijão',
+        quantidade_estimada: '150g',
+        calorias: 69,
+        carboidrato_g: 10,
+        proteina_g: 5,
+        gordura_g: 1,
+      }),
+    ]);
+  });
+
+  it('devolve lista vazia para lista vazia', () => {
+    expect(recalcularCaloriasDosAlimentos([])).toEqual([]);
+  });
+});
+
+describe('recalcularMetaCaloriasManual', () => {
+  const atual = { meta_carboidrato_g: 200, meta_proteina_g: 150, meta_gordura_g: 60 };
+
+  it('recalcula meta_calorias a partir dos macros mesclados com o que já estava salvo', () => {
+    // editando só a proteína: 200*4 + 180*4 + 60*9 = 800 + 720 + 540 = 2060
+    expect(recalcularMetaCaloriasManual(atual, { meta_proteina_g: 180 })).toBe(2060);
+  });
+
+  it('usa só o que está salvo quando nada de macro vem no body', () => {
+    // 200*4 + 150*4 + 60*9 = 800 + 600 + 540 = 1940
+    expect(recalcularMetaCaloriasManual(atual, {})).toBe(1940);
+  });
+
+  it('usa todos os macros novos quando vêm no body', () => {
+    expect(
+      recalcularMetaCaloriasManual(atual, {
+        meta_carboidrato_g: 100,
+        meta_proteina_g: 100,
+        meta_gordura_g: 30,
+      }),
+    ).toBe(1070); // 400 + 400 + 270
   });
 });
 

@@ -1,6 +1,7 @@
 import { consultar, consultarUm } from '../db/index.js';
-import { somarTotais } from '../domain/nutricao.js';
+import { recalcularCaloriasDosAlimentos, somarTotais } from '../domain/nutricao.js';
 import { paraPerfilPublico } from '../domain/social.js';
+import { SQL_TOTAL_AMIGOS, SQL_TOTAL_POSTS } from './social.js';
 import type {
   Alimento,
   Objetivo,
@@ -123,7 +124,11 @@ export async function atualizarRegistro(
   const atual = await buscarRegistro(userId, id);
   if (!atual) return null;
 
-  const alimentos = campos.alimentos ?? atual.alimentos_detectados;
+  // `calorias` de cada alimento é sempre recalculado a partir dos macros ao editar —
+  // a IA continua livre para estimar na primeira vez (criarRegistro não passa por aqui).
+  const alimentos = campos.alimentos
+    ? recalcularCaloriasDosAlimentos(campos.alimentos)
+    : atual.alimentos_detectados;
   const refeicaoId = campos.refeicao_id ?? atual.refeicao_id;
   const t = somarTotais(alimentos);
 
@@ -168,6 +173,9 @@ interface LinhaPost extends LinhaRegistro {
   autor_nome: string;
   autor_tag: string;
   autor_objetivo: Objetivo;
+  autor_foto_url: string | null;
+  autor_total_posts: number;
+  autor_total_amigos: number;
   curtidas: number;
   curti: boolean;
   comentarios: number;
@@ -189,13 +197,15 @@ export async function feedDeUsuarios(
   const linhas = await consultar<LinhaPost>(
     `SELECT ${COLUNAS},
             u.id AS autor_id, u.nome AS autor_nome, u.tag AS autor_tag,
-            u.objetivo AS autor_objetivo,
+            u.objetivo AS autor_objetivo, u.foto_url AS autor_foto_url,
+            ${SQL_TOTAL_POSTS} AS autor_total_posts, ${SQL_TOTAL_AMIGOS} AS autor_total_amigos,
             (SELECT count(*)::int FROM curtidas c WHERE c.registro_id = r.id) AS curtidas,
             EXISTS (SELECT 1 FROM curtidas c WHERE c.registro_id = r.id AND c.user_id = $4) AS curti,
             (SELECT count(*)::int FROM comentarios cm WHERE cm.registro_id = r.id) AS comentarios
      ${DE}
      JOIN users u ON u.id = r.user_id
      WHERE r.user_id = ANY($1::uuid[])
+       AND u.desativada_em IS NULL
        AND ($2::timestamptz IS NULL OR r.criado_em < $2)
      ORDER BY r.criado_em DESC
      LIMIT $3`,
@@ -209,6 +219,9 @@ export async function feedDeUsuarios(
       nome: l.autor_nome,
       tag: l.autor_tag,
       objetivo: l.autor_objetivo,
+      foto_url: l.autor_foto_url,
+      total_posts: l.autor_total_posts,
+      total_amigos: l.autor_total_amigos,
     }),
     curtidas: l.curtidas,
     curti: l.curti,

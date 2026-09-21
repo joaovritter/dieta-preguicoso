@@ -100,7 +100,7 @@ export default function MenuCaptura() {
     acao();
   }
 
-  const tamanho = compacta ? 44 : 54;
+  const tamanho = compacta ? 50 : 62;
 
   return (
     <Box ref={raiz} sx={{ position: 'relative', display: 'flex' }}>

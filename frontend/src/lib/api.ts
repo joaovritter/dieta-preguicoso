@@ -7,6 +7,7 @@ import type {
   EntradaConfirmacao,
   EntradaPerfil,
   Feed,
+  FeedComentarios,
   Grupo,
   Interpretacao,
   MembroComProgresso,
@@ -22,6 +23,7 @@ import type {
   ResumoDia,
   ResumoSemana,
 } from './types';
+import { encerraSessao } from './sessao';
 
 const BASE = '/api';
 const CHAVE_TOKEN = 'dieta.token';
@@ -52,6 +54,19 @@ let aoDeslogar: () => void = () => {};
 /** A AuthContext registra aqui o logout, para qualquer 401 derrubar a sessão. */
 export function registrarLogout(fn: () => void): void {
   aoDeslogar = fn;
+}
+
+let motivoSaida: string | null = null;
+
+/** Guarda por que a sessão acabou, para o login mostrar uma vez. */
+export function definirMotivoSaida(mensagem: string): void {
+  motivoSaida = mensagem;
+}
+
+export function consumirMotivoSaida(): string | null {
+  const motivo = motivoSaida;
+  motivoSaida = null;
+  return motivo;
 }
 
 function extrairErro(corpo: unknown, status: number): ErroApi {
@@ -110,7 +125,10 @@ async function requisitar<T>(caminho: string, opcoes: Opcoes = {}): Promise<T> {
 
   if (!resposta.ok) {
     const erro = extrairErro(corpo, resposta.status);
-    if (resposta.status === 401 && opcoes.semAuth !== true) aoDeslogar();
+    if (encerraSessao(resposta.status, erro.code, opcoes.semAuth === true)) {
+      if (erro.code === 'CONTA_DESATIVADA') definirMotivoSaida(erro.message);
+      aoDeslogar();
+    }
     throw erro;
   }
 
@@ -138,6 +156,20 @@ export const api = {
   perfil: () => requisitar<Perfil>('/me'),
 
   salvarPerfil: (dados: EntradaPerfil) => requisitar<Perfil>('/me', { method: 'PUT', corpo: dados }),
+
+  trocarSenha: (senha_atual: string, senha_nova: string) =>
+    requisitar<void>('/me/senha', { method: 'PUT', corpo: { senha_atual, senha_nova } }),
+
+  desativarConta: (senha: string) =>
+    requisitar<void>('/me/desativar', { method: 'POST', corpo: { senha } }),
+
+  enviarFotoPerfil: (arquivo: File) =>
+    requisitar<Perfil>('/me/foto', { method: 'POST', formData: arquivoForm(arquivo, arquivo.name) }),
+
+  removerFotoPerfil: () => requisitar<Perfil>('/me/foto', { method: 'DELETE' }),
+
+  meComentarios: (antes?: string) =>
+    requisitar<FeedComentarios>(`/me/comentarios${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`),
 
   registroTexto: (texto: string, criado_em?: string) =>
     requisitar<Interpretacao>('/registros/texto', {
