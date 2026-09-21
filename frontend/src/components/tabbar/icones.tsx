@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-function Icone({ tamanho = 19, traco = 1.8, children }: { tamanho?: number; traco?: number; children: ReactNode }) {
+function Icone({ tamanho = 23, traco = 1.8, children }: { tamanho?: number; traco?: number; children: ReactNode }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -58,18 +58,9 @@ export function IconePerfil() {
   );
 }
 
-export function IconeEngrenagem() {
-  return (
-    <Icone>
-      <circle cx="12" cy="12" r="3.2" />
-      <path d="M12 3.5v2.3M12 18.2v2.3M20.5 12h-2.3M5.8 12H3.5M17.7 6.3l-1.6 1.6M7.9 16.1l-1.6 1.6M17.7 17.7l-1.6-1.6M7.9 7.9 6.3 6.3" />
-    </Icone>
-  );
-}
-
 export function IconeMais() {
   return (
-    <Icone tamanho={22} traco={2.1}>
+    <Icone tamanho={26} traco={2.1}>
       <path d="M12 5v14M5 12h14" />
     </Icone>
   );

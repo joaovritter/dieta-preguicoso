@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
+import { Settings } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import AbaComentarios from '../components/perfil/AbaComentarios';
@@ -10,7 +11,6 @@ import AbaPublicacoes from '../components/perfil/AbaPublicacoes';
 import EditorFotoPerfil from '../components/perfil/EditorFotoPerfil';
 import Erro from '../components/Erro';
 import Segmentado from '../components/social/Segmentado';
-import { IconeEngrenagem } from '../components/tabbar/icones';
 import Tela from '../components/ui/Tela';
 import { api, mensagemDoErro } from '../lib/api';
 import { milhar } from '../lib/format';
@@ -72,7 +72,7 @@ export default function PerfilPage() {
           aria-label="configurações"
           sx={{ minHeight: 36, minWidth: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.secondary' }}
         >
-          <IconeEngrenagem />
+          <Settings size={22} strokeWidth={1.8} />
         </ButtonBase>
       </Box>
 
