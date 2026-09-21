@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import DetalheAlimento from './detalhe/DetalheAlimento';
 import Erro from './Erro';
 import BotaoCta from './ui/BotaoCta';
+import Interruptor from './ui/Interruptor';
 import RotuloSecao from './ui/RotuloSecao';
 import { milhar, numero, somarAlimentos } from '../lib/format';
 import { mensagemDoErro } from '../lib/api';
@@ -16,7 +17,7 @@ import type { Alimento, EntradaConfirmacao, Interpretacao, TipoEntrada } from '.
 
 interface Props {
   interpretacao: Interpretacao;
-  aoConfirmar: (entrada: EntradaConfirmacao) => Promise<void>;
+  aoConfirmar: (entrada: EntradaConfirmacao, salvar: boolean) => Promise<void>;
   aoDescartar: () => void;
 }
 
@@ -37,6 +38,7 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
   const [refeicaoId, setRefeicaoId] = useState<string>(interpretacao.refeicao_sugerida.id);
   const [editando, setEditando] = useState<number | 'novo' | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [guardar, setGuardar] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   const totais = useMemo(() => somarAlimentos(alimentos), [alimentos]);
@@ -47,13 +49,16 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
     setSalvando(true);
     setErro(null);
     try {
-      await aoConfirmar({
-        tipo_entrada: interpretacao.tipo_entrada,
-        descricao_bruta: interpretacao.descricao_bruta,
-        midia_url: interpretacao.midia_url,
-        refeicao_id: refeicaoId,
-        alimentos,
-      });
+      await aoConfirmar(
+        {
+          tipo_entrada: interpretacao.tipo_entrada,
+          descricao_bruta: interpretacao.descricao_bruta,
+          midia_url: interpretacao.midia_url,
+          refeicao_id: refeicaoId,
+          alimentos,
+        },
+        guardar,
+      );
     } catch (falha: unknown) {
       setErro(mensagemDoErro(falha));
       setSalvando(false);
@@ -174,6 +179,11 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
           <Typography sx={{ fontWeight: 500, fontSize: 11.5, lineHeight: 1.5, color: 'text.secondary', textAlign: 'right' }}>
             C {Math.round(totais.carboidrato_g)} · P {Math.round(totais.proteina_g)} · G {Math.round(totais.gordura_g)}
           </Typography>
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Typography sx={{ flex: 1, fontWeight: 500, fontSize: 14 }}>salvar esta refeição</Typography>
+          <Interruptor rotulo="salvar esta refeição" ligado={guardar} aoMudar={setGuardar} disabled={salvando} />
         </Box>
 
         <Box sx={{ display: 'flex', gap: '9px' }}>

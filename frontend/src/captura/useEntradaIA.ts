@@ -8,7 +8,7 @@ interface Entrada {
   enviarFoto: (arquivo: File, criadoEm?: string) => Promise<void>;
   enviarAudio: (audio: Blob, criadoEm?: string) => Promise<void>;
   enviarTexto: (texto: string, criadoEm?: string) => Promise<void>;
-  confirmar: (entrada: EntradaConfirmacao) => Promise<void>;
+  confirmar: (entrada: EntradaConfirmacao, salvar?: boolean) => Promise<void>;
   descartar: () => void;
 }
 
@@ -43,12 +43,19 @@ export function useEntradaIA(aoGravar: () => Promise<void>, aoFalhar: (erro: unk
   );
 
   const confirmar = useCallback(
-    async (entrada: EntradaConfirmacao) => {
-      await api.confirmar({ ...entrada, criado_em: entrada.criado_em ?? pendente?.criadoEm });
+    async (entrada: EntradaConfirmacao, salvar = false) => {
+      const registro = await api.confirmar({ ...entrada, criado_em: entrada.criado_em ?? pendente?.criadoEm });
       setPendente(null);
       await aoGravar();
+      if (!salvar) return;
+      // O registro já existe: falhar aqui só avisa, não desfaz nem trava a confirmação.
+      try {
+        await api.salvarRefeicao(registro.id);
+      } catch {
+        aoFalhar(new Error('registro criado, mas não deu para salvar a refeição'));
+      }
     },
-    [aoGravar, pendente],
+    [aoGravar, aoFalhar, pendente],
   );
 
   return {
