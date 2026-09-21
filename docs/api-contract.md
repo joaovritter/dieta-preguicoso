@@ -371,6 +371,7 @@ interface Post {
   criado_em: string;
   curtidas: number;              // total de curtidas
   curti: boolean;                // quem pede já curtiu
+  salvo: boolean;                // quem pede já salvou este registro em "Refeições salvas"
   comentarios: number;           // total de comentários
 }
 
@@ -519,6 +520,44 @@ Limite: 30 comentários por hora por usuário (`429 LIMITE_EXCEDIDO`).
 #### `DELETE /api/social/comentarios/:id` → `204`
 Só o autor do comentário ou o dono do post. Qualquer outro caso (inclusive comentário
 inexistente) → `404 NAO_ENCONTRADO`.
+
+### Refeições salvas (privado)
+
+O usuário guarda uma **cópia** de um registro seu ou de um post visível de outra pessoa. A lista é
+**privada**: só o dono a lê e ela **não aparece no perfil público** de ninguém. Fica numa aba do
+próprio perfil. A cópia é independente do original: apagar ou editar o registro não altera o salvo.
+
+```ts
+interface RefeicaoSalva {
+  id: string;
+  nome: string;                  // nome da refeição do registro (`refeicao_nome`)
+  alimentos: Alimento[];         // cópia de `alimentos_detectados`
+  calorias_total: number;
+  carboidrato_total_g: number;
+  proteina_total_g: number;
+  gordura_total_g: number;
+  origem_registro_id: string | null; // informativo (sem vínculo): registro de onde veio
+  origem_autor_id: string | null;    // `null` se o autor apagou a conta
+  origem_autor_nome: string | null;  // nome do autor no momento em que foi salvo
+  criado_em: string;             // quando foi salvo
+}
+```
+
+`Post` ganha `salvo: boolean` (quem pede já salvou aquele registro), no mesmo estilo de `curti`.
+
+#### `POST /api/me/salvos`
+Body: `{ registro_id: string }` → `201 RefeicaoSalva` · `400 VALIDACAO`.
+Só vale para registro que o usuário já pode ver: o próprio ou post visível (regra "Quem vê o quê").
+Registro inexistente `404 NAO_ENCONTRADO`; sem acesso `403 SEM_ACESSO` (mesmos erros de curtir/comentar).
+
+#### `GET /api/me/salvos?antes=<ISO>&limite=<1..50>`
+Refeições salvas do usuário logado, mais recentes primeiro. `limite` padrão 20. Pagina como
+`GET /api/me/comentarios`: passe o `proximo_antes` da página anterior em `antes`.
+`200 { salvos: RefeicaoSalva[], proximo_antes: string | null }`
+(`proximo_antes` é o `criado_em` do último item; `null` = acabou.)
+
+#### `DELETE /api/me/salvos/:id` → `204`
+Só o dono. Salvo inexistente ou de outra pessoa → `404 NAO_ENCONTRADO`.
 
 ### Status do dia
 

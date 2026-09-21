@@ -229,6 +229,21 @@ export interface FeedComentarios {
   proximo_antes: string | null;
 }
 
+/** Cópia privada de uma refeição (própria ou de um post visível), guardada na aba "Salvos" do perfil. */
+export interface RefeicaoSalva {
+  id: string;
+  nome: string;
+  alimentos: Alimento[];
+  calorias_total: number;
+  carboidrato_total_g: number;
+  proteina_total_g: number;
+  gordura_total_g: number;
+  origem_registro_id: string | null;
+  origem_autor_id: string | null;
+  origem_autor_nome: string | null;
+  criado_em: string;
+}
+
 export interface Feed {
   posts: Post[];
   /** `criado_em` do último post; passe em `?antes=` para a próxima página. `null` = acabou. */
