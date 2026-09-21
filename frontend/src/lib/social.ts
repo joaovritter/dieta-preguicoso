@@ -80,6 +80,11 @@ export function alternarCurtida(post: Post): Post {
     : { ...post, curti: true, curtidas: post.curtidas + 1 };
 }
 
+/** Marca (ou desmarca, ao reverter uma falha) o post como salvo. */
+export function definirSalvo(post: Post, salvo: boolean): Post {
+  return { ...post, salvo };
+}
+
 const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** Busca na lista de amigos por nome ou nome#tag, ignorando acento e maiúscula. */

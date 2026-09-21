@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
-import { Heart, MessageSquare } from 'lucide-react';
+import { Bookmark, Heart, MessageSquare } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import Avatar from './social/Avatar';
@@ -13,6 +13,7 @@ interface Props {
   post: Post;
   aoCurtir: (post: Post) => void;
   aoComentar: (post: Post) => void;
+  aoSalvar: (post: Post) => void;
 }
 
 const acaoSx = {
@@ -29,7 +30,7 @@ const acaoSx = {
 } as const;
 
 /** Post do feed (design 08, aba feed). */
-export default function CardPost({ post, aoCurtir, aoComentar }: Props) {
+export default function CardPost({ post, aoCurtir, aoComentar, aoSalvar }: Props) {
   return (
     <Box
       component="article"
@@ -109,6 +110,23 @@ export default function CardPost({ post, aoCurtir, aoComentar }: Props) {
         <ButtonBase sx={acaoSx} aria-label="comentários" onClick={() => aoComentar(post)}>
           <MessageSquare size={16} strokeWidth={1.9} />
           {post.comentarios}
+        </ButtonBase>
+        <ButtonBase
+          sx={{ ...acaoSx, color: post.salvo ? 'status.sobrou' : 'text.secondary' }}
+          aria-pressed={post.salvo}
+          aria-label={post.salvo ? 'refeição salva' : 'salvar refeição'}
+          disabled={post.salvo}
+          onClick={() => aoSalvar(post)}
+        >
+          <motion.span
+            key={String(post.salvo)}
+            initial={{ scale: post.salvo ? 0.6 : 1 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+            style={{ display: 'flex' }}
+          >
+            <Bookmark size={16} strokeWidth={1.9} fill={post.salvo ? 'currentColor' : 'none'} />
+          </motion.span>
         </ButtonBase>
       </Box>
     </Box>

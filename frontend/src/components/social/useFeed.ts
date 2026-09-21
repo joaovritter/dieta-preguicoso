@@ -1,7 +1,7 @@
 import { createElement, useCallback, useEffect, useState, type ReactNode } from 'react';
 import FolhaComentarios from './FolhaComentarios';
 import { api, mensagemDoErro } from '../../lib/api';
-import { alternarCurtida } from '../../lib/social';
+import { alternarCurtida, definirSalvo } from '../../lib/social';
 import type { Feed, Post } from '../../lib/types';
 
 /** Feed paginado + curtida otimista + folha de comentários, para qualquer origem de posts. */
@@ -52,6 +52,15 @@ export function useFeed(buscar: (antes?: string) => Promise<Feed>) {
     });
   }
 
+  function salvar(post: Post) {
+    if (post.salvo) return; // desfazer é na aba Salvos do perfil
+    trocarPost(post.id, (p) => definirSalvo(p, true));
+    api.salvarRefeicao(post.id).catch((falha: unknown) => {
+      trocarPost(post.id, (p) => definirSalvo(p, false)); // desfaz a troca otimista
+      setErro(mensagemDoErro(falha));
+    });
+  }
+
   const folha: ReactNode = createElement(FolhaComentarios, {
     post: comentando,
     aoFechar: () => setComentando(null),
@@ -67,6 +76,7 @@ export function useFeed(buscar: (antes?: string) => Promise<Feed>) {
     carregarMais,
     recarregar,
     curtir,
+    salvar,
     abrirComentarios: setComentando,
     folha,
   };

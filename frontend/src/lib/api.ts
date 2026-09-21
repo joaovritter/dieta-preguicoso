@@ -16,6 +16,7 @@ import type {
   Perfil,
   PerfilPublico,
   Refeicao,
+  RefeicaoSalva,
   Registro,
   RegistroAgua,
   RegistrosDoDia,
@@ -170,6 +171,16 @@ export const api = {
 
   meComentarios: (antes?: string) =>
     requisitar<FeedComentarios>(`/me/comentarios${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`),
+
+  salvarRefeicao: (registroId: string) =>
+    requisitar<RefeicaoSalva>('/me/salvos', { method: 'POST', corpo: { registro_id: registroId } }),
+
+  salvos: (antes?: string) =>
+    requisitar<{ salvos: RefeicaoSalva[]; proximo_antes: string | null }>(
+      `/me/salvos${antes === undefined ? '' : `?antes=${encodeURIComponent(antes)}`}`,
+    ),
+
+  apagarSalvo: (id: string) => requisitar<void>(`/me/salvos/${id}`, { method: 'DELETE' }),
 
   registroTexto: (texto: string, criado_em?: string) =>
     requisitar<Interpretacao>('/registros/texto', {

@@ -8,6 +8,7 @@ import { useAuth } from '../auth/useAuth';
 import AbaComentarios from '../components/perfil/AbaComentarios';
 import AbaGruposPerfil from '../components/perfil/AbaGruposPerfil';
 import AbaPublicacoes from '../components/perfil/AbaPublicacoes';
+import AbaSalvos from '../components/perfil/AbaSalvos';
 import EditorFotoPerfil from '../components/perfil/EditorFotoPerfil';
 import Erro from '../components/Erro';
 import Segmentado from '../components/social/Segmentado';
@@ -15,9 +16,10 @@ import Tela from '../components/ui/Tela';
 import { api, mensagemDoErro } from '../lib/api';
 import { milhar } from '../lib/format';
 
-type Aba = 'publicacoes' | 'grupos' | 'comentarios';
+type Aba = 'publicacoes' | 'salvos' | 'grupos' | 'comentarios';
 
 function lerAba(valor: string | null, comComentarios: boolean): Aba {
+  if (valor === 'salvos') return 'salvos';
   if (valor === 'grupos') return 'grupos';
   if (valor === 'comentarios' && comComentarios) return 'comentarios';
   return 'publicacoes';
@@ -57,6 +59,7 @@ export default function PerfilPage() {
   const aba = lerAba(params.get('aba'), comComentarios);
   const opcoesAba = [
     { valor: 'publicacoes' as const, rotulo: 'publicações' },
+    { valor: 'salvos' as const, rotulo: 'salvos' },
     { valor: 'grupos' as const, rotulo: 'grupos' },
     ...(comComentarios ? [{ valor: 'comentarios' as const, rotulo: 'comentários' }] : []),
   ];
@@ -104,6 +107,7 @@ export default function PerfilPage() {
       />
 
       {aba === 'publicacoes' && <AbaPublicacoes userId={perfil.id} />}
+      {aba === 'salvos' && <AbaSalvos />}
       {aba === 'grupos' && <AbaGruposPerfil />}
       {aba === 'comentarios' && comComentarios && <AbaComentarios />}
     </Tela>
