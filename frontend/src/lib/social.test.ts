@@ -4,6 +4,7 @@ import {
   corDoAvatar,
   corDoPonto,
   definirSalvo,
+  filtrarAmigos,
   inicial,
   membros,
   tempoRelativo,
@@ -83,6 +84,34 @@ describe('definirSalvo', () => {
     const base = { id: 'p', curtidas: 8, salvo: false } as Post;
     expect(definirSalvo(base, true)).toMatchObject({ id: 'p', curtidas: 8, salvo: true });
     expect(definirSalvo({ ...base, salvo: true }, false).salvo).toBe(false);
+  });
+});
+
+describe('filtrarAmigos', () => {
+  const lista = [
+    { perfil: { nome: 'Marina Alves', tag: '1234' } },
+    { perfil: { nome: 'João Silva', tag: '9876' } },
+    { perfil: { nome: 'Rafael', tag: '4321' } },
+  ];
+  const nomes = (l: typeof lista) => l.map((a) => a.perfil.nome);
+
+  it('consulta vazia ou só espaços devolve a lista inteira', () => {
+    expect(filtrarAmigos('', lista)).toEqual(lista);
+    expect(filtrarAmigos('   ', lista)).toEqual(lista);
+  });
+  it('casa parte do nome', () => {
+    expect(nomes(filtrarAmigos('mar', lista))).toEqual(['Marina Alves']);
+  });
+  it('casa pela tag e por nome#tag', () => {
+    expect(nomes(filtrarAmigos('9876', lista))).toEqual(['João Silva']);
+    expect(nomes(filtrarAmigos('rafael#43', lista))).toEqual(['Rafael']);
+  });
+  it('sem correspondência devolve lista vazia', () => {
+    expect(filtrarAmigos('zzz', lista)).toEqual([]);
+  });
+  it('acento e maiúscula não importam', () => {
+    expect(nomes(filtrarAmigos('JOAO', lista))).toEqual(['João Silva']);
+    expect(nomes(filtrarAmigos('joão', lista))).toEqual(['João Silva']);
   });
 });
 

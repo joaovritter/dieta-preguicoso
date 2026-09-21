@@ -85,6 +85,21 @@ export function definirSalvo(post: Post, salvo: boolean): Post {
   return { ...post, salvo };
 }
 
+const semAcento = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+/** Busca na lista de amigos por nome ou nome#tag, ignorando acento e maiúscula. */
+export function filtrarAmigos<T extends { perfil: { nome: string; tag: string } }>(
+  consulta: string,
+  lista: T[],
+): T[] {
+  const termo = semAcento(consulta.trim());
+  if (termo === '') return lista;
+  return lista.filter(({ perfil }) => {
+    const nome = semAcento(perfil.nome);
+    return nome.includes(termo) || `${nome}#${perfil.tag.toLowerCase()}`.includes(termo);
+  });
+}
+
 export function textoRanking(posicao: number | null): string | null {
   return posicao === null ? null : `você é #${posicao} esta semana`;
 }
