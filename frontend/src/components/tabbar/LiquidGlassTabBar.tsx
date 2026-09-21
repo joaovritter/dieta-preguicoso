@@ -12,6 +12,7 @@ import {
 } from 'motion/react';
 import TabBarItem from './TabBarItem';
 import { BRILHO_REPOUSO, posicaoRelativa } from './brilho';
+import FiltroVidro from './FiltroVidro';
 import { useRolagemCompacta } from './useRolagemCompacta';
 import { estiloVidro } from './vidro';
 
@@ -95,6 +96,7 @@ export default function LiquidGlassTabBar({ itens, ativo, aoTrocar, acaoCentral 
         zIndex: 1100,
       }}
     >
+      <FiltroVidro />
       <Pilula
         onPointerMove={reduzir ? undefined : moverBrilho}
         onPointerLeave={reduzir ? undefined : repousarBrilho}

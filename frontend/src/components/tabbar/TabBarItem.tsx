@@ -9,7 +9,7 @@ const MOLA = { type: 'spring', stiffness: 300, damping: 28 } as const;
 
 const Botao = styled(motion.button)(({ theme }) => ({
   position: 'relative',
-  width: 58,
+  width: 66,
   padding: 0,
   margin: 0,
   border: 'none',
