@@ -80,7 +80,7 @@ export default function Home() {
         <>
           <SaldoDia metrica={resumo.calorias} />
           <CartoesMacro resumo={resumo} />
-          <CardAgua metrica={resumo.agua_ml} aoAdicionar={adicionarAgua} ocupado={ocupado || data !== hoje} />
+          <CardAgua metrica={resumo.agua_ml} data={data} aoAdicionar={adicionarAgua} aoApagar={recarregar} ocupado={ocupado || data !== hoje} />
           {registros !== null && (
             <ListaRefeicoes
               grupos={registros.refeicoes}

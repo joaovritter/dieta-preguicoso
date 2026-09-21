@@ -203,6 +203,11 @@ export const api = {
   adicionarAgua: (quantidade_ml: number) =>
     requisitar<RegistroAgua>('/agua', { method: 'POST', corpo: { quantidade_ml } }),
 
+  aguaDoDia: (data?: string) =>
+    requisitar<RegistroAgua[]>(`/agua${data === undefined ? '' : `?data=${encodeURIComponent(data)}`}`),
+
+  apagarAgua: (id: string) => requisitar<void>(`/agua/${id}`, { method: 'DELETE' }),
+
   resumoDia: (data: string) => requisitar<ResumoDia>(`/resumo/dia?data=${encodeURIComponent(data)}`),
 
   resumoSemana: (fim: string) => requisitar<ResumoSemana>(`/resumo/semana?fim=${encodeURIComponent(fim)}`),
