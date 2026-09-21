@@ -208,6 +208,10 @@ ignorado. Isso vale só para essa edição manual; a estimativa inicial da IA (`
 Refeições do usuário, ordenadas por `inicio`. Uma refeição sem registro não aparece,
 exceto quando o dia inteiro está vazio (nesse caso todas aparecem, cada uma zerada).
 
+### `GET /api/agua?data=YYYY-MM-DD`
+`data` opcional (padrão: hoje no fuso do usuário). → `200 Array<{ id, quantidade_ml, criado_em }>`
+com os registros de água do dia, mais recente primeiro (`[]` se não houver).
+
 ### `POST /api/agua`
 Body: `{ quantidade_ml: number }` (ou `{ texto: string }` — extrai o número) → `201 { id, quantidade_ml, criado_em }`
 
