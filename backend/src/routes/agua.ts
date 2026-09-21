@@ -3,9 +3,27 @@ import { z } from 'zod';
 import { extrairMililitros } from '../ai/parse.js';
 import { AppError } from '../lib/erros.js';
 import { perfilDe } from '../middleware/autenticar.js';
-import { apagarAgua, criarAgua } from '../repos/agua.js';
+import { dataLocal, intervaloDoDia } from '../domain/tempo.js';
+import { apagarAgua, criarAgua, listarAguaNoIntervalo } from '../repos/agua.js';
 
 export const rotasAgua: Router = Router();
+
+const dataOpcional = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'data deve estar no formato YYYY-MM-DD')
+  .optional();
+
+rotasAgua.get('/', async (req, res, next) => {
+  try {
+    const perfil = perfilDe(req);
+    const { data } = z.object({ data: dataOpcional }).parse(req.query);
+    const dia = data ?? dataLocal(new Date(), perfil.timezone);
+    const { inicio, fim } = intervaloDoDia(dia, perfil.timezone);
+    res.json(await listarAguaNoIntervalo(perfil.id, inicio, fim));
+  } catch (e) {
+    next(e);
+  }
+});
 
 const aguaSchema = z
   .object({

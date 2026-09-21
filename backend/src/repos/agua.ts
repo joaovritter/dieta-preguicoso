@@ -36,6 +36,20 @@ export async function totalAguaNoIntervalo(
   return linhas[0]?.total ?? 0;
 }
 
+export async function listarAguaNoIntervalo(
+  userId: string,
+  inicio: Date,
+  fim: Date,
+): Promise<RegistroAgua[]> {
+  const linhas = await consultar<LinhaAgua>(
+    `SELECT id, quantidade_ml, criado_em FROM registros_agua
+     WHERE user_id = $1 AND criado_em >= $2 AND criado_em < $3
+     ORDER BY criado_em DESC`,
+    [userId, inicio, fim],
+  );
+  return linhas.map((l) => ({ ...l, criado_em: l.criado_em.toISOString() }));
+}
+
 export async function apagarAgua(userId: string, id: string): Promise<boolean> {
   const linhas = await consultar<{ id: string }>(
     'DELETE FROM registros_agua WHERE id = $1 AND user_id = $2 RETURNING id',
