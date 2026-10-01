@@ -156,12 +156,11 @@ export default function MenuCaptura() {
         <IconeMais />
       </BotaoCentral>
 
-      {/* Abre a câmera traseira no celular; no desktop cai no seletor de arquivo. */}
+      {/* Sem `capture`: o celular oferece câmera ou galeria; no desktop abre o seletor de arquivo. */}
       <input
         ref={seletorFoto}
         type="file"
         accept="image/*"
-        capture="environment"
         hidden
         onChange={(evento) => {
           const arquivo = evento.target.files?.[0];
