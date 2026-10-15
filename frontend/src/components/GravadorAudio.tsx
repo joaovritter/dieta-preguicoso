@@ -37,6 +37,8 @@ export default function GravadorAudio({ aoEnviar, aoFechar }: Props) {
 
   const gravadorRef = useRef<MediaRecorder | null>(null);
   const pedacosRef = useRef<Blob[]>([]);
+  // Marcado ao cancelar/fechar: o gravador ainda dispara `onstop`, e sem isso o áudio seguiria para a IA.
+  const descartarRef = useRef(false);
 
   useEffect(() => {
     if (!gravando) return;
@@ -46,7 +48,9 @@ export default function GravadorAudio({ aoEnviar, aoFechar }: Props) {
 
   // Garante que o microfone é liberado se o overlay fechar no meio da gravação.
   useEffect(() => {
+    descartarRef.current = false; // o StrictMode roda o efeito duas vezes em dev
     return () => {
+      descartarRef.current = true;
       const gravador = gravadorRef.current;
       if (gravador !== null && gravador.state !== 'inactive') gravador.stop();
       gravador?.stream.getTracks().forEach((faixa) => faixa.stop());
@@ -66,6 +70,7 @@ export default function GravadorAudio({ aoEnviar, aoFechar }: Props) {
       };
       gravador.onstop = () => {
         stream.getTracks().forEach((faixa) => faixa.stop());
+        if (descartarRef.current) return;
         const blob = new Blob(pedacosRef.current, { type: gravador.mimeType || 'audio/webm' });
         if (blob.size === 0) {
           setErro('a gravação saiu vazia — tente de novo');
@@ -88,8 +93,13 @@ export default function GravadorAudio({ aoEnviar, aoFechar }: Props) {
     gravadorRef.current?.stop();
   }
 
+  function cancelar() {
+    descartarRef.current = true;
+    aoFechar();
+  }
+
   return (
-    <Overlay titulo="gravar áudio" aoFechar={aoFechar}>
+    <Overlay titulo="gravar áudio" aoFechar={cancelar}>
       {erro !== null && <Erro mensagem={erro} />}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', py: '12px' }}>
@@ -119,7 +129,7 @@ export default function GravadorAudio({ aoEnviar, aoFechar }: Props) {
       </Box>
 
       <Box sx={{ display: 'flex', gap: '9px' }}>
-        <BotaoCta type="button" variante="contorno" onClick={aoFechar} sx={{ flex: '0 0 38%' }}>
+        <BotaoCta type="button" variante="contorno" onClick={cancelar} sx={{ flex: '0 0 38%' }}>
           cancelar
         </BotaoCta>
         {gravando ? (

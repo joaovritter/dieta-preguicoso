@@ -12,12 +12,16 @@ interface LinhaAgua {
   criado_em: Date;
 }
 
-export async function criarAgua(userId: string, quantidadeMl: number): Promise<RegistroAgua> {
+export async function criarAgua(
+  userId: string,
+  quantidadeMl: number,
+  criadoEm: Date = new Date(),
+): Promise<RegistroAgua> {
   const linha = await consultarUm<LinhaAgua>(
-    `INSERT INTO registros_agua (user_id, quantidade_ml)
-     VALUES ($1, $2)
+    `INSERT INTO registros_agua (user_id, quantidade_ml, criado_em)
+     VALUES ($1, $2, $3)
      RETURNING id, quantidade_ml, criado_em`,
-    [userId, quantidadeMl],
+    [userId, quantidadeMl, criadoEm],
   );
   if (!linha) throw new Error('INSERT em registros_agua não devolveu linha');
   return { ...linha, criado_em: linha.criado_em.toISOString() };

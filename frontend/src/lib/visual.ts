@@ -33,8 +33,10 @@ export function corDaRefeicao(refeicaoId: string, refeicoes: Refeicao[]): CorRef
   return CICLO_CORES[Math.max(posicao, 0) % CICLO_CORES.length] ?? 'cafe';
 }
 
+/** Litros com até 2 casas: 250ml vira 0,25 (não 0,3); 1200ml vira 1,2. */
 export function litros(ml: number): string {
-  return (ml / 1000).toFixed(1).replace('.', ',');
+  const l = Math.round(ml / 10) / 100;
+  return l.toFixed(2).replace(/0$/, '').replace('.', ',');
 }
 
 function partesDoMes(mes: string): { ano: number; indice: number } {

@@ -6,6 +6,7 @@ import { dataCurta, dataValida, hojeISO } from '../lib/format';
 import { useAuth } from '../auth/useAuth';
 import { useRefeicoes } from '../lib/RefeicoesContext';
 import { useCaptura } from '../captura/CapturaContext';
+import { criadoEmParaDia } from '../captura/retroativo';
 import { useConfirmacao } from '../components/useConfirmacao';
 import { useDadosDoDia } from './useDadosDoDia';
 import SaldoDia from '../components/inicio/SaldoDia';
@@ -40,7 +41,8 @@ export default function Home() {
     }
   }
 
-  const adicionarAgua = (ml: number) => void comOcupado(() => api.adicionarAgua(ml));
+  const adicionarAgua = (ml: number) =>
+    void comOcupado(() => api.adicionarAgua(ml, criadoEmParaDia(data, new Date())));
   const excluirRegistro = (id: string) =>
     void (async () => {
       const ok = await confirmar({
@@ -68,7 +70,7 @@ export default function Home() {
         <>
           <SaldoDia metrica={resumo.calorias} />
           <CartoesMacro resumo={resumo} />
-          <CardAgua metrica={resumo.agua_ml} data={data} aoAdicionar={adicionarAgua} aoApagar={recarregar} ocupado={ocupado || data !== hoje} />
+          <CardAgua metrica={resumo.agua_ml} data={data} aoAdicionar={adicionarAgua} aoApagar={recarregar} ocupado={ocupado} />
           {registros !== null && (
             <ListaRefeicoes
               grupos={registros.refeicoes}

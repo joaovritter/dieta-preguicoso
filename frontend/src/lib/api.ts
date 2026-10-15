@@ -211,8 +211,8 @@ export const api = {
   registrosDoDia: (data: string) =>
     requisitar<RegistrosDoDia>(`/registros/dia?data=${encodeURIComponent(data)}`),
 
-  adicionarAgua: (quantidade_ml: number) =>
-    requisitar<RegistroAgua>('/agua', { method: 'POST', corpo: { quantidade_ml } }),
+  adicionarAgua: (quantidade_ml: number, criado_em?: string) =>
+    requisitar<RegistroAgua>('/agua', { method: 'POST', corpo: { quantidade_ml, criado_em } }),
 
   aguaDoDia: (data?: string) =>
     requisitar<RegistroAgua[]>(`/agua${data === undefined ? '' : `?data=${encodeURIComponent(data)}`}`),
