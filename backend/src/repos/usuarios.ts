@@ -20,6 +20,7 @@ interface LinhaUsuario {
   meta_proteina_g: number;
   meta_gordura_g: number;
   meta_agua_ml: number;
+  presets_agua_ml: number[];
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;
@@ -31,7 +32,7 @@ interface LinhaUsuario {
 
 const COLUNAS = `id, email, password_hash, nome, tag, sexo, idade, peso_kg, altura_cm, objetivo,
   meta_calorias, meta_carboidrato_g, meta_proteina_g, meta_gordura_g, meta_agua_ml,
-  metas_automaticas, modo_preguicoso, timezone, foto_url, esconder_comentarios_perfil,
+  presets_agua_ml, metas_automaticas, modo_preguicoso, timezone, foto_url, esconder_comentarios_perfil,
   created_at, desativada_em`;
 
 export function paraPerfil(l: LinhaUsuario): Perfil {
@@ -50,6 +51,7 @@ export function paraPerfil(l: LinhaUsuario): Perfil {
     meta_proteina_g: l.meta_proteina_g,
     meta_gordura_g: l.meta_gordura_g,
     meta_agua_ml: l.meta_agua_ml,
+    presets_agua_ml: l.presets_agua_ml,
     metas_automaticas: l.metas_automaticas,
     modo_preguicoso: l.modo_preguicoso,
     timezone: l.timezone,
@@ -155,6 +157,7 @@ export type CamposAtualizaveis = Partial<{
   meta_proteina_g: number;
   meta_gordura_g: number;
   meta_agua_ml: number;
+  presets_agua_ml: number[];
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   esconder_comentarios_perfil: boolean;
@@ -177,6 +180,7 @@ const COLUNAS_ATUALIZAVEIS = [
   'meta_proteina_g',
   'meta_gordura_g',
   'meta_agua_ml',
+  'presets_agua_ml',
   'metas_automaticas',
   'modo_preguicoso',
   'esconder_comentarios_perfil',

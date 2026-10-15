@@ -37,6 +37,8 @@ const perfilSchema = z
     meta_proteina_g: z.number().min(0).max(1000),
     meta_gordura_g: z.number().min(0).max(1000),
     meta_agua_ml: z.number().int().min(200).max(20000),
+    // Três botões rápidos de água: múltiplos de 50 entre 50 e 2000 ml.
+    presets_agua_ml: z.array(z.number().int().min(50).max(2000).multipleOf(50)).length(3),
     metas_automaticas: z.boolean(),
     modo_preguicoso: z.boolean(),
     esconder_comentarios_perfil: z.boolean(),

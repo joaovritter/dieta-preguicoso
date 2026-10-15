@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PRESETS_PADRAO, ajustarPreset, lerAvulso, lerPresets, normalizarPreset, somarAvulso } from './presetsAgua';
+import { PRESETS_PADRAO, ajustarPreset, lerAvulso, lerPresets, normalizarPreset, presetsParaMigrar, somarAvulso } from './presetsAgua';
 
 describe('lerPresets', () => {
   it('sem nada salvo usa o padrão', () => {
@@ -62,5 +62,17 @@ describe('somarAvulso', () => {
   it('texto inválido parte de zero', () => {
     expect(somarAvulso('', 50)).toBe(50);
     expect(somarAvulso('', -50)).toBe(1);
+  });
+});
+
+describe('presetsParaMigrar', () => {
+  it('sobe os botões do aparelho quando a conta ainda está no padrão', () => {
+    expect(presetsParaMigrar([250, 350, 1000], [200, 300, 500])).toEqual([250, 350, 1000]);
+  });
+  it('conta que já tem botões próprios manda mais que o aparelho', () => {
+    expect(presetsParaMigrar([250, 350, 1000], [150, 300, 500])).toBeNull();
+  });
+  it('aparelho no padrão não tem o que subir', () => {
+    expect(presetsParaMigrar([200, 300, 500], [200, 300, 500])).toBeNull();
   });
 });

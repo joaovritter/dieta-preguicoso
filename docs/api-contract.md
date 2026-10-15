@@ -51,6 +51,7 @@ interface Perfil {
   meta_proteina_g: number;
   meta_gordura_g: number;
   meta_agua_ml: number;
+  presets_agua_ml: number[];     // 3 botões rápidos de água (ml), ex: [200, 300, 500]; múltiplos de 50, entre 50 e 2000
   metas_automaticas: boolean;    // true = recalcula metas a partir de peso/altura/idade/sexo/objetivo
   modo_preguicoso: boolean;      // true = grava sem tela de confirmação
   timezone: string;              // ex: "America/Sao_Paulo"
@@ -106,7 +107,7 @@ quem acertou a senha: senha errada numa conta desativada continua `401`.
 ### `PUT /api/me`
 Body: qualquer subconjunto de
 `{ nome, sexo, idade, peso_kg, altura_cm, objetivo, meta_calorias, meta_carboidrato_g,
-   meta_proteina_g, meta_gordura_g, meta_agua_ml, metas_automaticas, modo_preguicoso,
+   meta_proteina_g, meta_gordura_g, meta_agua_ml, presets_agua_ml, metas_automaticas, modo_preguicoso,
    esconder_comentarios_perfil, timezone }`
 → `200 Perfil` (já com metas recalculadas se `metas_automaticas`).
 

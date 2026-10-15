@@ -79,12 +79,12 @@ function LinhaPreset({ ml, aoMudar }: { ml: number; aoMudar: (novo: number) => v
 }
 
 export default function CardAgua({ metrica, data, aoAdicionar, aoApagar, ocupado }: Props) {
-  const { presets, ajustar } = usePresetsAgua();
   const [editando, setEditando] = useState(false);
   const [outroAberto, setOutroAberto] = useState(false);
   const [textoOutro, setTextoOutro] = useState('');
   const [registros, setRegistros] = useState<RegistroAgua[] | null>(null);
   const [erroLista, setErroLista] = useState<string | null>(null);
+  const { presets, ajustar } = usePresetsAgua(setErroLista);
   const { confirmar, elemento: confirmacao } = useConfirmacao();
   const largura = Math.min(metrica.percentual, 100);
   const valorOutro = lerAvulso(textoOutro);
