@@ -5,6 +5,9 @@ import type { EntradaConfirmacao, Interpretacao } from '../lib/types';
 interface Entrada {
   interpretacao: Interpretacao | null;
   textoCarregando: string | null;
+  /** A confirmação aberta veio das refeições salvas (não da IA). */
+  daSalva: boolean;
+  prepararSalva: (interpretacao: Interpretacao, criadoEm?: string) => void;
   enviarFoto: (arquivo: File, criadoEm?: string) => Promise<void>;
   enviarAudio: (audio: Blob, criadoEm?: string) => Promise<void>;
   enviarTexto: (texto: string, criadoEm?: string) => Promise<void>;
@@ -16,6 +19,7 @@ interface Pendente {
   interpretacao: Interpretacao;
   /** Dia escolhido no calendário; repassado ao confirmar. */
   criadoEm: string | undefined;
+  daSalva?: boolean;
 }
 
 /**
@@ -61,6 +65,8 @@ export function useEntradaIA(aoGravar: () => Promise<void>, aoFalhar: (erro: unk
   return {
     interpretacao: pendente?.interpretacao ?? null,
     textoCarregando,
+    daSalva: pendente?.daSalva ?? false,
+    prepararSalva: (interpretacao, criadoEm) => setPendente({ interpretacao, criadoEm, daSalva: true }),
     enviarFoto: (arquivo, criadoEm) =>
       executar('analisando a foto...', criadoEm, () => api.registroFoto(arquivo, criadoEm)),
     enviarAudio: (audio, criadoEm) =>

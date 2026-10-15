@@ -6,6 +6,7 @@ import {
   definirSalvo,
   filtrarAmigos,
   inicial,
+  listaDeAlimentos,
   membros,
   tempoRelativo,
   textoDoDia,
@@ -123,5 +124,28 @@ describe('textoRanking e membros', () => {
   it('plural', () => {
     expect(membros(1)).toBe('1 membro');
     expect(membros(12)).toBe('12 membros');
+  });
+});
+
+describe('listaDeAlimentos', () => {
+  const alimento = (nome: string, quantidade_estimada: string) => ({
+    nome,
+    quantidade_estimada,
+    calorias: 0,
+    carboidrato_g: 0,
+    proteina_g: 0,
+    gordura_g: 0,
+  });
+
+  it('junta quantidade e nome, separados por vírgula', () => {
+    expect(listaDeAlimentos([alimento('pão francês', '55 gramas'), alimento('queijo', '35 gramas')])).toBe(
+      '55 gramas de pão francês, 35 gramas de queijo',
+    );
+  });
+  it('sem quantidade, mostra só o nome', () => {
+    expect(listaDeAlimentos([alimento('café', '')])).toBe('café');
+  });
+  it('lista vazia vira texto vazio', () => {
+    expect(listaDeAlimentos([])).toBe('');
   });
 });

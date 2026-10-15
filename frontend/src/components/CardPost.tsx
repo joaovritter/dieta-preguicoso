@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import Avatar from './social/Avatar';
 import { numero } from '../lib/format';
-import { tempoRelativo } from '../lib/social';
+import { listaDeAlimentos, tempoRelativo } from '../lib/social';
 import type { Post } from '../lib/types';
 
 interface Props {
@@ -61,13 +61,14 @@ export default function CardPost({ post, aoCurtir, aoComentar, aoSalvar }: Props
         <Box
           component="img"
           src={post.midia_url}
-          alt={`foto de ${post.descricao_bruta}`}
+          alt="foto da refeição"
           loading="lazy"
-          sx={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: '14px', display: 'block' }}
+          // A foto aparece inteira; só ganha faixa nas laterais se for mais alta que o limite.
+          sx={{ width: '100%', height: 'auto', maxHeight: 520, objectFit: 'contain', bgcolor: 'neutro.cartao', borderRadius: '14px', display: 'block' }}
         />
       )}
 
-      <Typography sx={{ fontSize: 13, lineHeight: 1.4 }}>{post.descricao_bruta}</Typography>
+      <Typography sx={{ fontSize: 13, lineHeight: 1.4 }}>{listaDeAlimentos(post.alimentos_detectados)}</Typography>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '18px', mt: '2px' }}>
         <Box
@@ -75,7 +76,10 @@ export default function CardPost({ post, aoCurtir, aoComentar, aoSalvar }: Props
             {
               minHeight: 26,
               display: 'flex',
+              flexWrap: 'wrap',
               alignItems: 'center',
+              columnGap: '8px',
+              py: '3px',
               px: '10px',
               borderRadius: '8px',
               bgcolor: 'neutro.cartao',
@@ -87,7 +91,10 @@ export default function CardPost({ post, aoCurtir, aoComentar, aoSalvar }: Props
             (t) => t.applyStyles('dark', { border: '1px solid', borderColor: 'neutro.borda' }),
           ]}
         >
-          {numero(post.calorias_total)} kcal
+          <span>{numero(post.calorias_total)} kcal</span>
+          <span>P {Math.round(post.proteina_total_g)}g</span>
+          <span>C {Math.round(post.carboidrato_total_g)}g</span>
+          <span>G {Math.round(post.gordura_total_g)}g</span>
         </Box>
         <Box sx={{ flex: 1 }} />
         <ButtonBase

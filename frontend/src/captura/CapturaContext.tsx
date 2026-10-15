@@ -7,9 +7,12 @@ import { mensagemDoErro } from '../lib/api';
 import { paraISO } from '../lib/format';
 import { useEntradaIA } from './useEntradaIA';
 import { criadoEmParaDia } from './retroativo';
+import { interpretacaoDeSalva } from './salva';
+import { useRefeicoes } from '../lib/RefeicoesContext';
 import EntradaTexto from '../components/EntradaTexto';
 import GravadorAudio from '../components/GravadorAudio';
 import ConfirmacaoRegistro from '../components/ConfirmacaoRegistro';
+import EscolherSalva from '../components/captura/EscolherSalva';
 import { OverlayCarregando } from '../components/Overlay';
 
 export interface Captura {
@@ -23,6 +26,7 @@ export interface Captura {
   enviarFoto(arquivo: File): void;
   abrirAudio(): void;
   abrirTexto(): void;
+  abrirSalvas(): void;
   ocupado: boolean;
   /** Incrementa a cada registro gravado — páginas usam como dependência para recarregar. */
   versao: number;
@@ -30,10 +34,11 @@ export interface Captura {
 
 const CapturaContexto = createContext<Captura | null>(null);
 
-type Modal = 'texto' | 'audio' | null;
+type Modal = 'texto' | 'audio' | 'salvas' | null;
 
 export function CapturaProvider({ children }: { children: ReactNode }) {
   const navegar = useNavigate();
+  const { refeicoes } = useRefeicoes();
   const [modal, setModal] = useState<Modal>(null);
   const [menuAberto, setMenuAberto] = useState(false);
   const [dataAlvo, setDataAlvoEstado] = useState<string | null>(null);
@@ -81,6 +86,7 @@ export function CapturaProvider({ children }: { children: ReactNode }) {
     enviarFoto: (arquivo) => void entrada.enviarFoto(arquivo, instante()),
     abrirAudio: () => setModal('audio'),
     abrirTexto: () => setModal('texto'),
+    abrirSalvas: () => setModal('salvas'),
     ocupado: entrada.textoCarregando !== null,
     versao,
   };
@@ -114,9 +120,23 @@ export function CapturaProvider({ children }: { children: ReactNode }) {
         />
       )}
 
+      {modal === 'salvas' && (
+        <EscolherSalva
+          aoFechar={fecharModal}
+          aoUsar={(alimentos) => {
+            const quando = instante();
+            const interpretacao = interpretacaoDeSalva(alimentos, refeicoes, quando === undefined ? new Date() : new Date(quando));
+            setModal(null);
+            if (interpretacao === null) aoFalhar(new Error('não consegui carregar suas refeições, tente de novo'));
+            else entrada.prepararSalva(interpretacao, quando);
+          }}
+        />
+      )}
+
       {entrada.interpretacao !== null && (
         <ConfirmacaoRegistro
           interpretacao={entrada.interpretacao}
+          daSalva={entrada.daSalva}
           aoConfirmar={entrada.confirmar}
           aoDescartar={() => {
             entrada.descartar();
