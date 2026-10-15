@@ -4,8 +4,9 @@ import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Camera, Mic, Type } from 'lucide-react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useCaptura } from '../../captura/CapturaContext';
-import { dataCurta } from '../../lib/format';
+import { dataCurta, dataValida, hojeISO } from '../../lib/format';
 import { IconeMais } from '../tabbar/icones';
 import { estiloVidro } from '../tabbar/vidro';
 import { useRolagemCompacta } from '../tabbar/useRolagemCompacta';
@@ -74,6 +75,10 @@ const Opcao = styled('button')(({ theme }) => ({
 export default function MenuCaptura() {
   const { enviarFoto, abrirAudio, abrirTexto, ocupado, menuAberto, dataAlvo, abrirMenu, fecharMenu } =
     useCaptura();
+  const { pathname } = useLocation();
+  const [params] = useSearchParams();
+  // Na tela de um dia passado (`/?data=...`), o `+` registra naquele dia e não em hoje.
+  const diaDaTela = pathname === '/' ? dataValida(params.get('data'), hojeISO()) : undefined;
   const compacta = useRolagemCompacta();
   const reduzir = useReducedMotion() ?? false;
   const raiz = useRef<HTMLDivElement>(null);
@@ -147,7 +152,7 @@ export default function MenuCaptura() {
         aria-haspopup="menu"
         aria-expanded={menuAberto}
         disabled={ocupado}
-        onClick={() => (menuAberto ? fecharMenu() : abrirMenu())}
+        onClick={() => (menuAberto ? fecharMenu() : abrirMenu(diaDaTela))}
         initial={false}
         animate={{ width: tamanho, height: tamanho, rotate: menuAberto ? 45 : 0 }}
         transition={reduzir ? { duration: 0.15 } : MOLA}

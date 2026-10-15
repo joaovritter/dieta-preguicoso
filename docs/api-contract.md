@@ -213,7 +213,8 @@ exceto quando o dia inteiro está vazio (nesse caso todas aparecem, cada uma zer
 com os registros de água do dia, mais recente primeiro (`[]` se não houver).
 
 ### `POST /api/agua`
-Body: `{ quantidade_ml: number }` (ou `{ texto: string }` — extrai o número) → `201 { id, quantidade_ml, criado_em }`
+Body: `{ quantidade_ml: number, criado_em?: string }` (ou `{ texto: string }` — extrai o número) → `201 { id, quantidade_ml, criado_em }`
+`criado_em` (ISO 8601) serve para lançar água num dia passado; instante no futuro → `400 VALIDACAO`.
 
 ### `DELETE /api/agua/:id` → `204`
 

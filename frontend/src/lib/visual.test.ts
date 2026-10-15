@@ -62,11 +62,13 @@ describe('corDaRefeicao', () => {
 });
 
 describe('litros', () => {
-  it('formata com vírgula e uma casa', () => {
+  it('formata com vírgula e só usa a segunda casa quando precisa', () => {
     expect(litros(1200)).toBe('1,2');
     expect(litros(2500)).toBe('2,5');
+    expect(litros(2000)).toBe('2,0');
     expect(litros(0)).toBe('0,0');
-    expect(litros(1250)).toBe('1,3');
+    expect(litros(250)).toBe('0,25');
+    expect(litros(1250)).toBe('1,25');
   });
 });
 

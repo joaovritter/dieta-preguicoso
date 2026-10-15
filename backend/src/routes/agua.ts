@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { extrairMililitros } from '../ai/parse.js';
 import { AppError } from '../lib/erros.js';
 import { perfilDe } from '../middleware/autenticar.js';
+import { criadoEmValido } from '../domain/retroativo.js';
 import { dataLocal, intervaloDoDia } from '../domain/tempo.js';
 import { apagarAgua, criarAgua, listarAguaNoIntervalo } from '../repos/agua.js';
 
@@ -29,6 +30,7 @@ const aguaSchema = z
   .object({
     quantidade_ml: z.number().int().min(1).max(10000).optional(),
     texto: z.string().trim().min(1).max(200).optional(),
+    criado_em: z.iso.datetime().optional(),
   })
   .refine(
     (o) => o.quantidade_ml !== undefined || o.texto !== undefined,
@@ -46,7 +48,14 @@ rotasAgua.post('/', async (req, res, next) => {
       throw new AppError('VALIDACAO', 'não identifiquei a quantidade de água nesse texto');
     }
 
-    res.status(201).json(await criarAgua(perfil.id, ml));
+    // criado_em deixa lançar água num dia passado, igual às refeições.
+    const agora = new Date();
+    if (dados.criado_em !== undefined && !criadoEmValido(dados.criado_em, agora)) {
+      throw new AppError('VALIDACAO', 'não dá para registrar água no futuro');
+    }
+    const criadoEm = dados.criado_em === undefined ? agora : new Date(dados.criado_em);
+
+    res.status(201).json(await criarAgua(perfil.id, ml, criadoEm));
   } catch (e) {
     next(e);
   }
