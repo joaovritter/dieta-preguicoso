@@ -34,6 +34,8 @@ export interface Perfil {
   meta_proteina_g: number;
   meta_gordura_g: number;
   meta_agua_ml: number;
+  /** Os 3 botões rápidos de água, iguais em todos os aparelhos da conta. */
+  presets_agua_ml: number[];
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;
@@ -141,6 +143,7 @@ export interface EntradaPerfil {
   meta_proteina_g?: number;
   meta_gordura_g?: number;
   meta_agua_ml?: number;
+  presets_agua_ml?: number[];
   metas_automaticas?: boolean;
   modo_preguicoso?: boolean;
   esconder_comentarios_perfil?: boolean;

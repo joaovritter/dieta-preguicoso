@@ -19,6 +19,8 @@ interface Props {
   interpretacao: Interpretacao;
   aoConfirmar: (entrada: EntradaConfirmacao, salvar: boolean) => Promise<void>;
   aoDescartar: () => void;
+  /** Veio das refeições salvas: não houve leitura da IA e não faz sentido salvar de novo. */
+  daSalva?: boolean;
 }
 
 const ALIMENTO_VAZIO: Alimento = {
@@ -32,7 +34,7 @@ const ALIMENTO_VAZIO: Alimento = {
 
 const ORIGEM: Record<TipoEntrada, string> = { foto: 'foto', audio: 'áudio', texto: 'texto' };
 
-export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDescartar }: Props) {
+export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDescartar, daSalva = false }: Props) {
   const { refeicoes } = useRefeicoes();
   const [alimentos, setAlimentos] = useState<Alimento[]>(interpretacao.alimentos);
   const [refeicaoId, setRefeicaoId] = useState<string>(interpretacao.refeicao_sugerida.id);
@@ -105,11 +107,11 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
         {erro !== null && <Erro mensagem={erro} aoFechar={() => setErro(null)} />}
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          <RotuloSecao>li da sua {ORIGEM[interpretacao.tipo_entrada]}</RotuloSecao>
+          <RotuloSecao>{daSalva ? 'das suas salvas' : `li da sua ${ORIGEM[interpretacao.tipo_entrada]}`}</RotuloSecao>
           <Typography component="h2" sx={{ m: 0, fontWeight: 700, fontSize: 26, lineHeight: 1.1, letterSpacing: '-.025em' }}>
             confere aí?
           </Typography>
-          {interpretacao.descricao_bruta !== '' && (
+          {!daSalva && interpretacao.descricao_bruta !== '' && (
             <Typography sx={{ fontSize: 13, lineHeight: 1.45, color: 'text.secondary' }}>
               “{interpretacao.descricao_bruta}”
             </Typography>
@@ -181,10 +183,12 @@ export default function ConfirmacaoRegistro({ interpretacao, aoConfirmar, aoDesc
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Typography sx={{ flex: 1, fontWeight: 500, fontSize: 14 }}>salvar esta refeição</Typography>
-          <Interruptor rotulo="salvar esta refeição" ligado={guardar} aoMudar={setGuardar} disabled={salvando} />
-        </Box>
+        {!daSalva && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Typography sx={{ flex: 1, fontWeight: 500, fontSize: 14 }}>salvar esta refeição</Typography>
+            <Interruptor rotulo="salvar esta refeição" ligado={guardar} aoMudar={setGuardar} disabled={salvando} />
+          </Box>
+        )}
 
         <Box sx={{ display: 'flex', gap: '9px' }}>
           <BotaoCta variante="perigo" disabled={salvando} onClick={aoDescartar} sx={{ flex: '0 0 38%' }}>

@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { styled } from '@mui/material/styles';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Camera, Mic, Type } from 'lucide-react';
+import { Bookmark, Camera, Mic, Type } from 'lucide-react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useCaptura } from '../../captura/CapturaContext';
 import { dataCurta, dataValida, hojeISO } from '../../lib/format';
@@ -73,7 +73,7 @@ const Opcao = styled('button')(({ theme }) => ({
 }));
 
 export default function MenuCaptura() {
-  const { enviarFoto, abrirAudio, abrirTexto, ocupado, menuAberto, dataAlvo, abrirMenu, fecharMenu } =
+  const { enviarFoto, abrirAudio, abrirTexto, abrirSalvas, ocupado, menuAberto, dataAlvo, abrirMenu, fecharMenu } =
     useCaptura();
   const { pathname } = useLocation();
   const [params] = useSearchParams();
@@ -140,6 +140,10 @@ export default function MenuCaptura() {
               <Opcao type="button" role="menuitem" onClick={() => escolher(abrirTexto)}>
                 <Type size={20} aria-hidden="true" />
                 texto
+              </Opcao>
+              <Opcao type="button" role="menuitem" onClick={() => escolher(abrirSalvas)}>
+                <Bookmark size={20} aria-hidden="true" />
+                salvas
               </Opcao>
             </Box>
           </Popover>

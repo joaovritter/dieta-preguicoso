@@ -1,4 +1,4 @@
-import type { Post, ProgressoDia, StatusDia } from './types';
+import type { Alimento, Post, ProgressoDia, StatusDia } from './types';
 
 export type CorAvatar =
   | 'status.sobrou'
@@ -106,4 +106,16 @@ export function textoRanking(posicao: number | null): string | null {
 
 export function membros(qtd: number): string {
   return `${qtd} ${qtd === 1 ? 'membro' : 'membros'}`;
+}
+
+/** "55g de pão francês, 35g de queijo": só o que a IA interpretou, nunca o texto digitado. */
+export function listaDeAlimentos(alimentos: Alimento[]): string {
+  return alimentos
+    .map((a) => {
+      const nome = a.nome.trim();
+      const quantidade = a.quantidade_estimada.trim();
+      return quantidade === '' || nome === '' ? nome || quantidade : `${quantidade} de ${nome}`;
+    })
+    .filter((texto) => texto !== '')
+    .join(', ');
 }

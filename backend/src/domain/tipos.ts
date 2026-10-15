@@ -54,6 +54,7 @@ export interface Perfil {
   meta_proteina_g: number;
   meta_gordura_g: number;
   meta_agua_ml: number;
+  presets_agua_ml: number[];
   metas_automaticas: boolean;
   modo_preguicoso: boolean;
   timezone: string;

@@ -50,3 +50,14 @@ export function somarAvulso(texto: string, delta: number): number {
 export function ajustarPreset(presets: number[], indice: number, delta: number): number[] {
   return presets.map((ml, i) => (i === indice ? Math.min(MAXIMO, Math.max(MINIMO, ml + delta)) : ml));
 }
+
+/**
+ * Botões que ainda moram só no aparelho (versão antiga do app) e devem subir para a conta.
+ * Só sobe se a conta ainda está no padrão e o aparelho tem algo personalizado: se a conta já
+ * tem botões próprios, ela manda.
+ */
+export function presetsParaMigrar(doAparelho: number[], daConta: number[]): number[] | null {
+  const igual = (a: number[], b: number[]) => a.length === b.length && a.every((v, i) => v === b[i]);
+  if (!igual(daConta, PRESETS_PADRAO) || igual(doAparelho, PRESETS_PADRAO)) return null;
+  return doAparelho;
+}
