@@ -63,6 +63,11 @@ Stack completa: `docker compose up -d --build`
   cores vêm do tema (`paleta(theme)`), nunca hex solto fora dele. Animação com Motion,
   respeitando `useReducedMotion`. Sem CSS puro novo.
 
+## Git
+
+- Mudança pequena (ajuste de tela, correção pontual, poucos arquivos): commit e push direto na `main`.
+- Mudança grande (feature nova com backend + frontend, migration, refatoração ampla): branch própria e PR.
+
 ## Tabela de roteamento de especialistas
 
 | Agente | Quando usar |
