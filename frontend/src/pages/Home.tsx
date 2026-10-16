@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Typography from '@mui/material/Typography';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
-import { dataCurta, dataValida, hojeISO } from '../lib/format';
+import { dataValida, hojeISO } from '../lib/format';
 import { useAuth } from '../auth/useAuth';
 import { useRefeicoes } from '../lib/RefeicoesContext';
 import { useCaptura } from '../captura/CapturaContext';
@@ -15,12 +15,12 @@ import CardAgua from '../components/CardAgua';
 import ListaRefeicoes from '../components/ListaRefeicoes';
 import Erro from '../components/Erro';
 import Tela from '../components/ui/Tela';
-import TituloTela from '../components/ui/TituloTela';
+import NavegacaoDia from '../components/inicio/NavegacaoDia';
 
 export default function Home() {
   const { perfil } = useAuth();
   const { versao } = useCaptura();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const hoje = hojeISO();
   const data = dataValida(params.get('data'), hoje);
   const [ocupado, setOcupado] = useState(false);
@@ -57,7 +57,11 @@ export default function Home() {
 
   return (
     <Tela gap={13}>
-      <TituloTela>{data === hoje ? 'hoje' : dataCurta(data)}</TituloTela>
+      <NavegacaoDia
+        data={data}
+        hoje={hoje}
+        aoTrocarDia={(nova) => setParams(nova === hoje ? {} : { data: nova }, { replace: true })}
+      />
 
       {erro !== null && <Erro mensagem={erro} aoFechar={dados.limparErro} />}
       {refeicoesCtx.erro !== null && <Erro mensagem={refeicoesCtx.erro} aoFechar={refeicoesCtx.limparErro} />}
